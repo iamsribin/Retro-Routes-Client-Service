@@ -1,0 +1,36 @@
+import './App.scss'
+import {Route,Routes,BrowserRouter, Navigate} from "react-router-dom";
+import {useSelector} from 'react-redux'
+import { Toaster } from "sonner";
+// import { ChakraProvider } from '@chakra-ui/react';
+import { ChakraProvider, } from "@chakra-ui/react";
+import { theme } from "@chakra-ui/theme";
+
+// import HomePage from './pages/user/Home/HomePage.tsx';
+import LoginPage from './pages/user/authntication/loginPage';
+import { ToastContainer } from 'react-toastify';
+
+function App() {
+  const  user  = useSelector((store:{ user: { loggedIn: boolean } })=>store.user.loggedIn);
+  // const  driver  = useSelector((store:{ driver: { loggedIn: boolean } })=>store.driver.loggedIn);
+  // const  admin  = useSelector((store:{ admin: { loggedIn: boolean } })=>store.admin.loggedIn);
+  
+  return (
+    <>
+    <ToastContainer />
+    <Toaster position="top-right" expand={true} richColors/>
+    {/* <ChakraProvider> */}
+      <BrowserRouter>
+        <Routes>
+
+          {/* user roter  */}
+          <Route path='/login'  element={user ? <Navigate to={'/'}/>:<LoginPage/>}/>
+
+        </Routes>
+      </BrowserRouter>
+      {/* </ChakraProvider>  */}
+    </>
+  )
+}
+
+export default App
