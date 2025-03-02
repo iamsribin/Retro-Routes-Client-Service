@@ -1,12 +1,7 @@
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-  }
-}
-import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import { Link, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as yup from "yup";
+// import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import axiosUser from "../../../../services/axios/userAxios";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -17,23 +12,28 @@ import {
 
 import { jwtDecode } from "jwt-decode";
 
+import { auth } from "../../../../services/firebase";
 
-import { auth } from "../../../../services/firebase"
-
-import { HStack } from "@chakra-ui/react";
-import { PinInput, PinInputField } from "@chakra-ui/pin-input";
-
+import { PinInput, PinInputField, HStack } from "@chakra-ui/react";
+ 
 import { useDispatch } from "react-redux";
 import { userLogin } from "../../../../services/redux/slices/userAuthSlice";
 
-import {  CredentialResponse, GoogleLogin } from "@react-oauth/google"; 
-import {  sendOtp } from "../../../../hooks/auth";
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google"; 
+import { sendOtp } from "../../../../hooks/auth";
+
+// Global type declaration for window
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+  }
+}
 
 interface UserData {
   user: string;
   user_id: string;
-  userToken:string;
-  refreshToken:string;
+  userToken: string;
+  refreshToken: string;
   loggedIn: boolean;
 }
 
@@ -44,12 +44,12 @@ function Login() {
   const [userData, setuserData] = useState<UserData>({
     user: "",
     user_id: "",
-    userToken:"",
-    refreshToken:"",
-    loggedIn:false
+    userToken: "",
+    refreshToken: "",
+    loggedIn: false
   });
 
-  const dispatch=useDispatch()
+  const dispatch = useDispatch();
   const formik = useFormik({
     initialValues: {
       mobile: "",
@@ -62,17 +62,16 @@ function Login() {
     }),
     onSubmit: async (values) => {
       try {
-        
         const { data } = await axiosUser().post("/checkLoginUser", values);        
         if (data.message === "Success") {
-          sendOtp(setotpInput,auth,formik.values.mobile,setConfirmationResult);
-          console.log(data,"-========")
+          sendOtp(setotpInput, auth, formik.values.mobile, setConfirmationResult);
+          console.log(data, "-========");
           setuserData({
             user: data.name,
             user_id: data._id,
-            userToken:data.token,
-            refreshToken:data.refreshToken,
-            loggedIn:true
+            userToken: data.token,
+            refreshToken: data.refreshToken,
+            loggedIn: true
           });          
         } else if (data.message === "Blocked") {
           toast.info("your account is blocked");
@@ -81,14 +80,11 @@ function Login() {
         }
       } catch (error) {
         console.log(error);
-        
         toast.error((error as Error).message);
       }
     },
   });
-  console.log(import.meta.env.VITE_API_GATEWAY_URL,"=-=-=-=-=-=-=-=-=Api");
   
-
   const [otpInput, setotpInput] = useState(false);
   const [otp, setOtp] = useState<number>(0);
 
@@ -105,7 +101,6 @@ function Login() {
     }
   }, [counter, otpInput]);
 
-  
   const otpVerify = (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
@@ -115,10 +110,10 @@ function Login() {
       confirmationResult
         .confirm(otpValue)
         .then(async () => {
-          console.log(userData,"-------")
-          localStorage.setItem("userToken",userData.userToken)
-          localStorage.setItem("refreshToken",userData.refreshToken)
-          dispatch(userLogin(userData))
+          console.log(userData, "-------");
+          localStorage.setItem("userToken", userData.userToken);
+          localStorage.setItem("refreshToken", userData.refreshToken);
+          dispatch(userLogin(userData));
           toast.success("login success");
           navigate("/");
         })
@@ -129,30 +124,29 @@ function Login() {
       toast.error("Enter a valid otp");
     }
   };
+
   const googleLogin = async (datas: CredentialResponse) => {
     try {
-      const token:string |undefined=datas.credential
+      const token: string | undefined = datas.credential;
       if (token) {
-        const decode = jwtDecode(token) as any
+        const decode = jwtDecode(token) as any;
         const { data } = await axiosUser().post("checkGoogleLoginUser", { email: decode.email });        
         if (data.message === "Success") {
           toast.success("Login success!");
-          localStorage.setItem("userToken",data.token)
-          localStorage.setItem("refreshToken",data.refreshToken)
-                dispatch(userLogin({user: data.name,user_id: data._id,loggedIn:true}));
-                navigate("/");
-            } else if (data.message === "Blocked") {
-                toast.error("Your Blocked By Admin");
-            } else {
-                toast.error("Not registered! Please register to  continue.");
-            }
+          localStorage.setItem("userToken", data.token);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          dispatch(userLogin({user: data.name, user_id: data._id, loggedIn: true}));
+          navigate("/");
+        } else if (data.message === "Blocked") {
+          toast.error("Your Blocked By Admin");
+        } else {
+          toast.error("Not registered! Please register to continue.");
         }
+      }
     } catch (error: any) {
-        toast.error(error);
+      toast.error(error);
     }
-};
-
-  const iconsColor = "text-gray-400";
+  };
   
   return (
     <>
@@ -163,7 +157,7 @@ function Login() {
             <img
               src="/images/logo.png"
               alt="Logo"
-              className=" w-[40%]"
+              className="w-[40%]"
             />
           </Link>
         </div>
@@ -187,41 +181,36 @@ function Login() {
               className="hidden md:flex md:items-center"
               style={{ marginTop: "-25px" }}
             >
-              {otpInput?(<img
-              className="mt-2"
-                style={{ height: "330px", width: "auto" }}
-                src="/images/otp.jpg"
-                alt=""
-              />):(
+              {otpInput ? (
                 <img
-              className="mt-2"
-                style={{ height: "330px", width: "auto" }}
-                src="/images/login.jpg"
-                alt=""
-              />
+                  className="mt-2"
+                  style={{ height: "330px", width: "auto" }}
+                  src="/images/otp.jpg"
+                  alt=""
+                />
+              ) : (
+                <img
+                  className="mt-2"
+                  style={{ height: "330px", width: "auto" }}
+                  src="/images/login.jpg"
+                  alt=""
+                />
               )}
-              
             </div>
           </div>
           <div className="flex md:w-1/2 justify-center pb-10 md:py-10 items-center">
             <div className="user-signup-form md:w-8/12 px-9 py-8 bg-white drop-shadow-xl">
               <form onSubmit={formik.handleSubmit}>
-                <div className="text-center">
-                  <h1 className="text-gray-800 font-bold text-2xl mb-5">
-                    Welcome back!
-                  </h1>
-                </div>
-
-                <div className="flex items-center py-2 px-3 rounded-2xl mb-2">
-                  <SmartphoneIcon className={iconsColor} />
+                <div className="flex items-center">
+                  {/* Replace the MUI icon with a simple SVG or emoji */}
+                  <span className="text-gray-400 mr-2">📱</span>
                   <input
-                    className="pl-2 outline-none border-b w-full"
-                    type="number"
-                    value={formik.values.mobile}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
+                    type="text"
                     name="mobile"
-                    placeholder="Mobile number"
+                    placeholder="Mobile Number"
+                    onChange={formik.handleChange}
+                    value={formik.values.mobile}
+                    className="w-full p-2"
                   />
                 </div>
 
@@ -263,8 +252,8 @@ function Login() {
                           className="text-sm text-blue-800 cursor-pointer"
                           onClick={() => {
                             setCounter(40);
-                            setOtp(0)
-                            sendOtp(setotpInput,auth,formik.values.mobile,setConfirmationResult);
+                            setOtp(0);
+                            sendOtp(setotpInput, auth, formik.values.mobile, setConfirmationResult);
                           }}
                         >
                           Resend OTP
@@ -279,25 +268,24 @@ function Login() {
                 )}
 
                 <div className="flex flex-col w-full mt-8 border-opacity-50">
-                    <div className="flex items-center text-xs font-medium">
-                        <div className="flex-grow border-t border-gray-300"></div>
-                        <span className="mx-2">or sign-in using Google</span>
-                        <div className="flex-grow border-t border-gray-300"></div>
-                    </div>
+                  <div className="flex items-center text-xs font-medium">
+                    <div className="flex-grow border-t border-gray-300"></div>
+                    <span className="mx-2">or sign-in using Google</span>
+                    <div className="flex-grow border-t border-gray-300"></div>
+                  </div>
 
-                    <div className="flex justify-center items-center mt-5">
-                        <GoogleLogin shape="circle" ux_mode="popup" onSuccess={googleLogin} />
-                    </div>
+                  <div className="flex justify-center items-center mt-5">
+                    <GoogleLogin shape="circle" ux_mode="popup" onSuccess={googleLogin} />
+                  </div>
                 </div>
 
-
                 <div className="text-center mt-3">
-                    <span
-                        onClick={() => navigate("/signup")}
-                        className="text-xs ml-2 hover:text-blue-500 cursor-pointer"
-                    >
-                        Not registered yet? Sign-up here!
-                    </span>
+                  <span
+                    onClick={() => navigate("/signup")}
+                    className="text-xs ml-2 hover:text-blue-500 cursor-pointer"
+                  >
+                    Not registered yet? Sign-up here!
+                  </span>
                 </div>
               </form>
             </div>

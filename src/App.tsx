@@ -4,10 +4,10 @@ import {useSelector} from 'react-redux'
 import { Toaster } from "sonner";
 // import { ChakraProvider } from '@chakra-ui/react';
 import { ChakraProvider, } from "@chakra-ui/react";
-import { theme } from "@chakra-ui/theme";
 
 // import HomePage from './pages/user/Home/HomePage.tsx';
 import LoginPage from './pages/user/authntication/loginPage';
+import SingupPage from './pages/user/authntication/singupPage';
 import { ToastContainer } from 'react-toastify';
 
 function App() {
@@ -19,16 +19,17 @@ function App() {
     <>
     <ToastContainer />
     <Toaster position="top-right" expand={true} richColors/>
-    {/* <ChakraProvider> */}
+    <ChakraProvider>
       <BrowserRouter>
         <Routes>
 
           {/* user roter  */}
           <Route path='/login'  element={user ? <Navigate to={'/'}/>:<LoginPage/>}/>
+          <Route path='/signup'  element={user ? <Navigate to={'/'}/>:<SingupPage/>}/>
 
         </Routes>
       </BrowserRouter>
-      {/* </ChakraProvider>  */}
+      </ChakraProvider> 
     </>
   )
 }

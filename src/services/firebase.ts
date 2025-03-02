@@ -4,12 +4,12 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyD-2CQJakQM6gzmbgCWpn-PdMEqm2c2f44",
-  authDomain: "go-cab-e7004.firebaseapp.com",
-  projectId: "go-cab-e7004",
-  storageBucket: "go-cab-e7004.appspot.com",
-  messagingSenderId: "1023075533698",
-  appId: "1:1023075533698:web:1a664d0dab97f21d58c59b"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY, 
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
