@@ -3,7 +3,7 @@ import { useFormik } from "formik";
 import * as yup from "yup";
 // import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import axiosUser from "../../../../services/axios/userAxios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   ConfirmationResult,
@@ -39,8 +39,9 @@ interface UserData {
 
 function Login() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [recaptchaVerifier, setrecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+  const [pending, setPending] = useTransition()
   const navigate = useNavigate();
-  
   const [userData, setuserData] = useState<UserData>({
     user: "",
     user_id: "",
@@ -48,24 +49,35 @@ function Login() {
     refreshToken: "",
     loggedIn: false
   });
-
   const dispatch = useDispatch();
+  const [otpInput, setotpInput] = useState(false);
+  const [otp, setOtp] = useState<number>(0);
+  const [counter, setCounter] = useState(40);
+
+  useEffect(() => {
+    if (otpInput) {
+      counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
+    }
+  }, [counter, otpInput]);
+
   const formik = useFormik({
     initialValues: {
       mobile: "",
     },
+
     validationSchema: yup.object({
       mobile: yup
         .string()
         .length(10, "Enter a valid mobile number")
         .required("please enter the mobile number"),
     }),
+
     onSubmit: async (values) => {
       try {
         const { data } = await axiosUser().post("/checkLoginUser", values);        
         if (data.message === "Success") {
           sendOtp(setotpInput, auth, formik.values.mobile, setConfirmationResult);
-          console.log(data, "-========");
+          console.log("after seding otp data=",data);
           setuserData({
             user: data.name,
             user_id: data._id,
@@ -85,21 +97,11 @@ function Login() {
     },
   });
   
-  const [otpInput, setotpInput] = useState(false);
-  const [otp, setOtp] = useState<number>(0);
-
   const handleOtpChange = (index: number, newValue: number) => {
     const newOtp = [...otp.toString()];
     newOtp[index] = newValue.toString();
     setOtp(parseInt(newOtp.join("")));
   };
-
-  const [counter, setCounter] = useState(40);
-  useEffect(() => {
-    if (otpInput) {
-      counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
-    }
-  }, [counter, otpInput]);
 
   const otpVerify = (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>

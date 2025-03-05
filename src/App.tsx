@@ -8,6 +8,8 @@ import { ChakraProvider, } from "@chakra-ui/react";
 // import HomePage from './pages/user/Home/HomePage.tsx';
 import LoginPage from './pages/user/authntication/loginPage';
 import SingupPage from './pages/user/authntication/singupPage';
+import HomePage from './pages/user/home/HomePage';
+
 import { ToastContainer } from 'react-toastify';
 
 function App() {
@@ -24,6 +26,7 @@ function App() {
         <Routes>
 
           {/* user roter  */}
+          <Route path='/' element={<HomePage/>}/>
           <Route path='/login'  element={user ? <Navigate to={'/'}/>:<LoginPage/>}/>
           <Route path='/signup'  element={user ? <Navigate to={'/'}/>:<SingupPage/>}/>
 
