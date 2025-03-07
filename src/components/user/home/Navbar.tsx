@@ -31,7 +31,7 @@ function NavBar() {
   }, [windowSize]);
 
   return (
-    <nav className="bg-black text-white flex justify-between items-center p-6">
+    <nav className="bg-black text-white flex justify-between items-center p-1">
       <div className="flex items-center space-x-4">
         <Link to="/" className="hover:text-gray-300">
           <img src="/images/logo.png" alt="Logo" className="w-[40%]" />

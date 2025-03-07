@@ -39,8 +39,6 @@ interface UserData {
 
 function Login() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [recaptchaVerifier, setrecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
-  const [pending, setPending] = useTransition()
   const navigate = useNavigate();
   const [userData, setuserData] = useState<UserData>({
     user: "",
@@ -153,7 +151,7 @@ function Login() {
   return (
     <>
       {/* nav  */}
-      <nav className="bg-black text-white flex justify-between items-center p-6 ">
+      <nav className="bg-black text-white flex justify-between items-center p-1">
         <div className="flex items-center space-x-4">
           <Link to="/" className="hover:text-gray-300">
             <img
