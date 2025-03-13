@@ -12,7 +12,7 @@ const createAxios=()=>{
         }
     });
     axiosUser.interceptors.request.use(
-        (config: any) => {
+        (config: any) => {            
             const token = localStorage.getItem('userToken');
             return {
                 ...config,
@@ -50,27 +50,9 @@ const createAxios=()=>{
 
             try {
                 const response = await axios.post(`${import.meta.env.VITE_API_GATEWAY_URL}/auth/refresh`, { token: refreshToken });
-                console.log(response,"refresh responbseeyyy");
                 
-                const newAccessToken = response.data.token;
-                const newRefreshToken = response.data.refreshToken;
-
-                localStorage.setItem('userToken', newAccessToken);
-                if (newRefreshToken) {
-                    localStorage.setItem('refreshToken', newRefreshToken);
-                }
-
-                originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                axiosUser.defaults.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                return axiosUser(originalRequest);
             } catch (refreshError) {
-                console.log(refreshError)
-                localStorage.removeItem('userToken');
-                localStorage.removeItem('refreshToken');
-                const dispatch=useDispatch()
-                dispatch(userLogout())
-                window.location.href = '/login';
-                return Promise.reject(refreshError);
+    
             }
         }
 

@@ -79,7 +79,7 @@ function NavBar() {
                     >
                       Logout
                     </li>
-                    <li onClick={() =>{ navigate("/signup") ;dispatch(userLogout())}}>Signup</li>
+                    {/* <li onClick={() =>{ navigate("/signup") ;dispatch(userLogout())}}>Signup</li> */}
                     <li onClick={() => navigate("/driver/login")}>Login as Driver</li>
                   </ul>
                 </div>

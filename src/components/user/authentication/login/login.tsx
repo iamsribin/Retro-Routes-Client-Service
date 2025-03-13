@@ -130,7 +130,9 @@ function Login() {
       const token: string | undefined = datas.credential;
       if (token) {
         const decode = jwtDecode(token) as any;
-        const { data } = await axiosUser().post("checkGoogleLoginUser", { email: decode.email });        
+        const { data } = await axiosUser().post("checkGoogleLoginUser", { email: decode.email });   
+        console.log("data==",data);
+             
         if (data.message === "Success") {
           toast.success("Login success!");
           localStorage.setItem("userToken", data.token);
@@ -144,6 +146,8 @@ function Login() {
         }
       }
     } catch (error: any) {
+      console.log("google login errror:",error);
+      
       toast.error(error);
     }
   };
@@ -151,7 +155,7 @@ function Login() {
   return (
     <>
       {/* nav  */}
-      <nav className="bg-black text-white flex justify-between items-center p-1">
+      {/* <nav className="bg-black text-white flex justify-between items-center p-1">
         <div className="flex items-center space-x-4">
           <Link to="/" className="hover:text-gray-300">
             <img
@@ -161,10 +165,10 @@ function Login() {
             />
           </Link>
         </div>
-      </nav>
+      </nav> */}
 
       {/* nav   */}
-      <div className="registration-container pb-10 h-screen flex justify-center items-center">
+      <div className="registration-container pb-10 h-screen flex justify-center bg-white items-center">
         <div className="w-5/6 md:w-4/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
           <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 i justify-around items-center mb-3 md:m-0">
             <div className="w-full pt-10">

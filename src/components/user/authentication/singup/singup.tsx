@@ -4,6 +4,7 @@ import { useFormik } from "formik";
 import axiosUser from "../../../../services/axios/userAxios";
 import { toast } from "sonner";
 import "react-toastify/dist/ReactToastify.css";
+import Header from "../../home/Header";
 
 import {
   ChakraProvider,
@@ -57,7 +58,7 @@ function Signup() {
     mobile: "",
     password: "",
     re_password: "",
-    referred_code: "", // Fixed typo here
+    referred_code: "", 
     userImage: null,
     otp: "",
   };
@@ -174,21 +175,9 @@ function Signup() {
 
   return (
     <ChakraProvider>
-      {/* Nav */}
-      <nav className="bg-black text-white flex justify-between items-center p-1">
-        <div className="flex items-center space-x-4">
-          <Link to="/" className="hover:text-gray-300">
-            <img
-              src="/images/logo.png"
-              alt="Logo"
-              className="w-[40%]"
-            />
-          </Link>
-        </div>
-      </nav>
 
       {/* Main Content */}
-      <div className="registration-container h-screen flex justify-center items-center">
+      <div className="registration-container h-screen bg-white  flex justify-center items-center">
         <div className="registration-container-second md:w-4/6 w-5/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
           <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 justify-around items-center mb-3 md:m-0">
             <div className="flex w-full justify-center pt-10 items-center">
