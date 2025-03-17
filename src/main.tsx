@@ -9,7 +9,7 @@
   import ErrorBoundary from "./components/ErrorBounderies.tsx";
   import { persistor, store } from "./services/redux/store.ts";
   import { PersistGate } from "redux-persist/integration/react";
-console.log("Google Client ID:", GOOGLE_CLIENT_ID);
+
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <ErrorBoundary>

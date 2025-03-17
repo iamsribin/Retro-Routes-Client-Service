@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { userLogout } from "../../../services/redux/slices/userAuthSlice";
+import { userLogout } from "../../services/redux/slices/userAuthSlice";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import "./Navbar.scss";

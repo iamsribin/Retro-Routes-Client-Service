@@ -27,7 +27,7 @@ DriverSignup() {
     const navigate = useNavigate();
     const [load,setLoad]=useState(false)
     const [otpPage, setOtpPage] = useState(false);
-    const [identificationPage, setIdentificationPage] = useState(false);
+    const [identificationPage, setIdentificationPage] = useState(false)
 
     useEffect(() => {
         if (otpPage) {
@@ -385,12 +385,15 @@ DriverSignup() {
                                             {formik.touched.reffered_Code && formik.errors.reffered_Code && (
                                                 <p className="form-error-p-tag">{formik.errors.reffered_Code}</p>
                                             )}
-                                            <button
-                                                type="submit"
-                                                className="block w-full bg-blue-800 py-2 mt-5 rounded-2xl text-golden font-semibold mb-2"
-                                            >
-                                                Register Now
-                                            </button>
+                                   <button
+  type="submit"
+  className={`block w-full bg-blue-800 py-2 rounded-2xl text-golden font-semibold mb-2 ${
+    load ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-900"
+  }`}
+  disabled={load}
+>
+  {load ? "Loading..." : "Register now"}
+</button>
 
                                             <div className="text-center">
                                                 <span

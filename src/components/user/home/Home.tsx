@@ -3,7 +3,7 @@ import { MapPin, ChevronRight, Star, Shield, Clock, Users } from 'lucide-react';
 import Header from './Header';
 import Hero from './Hero';
 import FareEstimate from './FareEstimate';
-import Footer from './Footer';
+import Footer from '../../layout/Footer';
 
 const Home = () => {
   return (

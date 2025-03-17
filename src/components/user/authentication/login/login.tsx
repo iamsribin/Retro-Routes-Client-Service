@@ -172,10 +172,10 @@ function Login() {
         <div className="w-5/6 md:w-4/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
           <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 i justify-around items-center mb-3 md:m-0">
             <div className="w-full pt-10">
-              <h1 className="text-blue-900 font-bold text-4xl mx-7 md:mx-0 md:text-5xl user-login-title md:max-w-md">
+              <h1 className="text-gradient font-bold text-4xl mx-7 md:mx-0 md:text-5xl user-login-title md:max-w-md">
                 Please sign in with your mobile number!
               </h1>
-              <h1 className="text-blue-800 text-sm my-3 mx-7 md:mx-0 md:text-sm md:max-w-xs md:mt-3 user-signup-title">
+              <h1 className="font-bold text-sm my-3 mx-7 md:mx-0 md:text-sm md:max-w-xs md:mt-3 user-signup-title">
                 We'll send you a One-Time-Password to your registered mobile
                 number.
               </h1>
@@ -266,7 +266,7 @@ function Login() {
                     </div>
                   </>
                 ) : (
-                  <button type="submit" className="block w-full text-white bg-blue-800 py-1.5 rounded-2xl font-semibold mb-2">
+                  <button type="submit" className="block w-full text-white bg-black py-1.5 rounded-2xl font-semibold mb-2">
                     Send OTP
                   </button>
                 )}

@@ -20,12 +20,16 @@ import { openPendingModal } from "../../../../services/redux/slices/pendingModal
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { openRejectedModal } from "../../../../services/redux/slices/rejectModalSlice";
 import { sendOtp } from "../../../../hooks/auth";
+import Loader from "../../../shimmer/Loader";
+
 
 function DriverLogin() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [otpInput, setotpInput] = useState<boolean>(false);
   const [otp, setOtp] = useState<number>(0);
+  const [load,setLoad]=useState(false)
+  
   const [driverData, setdriverData] = useState({
     name: "",
     driverToken: "",
@@ -172,11 +176,13 @@ function DriverLogin() {
       <nav className="bg-black text-white flex justify-between items-center p-6 ">
         <div className="flex items-center space-x-4">
           <Link to="/driver/login" className="hover:text-gray-300">
+
             <img
               src="/images/images__1_-removebg-preview.png"
               alt="Logo"
               className=" w-[40%]"
             />
+
           </Link>
         </div>
       </nav>
@@ -197,21 +203,29 @@ function DriverLogin() {
               className="hidden   md:flex md:items-center"
               style={{ marginTop: "-45px" }}
             >
-              {otpInput ? (
-                <img
-                  className="mt-2"
-                  style={{ height: "330px", width: "auto" }}
-                  src="/images/otp.jpg"
-                  alt=""
-                />
-              ) : (
-                <img
-                  className="mt-2"
-                  style={{ height: "330px", width: "auto" }}
-                  src="/images/login.jpg"
-                  alt=""
-                />
-              )}
+             {otpInput ? (
+  load ? (
+    <Loader />
+  ) : (
+    <img
+      className="mt-2"
+      style={{ height: "330px", width: "auto" }}
+      src="/images/otp.jpg"
+      alt=""
+    />
+  )
+) : (
+  load ? (
+    <Loader />
+  ) : (
+    <img
+      className="mt-2"
+      style={{ height: "330px", width: "auto" }}
+      src="/images/login.jpg"
+      alt=""
+    />
+  )
+)}
             </div>
           </div>
           <div className="flex md:w-1/2 justify-center  pb-10 md:py-10 items-center">

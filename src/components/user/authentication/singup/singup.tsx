@@ -4,7 +4,6 @@ import { useFormik } from "formik";
 import axiosUser from "../../../../services/axios/userAxios";
 import { toast } from "sonner";
 import "react-toastify/dist/ReactToastify.css";
-import Header from "../../home/Header";
 
 import {
   ChakraProvider,
@@ -48,7 +47,6 @@ function Signup() {
   const [otp, setOtp] = useState<number>(0);
 
   useEffect(() => {
-    // setOtpPage(true);
     setOtpPage(false);
   }, []);
 
@@ -181,7 +179,7 @@ function Signup() {
         <div className="registration-container-second md:w-4/6 w-5/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
           <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 justify-around items-center mb-3 md:m-0">
             <div className="flex w-full justify-center pt-10 items-center">
-              <h1 className="text-blue-800 font-bold text-4xl mx-7 md:mx-0 md:text-6xl user-signup-title md:mb-4">
+              <h1 className="text-gradient font-bold text-4xl mx-7 md:mx-0 md:text-6xl user-signup-title md:mb-4">
                 Signup and get a free first ride!
               </h1>
             </div>
@@ -430,14 +428,14 @@ function Signup() {
                       )}
                     </VStack>
 
-                    <Button type="submit" w="full" colorScheme="blue" mt={3}>
+                    <Button type="submit" w="full"  bg="black" color="white" _hover={{ color: "black",bg:"white" }} mt={3}>
                       Register Now
                     </Button>
 
                     <Text textAlign="center" fontSize="sm">
                       <Text
                         as="span"
-                        color="blue.500"
+                        color="black"
                         cursor="pointer"
                         onClick={() => navigate("/login")}
                       >

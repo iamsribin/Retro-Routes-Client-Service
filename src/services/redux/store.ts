@@ -26,9 +26,6 @@ export const store=configureStore({
         admin:adminAuthPersistReducer,
         pendingModal: pendingModalSlice,
         rejectModal:rejectModalSlice,
-        // userRideData:userRideDataSlice,
-        // driverRideData:driverRideDataSlice,
-        // driverSearch:driverSearchSlice
     },
     middleware: (getDefaultMiddleware) => {
         const middleware = getDefaultMiddleware({

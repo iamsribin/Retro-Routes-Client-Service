@@ -6,10 +6,11 @@ import { ChakraProvider, } from "@chakra-ui/react";
 
 import LoginPage from './pages/user/authntication/loginPage';
 import SingupPage from './pages/user/authntication/singupPage';
-import HomePage from './pages/user/home/HomePage';
+import HomePage from './pages/user/home/Index.tsx';
 import DriverLoginPage from './pages/driver/authentication/DriverLoginPage.tsx';
 import DriverSignupPage from './pages/driver/authentication/DriverSignupPage.tsx';
 import { ToastContainer } from 'react-toastify';
+import NotFound from './pages/NotFound.tsx';
 
 function App() {
   const  user  = useSelector((store:{ user: { loggedIn: boolean } })=>store.user.loggedIn);
@@ -33,6 +34,8 @@ function App() {
           <Route path='/driver/login' element={driver ? <Navigate to={'/driver/dashboard'}/>:  <DriverLoginPage/>}/>
           <Route path='/driver/signup' element={driver ? <Navigate to={'/driver/dashboard'}/>:<DriverSignupPage/>}/>
           {/* <Route path='/driver/dashboard' element={!driver ? <Navigate to={'/driver/login'}/>:<DriverDashboardPage/>}/> */}
+
+          <Route path="*" element={<NotFound />} />
 
         </Routes>
       </BrowserRouter>
