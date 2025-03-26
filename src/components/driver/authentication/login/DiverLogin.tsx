@@ -22,14 +22,13 @@ import { openRejectedModal } from "../../../../services/redux/slices/rejectModal
 import { sendOtp } from "../../../../hooks/auth";
 import Loader from "../../../shimmer/Loader";
 
-
 function DriverLogin() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [otpInput, setotpInput] = useState<boolean>(false);
   const [otp, setOtp] = useState<number>(0);
-  const [load,setLoad]=useState(false)
-  
+  const [load, setLoad] = useState(false);
+
   const [driverData, setdriverData] = useState({
     name: "",
     driverToken: "",
@@ -173,27 +172,25 @@ function DriverLogin() {
 
   return (
     <>
-      <nav className="bg-black text-white flex justify-between items-center p-6 ">
+      {/* <nav className="bg-black text-white flex justify-between items-center p-6 ">
         <div className="flex items-center space-x-4">
           <Link to="/driver/login" className="hover:text-gray-300">
-
             <img
               src="/images/images__1_-removebg-preview.png"
               alt="Logo"
               className=" w-[40%]"
             />
-
           </Link>
         </div>
-      </nav>
-      <div className="driver-registration-container h-screen flex justify-center items-center">
+      </nav> */}
+      <div className="driver-registration-container bg-white h-screen flex justify-center items-center">
         <div className="w-5/6 md:w-4/6 md:h-4/5  md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
           <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 i justify-around items-center mb-3 md:m-0">
             <div className=" w-full pt-10 ">
-              <h1 className="text-blue-900 font-bold md:mt-4 text-4xl mx-7 md:mx-0  md:text-5xl user-signup-title md:max-w-sm">
+              <h1 className="text-gradient font-bold md:mt-4 text-4xl mx-7 md:mx-0  md:text-5xl user-signup-title md:max-w-sm">
                 Please sign in with your mobile number!
               </h1>
-              <h1 className="text-blue-800 md:max-w-xs text-sm my-3 mx-7 md:mx-0  md:text-sm md:mt-3 user-signup-title">
+              <h1 className="text-black md:max-w-xs text-sm my-3 mx-7 md:mx-0  md:text-sm md:mt-3 user-signup-title">
                 We'll send you a One-Time-Password to your registered mobile
                 number.
               </h1>
@@ -203,29 +200,27 @@ function DriverLogin() {
               className="hidden   md:flex md:items-center"
               style={{ marginTop: "-45px" }}
             >
-             {otpInput ? (
-  load ? (
-    <Loader />
-  ) : (
-    <img
-      className="mt-2"
-      style={{ height: "330px", width: "auto" }}
-      src="/images/otp.jpg"
-      alt=""
-    />
-  )
-) : (
-  load ? (
-    <Loader />
-  ) : (
-    <img
-      className="mt-2"
-      style={{ height: "330px", width: "auto" }}
-      src="/images/login.jpg"
-      alt=""
-    />
-  )
-)}
+              {otpInput ? (
+                load ? (
+                  <Loader />
+                ) : (
+                  <img
+                    className="mt-2"
+                    style={{ height: "330px", width: "auto" }}
+                    src="/images/otp.jpg"
+                    alt=""
+                  />
+                )
+              ) : load ? (
+                <Loader />
+              ) : (
+                <img
+                  className="mt-2"
+                  style={{ height: "330px", width: "auto" }}
+                  src="/images/login.jpg"
+                  alt=""
+                />
+              )}
             </div>
           </div>
           <div className="flex md:w-1/2 justify-center  pb-10 md:py-10 items-center">
@@ -306,7 +301,7 @@ function DriverLogin() {
                 ) : (
                   <button
                     type="submit"
-                    className="block w-full bg-blue-800 py-1.5 rounded-2xl text-golden font-semibold mb-2"
+                    className="block w-full bg-black py-1.5 rounded-2xl text-white font-semibold mb-2"
                   >
                     Send OTP
                   </button>

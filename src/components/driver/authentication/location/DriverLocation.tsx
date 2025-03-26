@@ -28,7 +28,8 @@ function DriverLocation() {
     const [, setlocation] = useState(false);
     const [longitude, setlongitude] = useState(68.7);
     const [latitude, setlatitude] = useState(8.4);
-    const [load,setLoad]=useState(false)
+    const [load,setLoad]=useState(false);
+
     const handleGeolocation = (lat: number, lng: number, status: any) => {
         setlocation(status);
         setlongitude(lng);
@@ -107,11 +108,7 @@ function DriverLocation() {
                         <form onSubmit={formik.handleSubmit}>
                             <div className="user-signup-form driver-signup-map-form w-full h-full md:w-96 md:h-96  rounded-md drop-shadow-xl">
                                 <div className="mb-4 mt-4">
-                                    <SignupMap
-                                        handleGeolocation={handleGeolocation}
-                                        isGeolocationActive={isGeolocationActive}
-                                        selectMarker={marker}
-                                    />
+                                    <SignupMap/>
                                 </div>
                             </div>
                             <div className="flex mt-6 justify-evenly ">

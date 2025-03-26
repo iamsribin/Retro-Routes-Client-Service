@@ -13,7 +13,7 @@ const adminAuthSlice=createSlice({
             state.name=action.payload.name,
             state.loggedIn=true
         }),
-        adminLgout:((state)=>{
+        adminLogout:((state)=>{
             state.name="",
             state.loggedIn=false
         })
@@ -21,6 +21,6 @@ const adminAuthSlice=createSlice({
 
 })
 
-export const {adminLogin,adminLgout}=adminAuthSlice.actions
+export const {adminLogin,adminLogout}=adminAuthSlice.actions
 
 export default adminAuthSlice

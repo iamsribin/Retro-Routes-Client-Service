@@ -66,7 +66,6 @@ function Signup() {
     validationSchema: signupValidation,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        console.log("sub");
         await signipHandle(values.email, values.mobile);
       } catch (error) {
         setSubmitting(false);
@@ -101,20 +100,13 @@ function Signup() {
       formData.append("re_password", formik.values.re_password);
       formData.append("referred_code", formik.values.referred_code); // Fixed typo
       formData.append("otp", otp.toString());
-
-      formData.forEach((value, key) => {
-        console.log("form data",key, value);
-      });
       
       if (formik.values.userImage) {
         formData.append("userImage", formik.values.userImage);
       }
       if (counter <= 0) {
         return toast.error("Time expired, tap to resend");
-      }
-
-      console.log("formData",otp);
-      
+      }      
 
       const { data } = await axiosUser().post("/register", formData, {
         headers: { "Content-Type": "multipart/form-data" },

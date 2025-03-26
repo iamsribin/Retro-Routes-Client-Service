@@ -5,22 +5,20 @@ import * as yup from "yup";
 import axiosUser from "../../../../services/axios/userAxios";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import {
-  ConfirmationResult,
-  RecaptchaVerifier,
-} from "firebase/auth";
+import { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 
 import { jwtDecode } from "jwt-decode";
 
 import { auth } from "../../../../services/firebase";
 
 import { PinInput, PinInputField, HStack } from "@chakra-ui/react";
- 
+
 import { useDispatch } from "react-redux";
 import { userLogin } from "../../../../services/redux/slices/userAuthSlice";
 
-import { CredentialResponse, GoogleLogin } from "@react-oauth/google"; 
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { sendOtp } from "../../../../hooks/auth";
+import { adminLogin } from "@/services/redux/slices/adminAuthSlice";
 
 // Global type declaration for window
 declare global {
@@ -35,17 +33,20 @@ interface UserData {
   userToken: string;
   refreshToken: string;
   loggedIn: boolean;
+  isAdmin: boolean;
 }
 
 function Login() {
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [confirmationResult, setConfirmationResult] =
+    useState<ConfirmationResult | null>(null);
   const navigate = useNavigate();
   const [userData, setuserData] = useState<UserData>({
     user: "",
     user_id: "",
     userToken: "",
     refreshToken: "",
-    loggedIn: false
+    loggedIn: false,
+    isAdmin: false,
   });
   const dispatch = useDispatch();
   const [otpInput, setotpInput] = useState(false);
@@ -72,17 +73,23 @@ function Login() {
 
     onSubmit: async (values) => {
       try {
-        const { data } = await axiosUser().post("/checkLoginUser", values);        
+        const { data } = await axiosUser().post("/checkLoginUser", values);
         if (data.message === "Success") {
-          sendOtp(setotpInput, auth, formik.values.mobile, setConfirmationResult);
-          console.log("after seding otp data=",data);
+          sendOtp(
+            setotpInput,
+            auth,
+            formik.values.mobile,
+            setConfirmationResult
+          );
+          console.log("after seding otp data=", data);
           setuserData({
             user: data.name,
             user_id: data._id,
             userToken: data.token,
             refreshToken: data.refreshToken,
-            loggedIn: true
-          });          
+            loggedIn: true,
+            isAdmin: data.isAdmin,
+          });
         } else if (data.message === "Blocked") {
           toast.info("your account is blocked");
         } else {
@@ -94,7 +101,7 @@ function Login() {
       }
     },
   });
-  
+
   const handleOtpChange = (index: number, newValue: number) => {
     const newOtp = [...otp.toString()];
     newOtp[index] = newValue.toString();
@@ -110,12 +117,18 @@ function Login() {
       confirmationResult
         .confirm(otpValue)
         .then(async () => {
-          console.log(userData, "-------");
-          localStorage.setItem("userToken", userData.userToken);
-          localStorage.setItem("refreshToken", userData.refreshToken);
-          dispatch(userLogin(userData));
-          toast.success("login success");
-          navigate("/");
+          if (userData.isAdmin) {
+            toast.success("Login Successfully");
+            localStorage.setItem("adminToken", userData.userToken);
+            dispatch(adminLogin({ name: userData.user }));
+            navigate("/admin/dashboard");
+          } else {
+            localStorage.setItem("userToken", userData.userToken);
+            localStorage.setItem("refreshToken", userData.refreshToken);
+            dispatch(userLogin(userData));
+            toast.success("login success");
+            navigate("/");
+          }
         })
         .catch(() => {
           toast.error("Enter a valid otp");
@@ -130,14 +143,18 @@ function Login() {
       const token: string | undefined = datas.credential;
       if (token) {
         const decode = jwtDecode(token) as any;
-        const { data } = await axiosUser().post("checkGoogleLoginUser", { email: decode.email });   
-        console.log("data==",data);
-             
+
+        const { data } = await axiosUser().post("/checkGoogleLoginUser", {
+          email: decode.email,
+        });
+
         if (data.message === "Success") {
           toast.success("Login success!");
           localStorage.setItem("userToken", data.token);
           localStorage.setItem("refreshToken", data.refreshToken);
-          dispatch(userLogin({user: data.name, user_id: data._id, loggedIn: true}));
+          dispatch(
+            userLogin({ user: data.name, user_id: data._id, loggedIn: true })
+          );
           navigate("/");
         } else if (data.message === "Blocked") {
           toast.error("Your Blocked By Admin");
@@ -146,12 +163,12 @@ function Login() {
         }
       }
     } catch (error: any) {
-      console.log("google login errror:",error);
-      
+      console.log("google login errror:", error);
+
       toast.error(error);
     }
   };
-  
+
   return (
     <>
       {/* nav  */}
@@ -257,7 +274,12 @@ function Login() {
                           onClick={() => {
                             setCounter(40);
                             setOtp(0);
-                            sendOtp(setotpInput, auth, formik.values.mobile, setConfirmationResult);
+                            sendOtp(
+                              setotpInput,
+                              auth,
+                              formik.values.mobile,
+                              setConfirmationResult
+                            );
                           }}
                         >
                           Resend OTP
@@ -266,7 +288,10 @@ function Login() {
                     </div>
                   </>
                 ) : (
-                  <button type="submit" className="block w-full text-white bg-black py-1.5 rounded-2xl font-semibold mb-2">
+                  <button
+                    type="submit"
+                    className="block w-full text-white bg-black py-1.5 rounded-2xl font-semibold mb-2"
+                  >
                     Send OTP
                   </button>
                 )}
@@ -279,7 +304,11 @@ function Login() {
                   </div>
 
                   <div className="flex justify-center items-center mt-5">
-                    <GoogleLogin shape="circle" ux_mode="popup" onSuccess={googleLogin} />
+                    <GoogleLogin
+                      shape="circle"
+                      ux_mode="popup"
+                      onSuccess={googleLogin}
+                    />
                   </div>
                 </div>
 

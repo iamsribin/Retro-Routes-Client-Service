@@ -1,78 +1,55 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRef, useEffect, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "./singpMap.scss";
-import {toast} from 'sonner' ;
-mapboxgl.accessToken = import.meta.env.VITE_MPBOX_ACCESS_TOKEN;
+import { useEffect, useRef } from "react";
+import L from "leaflet";
+import useLocalStorage from "@/hooks/useLocalStorage";
+import useGeolocation from "@/hooks/useGeolocation";
 
-const SignupMap = ({ handleGeolocation, isGeolocationActive }: any) => {
-    const mapContainer = useRef<HTMLDivElement | null>(null);
-    const map = useRef<mapboxgl.Map | null>(null);
-    const [lng, setLng] = useState(77.5946);
-    const [lat, setLat] = useState(12.9716);
-    const [zoom, setZoom] = useState(9);
+export default function Map() {
+  const mapRef = useRef<L.Map | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
 
-    useEffect(() => {
-        if (isGeolocationActive) {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const { latitude, longitude } = position.coords;
-                        setLng(longitude);
-                        setLat(latitude);
-                        setZoom(15);
-                        handleGeolocation(latitude, longitude, true);
-                    },
-                    (error) => {
-                        toast.error(error.message);
-                    }
-                );
-            } else {
-                toast.error("No location service");
-            }
-        }
-    }, [isGeolocationActive]);
- 
-    // getting current locatoion 
-    useEffect(() => {
-        map.current = new mapboxgl.Map({
-            container: mapContainer.current || "",
-            style: "mapbox://styles/mapbox/streets-v12",
-            center: [lng, lat],
-            zoom: zoom,
-        });
-
-        map.current.on("dblclick", handleMapDoubleClick)
-
-        new mapboxgl.Marker()
-            .setLngLat([lng, lat])
-            .addTo(map.current)
-    }, [lng, lat, zoom]);
+  const [userPosition, setUserPosition] = useLocalStorage("USER_MARKER", {
+    latitude: 0,
+    longitude: 0, 
+  });
 
 
-    const handleMapDoubleClick = (e: mapboxgl.MapMouseEvent) => {
-        const { lng, lat } = e.lngLat
-        setLng(lng)
-        setLat(lat)
-        setZoom(15)
-        handleGeolocation(lat, lng, true);
+  const location = useGeolocation()
+
+  useEffect(() => {
+    if (!mapRef.current) {
+      mapRef.current = L.map("map").setView(
+        [userPosition.latitude, userPosition.longitude], 
+        13
+      );
+
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(mapRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    setUserPosition({ ...userPosition });
+
+    if (mapRef.current) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLatLng([location.latitude, location.longitude]);
+      } else {
+        userMarkerRef.current = L.marker([location.latitude, location.longitude])
+          .addTo(mapRef.current).bindPopup("select your location");
+      }
+      mapRef.current.setView([location.latitude, location.longitude])
     }
 
-    useEffect(() => {
-        if (map.current) return;
-        map.current = new mapboxgl.Map({
-            container: mapContainer.current || "",
-            style: "mapbox://styles/mapbox/streets-v12",
-            center: [lng, lat],
-            zoom: zoom,
-        });
-    });
+    const el = userMarkerRef.current?.getElement();
 
-    return (
-        <>
-            <div ref={mapContainer} className="map-container" />
-        </>
-    );
-};
+    if(el){
+        el.style.filter = "hue-rotate(120deg)"
+    }
 
-export default SignupMap;
+
+  }, [location,userPosition.latitude, userPosition.longitude]); 
+
+  return <div id="map" style={{ height: "400px", width: "400px" }} />;
+}

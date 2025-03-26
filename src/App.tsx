@@ -11,11 +11,13 @@ import DriverLoginPage from './pages/driver/authentication/DriverLoginPage.tsx';
 import DriverSignupPage from './pages/driver/authentication/DriverSignupPage.tsx';
 import { ToastContainer } from 'react-toastify';
 import NotFound from './pages/NotFound.tsx';
+import Dashboard from './pages/admin/Dashboard.tsx';
 
 function App() {
   const  user  = useSelector((store:{ user: { loggedIn: boolean } })=>store.user.loggedIn);
   const  driver  = useSelector((store:{ driver: { loggedIn: boolean } })=>store.driver.loggedIn);
-  // const  admin  = useSelector((store:{ admin: { loggedIn: boolean } })=>store.admin.loggedIn);
+  const  admin  = useSelector((store:{ admin: { loggedIn: boolean } })=>store.admin.loggedIn);
+console.log("admin",admin);
 
   return (
     <>
@@ -27,14 +29,20 @@ function App() {
 
           {/* user router  */}
           <Route path='/' element={<HomePage/>}/>
-          <Route path='/login'  element={user ? <Navigate to={'/'}/>:<LoginPage/>}/>
+          <Route path='/login' element={
+              admin ? <Navigate to={'/admin/dashboard'} />
+                : user ? <Navigate to={'/'} />
+                  : <LoginPage />
+            } />
           <Route path='/signup'  element={user ? <Navigate to={'/'}/>:<SingupPage/>}/>
 
           {/* driver router */}
           <Route path='/driver/login' element={driver ? <Navigate to={'/driver/dashboard'}/>:  <DriverLoginPage/>}/>
           <Route path='/driver/signup' element={driver ? <Navigate to={'/driver/dashboard'}/>:<DriverSignupPage/>}/>
-          {/* <Route path='/driver/dashboard' element={!driver ? <Navigate to={'/driver/login'}/>:<DriverDashboardPage/>}/> */}
 
+           {/* admin router */}
+           <Route path='/admin/dashboard' element={admin? <Dashboard/> : <Navigate to={'/login'}/>} />
+           
           <Route path="*" element={<NotFound />} />
 
         </Routes>

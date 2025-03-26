@@ -49,7 +49,6 @@ const createAxios=()=>{
     
                 try {
                     const response = await axios.post(`${import.meta.env.VITE_API_GATEWAY_URL}/auth/refresh`, { token: refreshToken });
-                    console.log(response,"refresh responbseeyyy");
                     
                     const newAccessToken = response.data.token;
                     const newRefreshToken = response.data.refreshToken;

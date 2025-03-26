@@ -7,7 +7,7 @@ import DriverLocationPage from "../../../../pages/driver/authentication/DriverLo
 import Loader from "../../../shimmer/Loader";
 
 function Vehicle() {
-  const [locationPage, setlocationPage] = useState(false);
+  const [locationPage, setlocationPage] = useState(true);
   const [carImageUrl, setcarImageUrl] = useState(null);
   const [rcImageUrl, setrcImageUrl] = useState(null);
   const [load, setLoad] = useState(false);
@@ -74,11 +74,11 @@ function Vehicle() {
       {locationPage ? (
         <DriverLocationPage />
       ) : (
-        <div className="driver-registration-container h-screen flex justify-center items-center">
+        <div className="bg-white driver-registration-container h-screen flex justify-center items-center">
           <div className="w-5/6 md:w-4/6 md:h-4/5  md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
             <div className="relative overflow-hidden h-full sm:pl-14 md:pl-13 md:w-1/2 i justify-around items-center mb-3 md:m-0">
               <div className="flex w-full justify-center pt-10 items-center">
-                <h1 className="text-blue-800 font-bold text-4xl mx-7 md:mx-0 md:mt-4  md:text-5xl user-signup-title">
+                <h1 className="text-gradient font-bold text-4xl mx-7 md:mx-0 md:mt-4  md:text-5xl user-signup-title">
                   Please submit your vehicle details!
                 </h1>
               </div>
@@ -103,7 +103,7 @@ function Vehicle() {
                 <form onSubmit={formik.handleSubmit}>
                   <div className="md:flex">
                     <div className="text-left pr-5">
-                      <h1 className="text-blue-800 font-bold text-xs ">
+                      <h1 className="text-black font-bold text-xs ">
                         Vehicle Registration ID
                       </h1>
 
@@ -127,7 +127,7 @@ function Vehicle() {
                         name="model"
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
-                        className="select w-full md:relative md:bottom-4 max-w-xs text-blue-800"
+                        className="select w-full md:relative md:bottom-4 max-w-xs text-black"
                       >
                         <option disabled selected>
                           Select the model
@@ -145,7 +145,7 @@ function Vehicle() {
 
                   <div className="md:flex">
                     <div className="text-left md:pr-3">
-                      <h1 className="text-blue-800 font-bold text-xs mb-1">
+                      <h1 className="text-black font-bold text-xs mb-1">
                         Upload the RC Image
                       </h1>
                       <div className="mb-5 mt-3">
@@ -170,7 +170,7 @@ function Vehicle() {
                     </div>
 
                     <div className="text-left">
-                      <h1 className="text-blue-800 font-bold text-xs mb-1">
+                      <h1 className="text-black font-bold text-xs mb-1">
                         Upload the Vehicle image
                       </h1>
                       <div className="mb-5 mt-3">
@@ -220,10 +220,10 @@ function Vehicle() {
 
                   <button
                     type="submit"
-                    className={`block w-full bg-blue-800 py-2 rounded-2xl text-golden font-semibold mb-2 ${
+                    className={`block w-full bg-black py-2 rounded-2xl text-white font-semibold mb-2 ${
                       load
                         ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-blue-900"
+                        : "hover:bg-black-100"
                     }`}
                     disabled={load}
                   >
