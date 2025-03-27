@@ -44,7 +44,7 @@ function DriverSignup() {
 
   useEffect(() => {
     setOtpPage(false);
-    setIdentificationPage(true);
+    setIdentificationPage(false);
   }, []);
 
   // Handle-OTP change

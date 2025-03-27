@@ -7,7 +7,7 @@ import DriverLocationPage from "../../../../pages/driver/authentication/DriverLo
 import Loader from "../../../shimmer/Loader";
 
 function Vehicle() {
-  const [locationPage, setlocationPage] = useState(true);
+  const [locationPage, setlocationPage] = useState(false);
   const [carImageUrl, setcarImageUrl] = useState(null);
   const [rcImageUrl, setrcImageUrl] = useState(null);
   const [load, setLoad] = useState(false);
