@@ -14,7 +14,6 @@ import { driverLogin } from "../../../../services/redux/slices/driverAuthSlice";
 import { jwtDecode } from "jwt-decode";
 
 import { ConfirmationResult } from "firebase/auth";
-import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { openPendingModal } from "../../../../services/redux/slices/pendingModalSlice";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
@@ -131,7 +130,7 @@ function DriverLogin() {
         const response = await axiosDriver().post("checkGoogleLoginDriver", {
           email: decode.email,
         });
-        console.log(decode.email, "ithu email");
+
         if (response.data.message === "Success") {
           toast.success("Login success!");
           localStorage.setItem("driverToken", response.data.token);

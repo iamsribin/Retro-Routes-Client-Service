@@ -12,12 +12,13 @@ import DriverSignupPage from './pages/driver/authentication/DriverSignupPage.tsx
 import { ToastContainer } from 'react-toastify';
 import NotFound from './pages/NotFound.tsx';
 import Dashboard from './pages/admin/Dashboard.tsx';
+import Users from './pages/admin/Users.tsx'
 
 function App() {
   const  user  = useSelector((store:{ user: { loggedIn: boolean } })=>store.user.loggedIn);
   const  driver  = useSelector((store:{ driver: { loggedIn: boolean } })=>store.driver.loggedIn);
   const  admin  = useSelector((store:{ admin: { loggedIn: boolean } })=>store.admin.loggedIn);
-console.log("admin",admin);
+  console.log("admin",admin);
 
   return (
     <>
@@ -42,6 +43,7 @@ console.log("admin",admin);
 
            {/* admin router */}
            <Route path='/admin/dashboard' element={admin? <Dashboard/> : <Navigate to={'/login'}/>} />
+           <Route path='/admin/users' element={admin? <Users/> : <Navigate to={'/login'}/>} />
            
           <Route path="*" element={<NotFound />} />
 
