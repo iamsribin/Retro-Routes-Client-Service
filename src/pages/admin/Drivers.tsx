@@ -4,27 +4,37 @@ import UserList from '@/components/admin/UserList';
 import { axiosAdmin } from '@/services/axios/adminAxios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils'; // Assuming you have a utility for classnames
+import { cn } from '@/lib/utils'; 
 
 const Users: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'active' | 'blocked'>('active');
-  const [activeUsers, setActiveUsers] = useState<any[]>([]);
-  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'active' | 'blocked' | 'pending'>('active');
+  const [verifiedDrivers, setverifiedDrivers] = useState<any[]>([]);
+  const [blockedDrivers, setBlockedDrivers] = useState<any[]>([]);
+  const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
   const navigate = useNavigate();
 
   const fetchActiveUsers = async () => {
     try {
-      const { data } = await axiosAdmin().get('/getActiveUserData');
-      setActiveUsers(data);
+      const { data } = await axiosAdmin().get('/verifiedDrivers');
+      setverifiedDrivers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch active users');
     }
   };
 
-  const fetchBlockedUsers = async () => {
+  const fetchPendingDrivers = async () => {
     try {
-      const { data } = await axiosAdmin().get('/blockedUserData');
-      setBlockedUsers(data);
+      const { data } = await axiosAdmin().get('/pendingDrivers');
+      setBlockedDrivers(data);
+    } catch (error) {
+      toast.error((error as Error).message || 'Failed to fetch blocked users');
+    }
+  }; 
+  
+  const fetchBlockedDrivers = async () => {
+    try {
+      const { data } = await axiosAdmin().get('/blockedDrivers');
+      setPendingDrivers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch blocked users');
     }
@@ -33,8 +43,10 @@ const Users: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'active') {
       fetchActiveUsers();
-    } else {
-      fetchBlockedUsers();
+    } else if(activeTab === 'pending'){
+      fetchPendingDrivers();
+    }else{
+      fetchBlockedDrivers();
     }
   }, [activeTab]);
 
@@ -54,8 +66,21 @@ const Users: React.FC = () => {
                   : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'
               )}
             >
-              Active Users
+              Active Drivers
             </button>
+
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={cn(
+                "px-4 py-2 text-sm font-medium ",
+                activeTab === 'pending'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'
+              )}
+            >
+              Pending Drivers
+            </button>
+
             <button
               onClick={() => setActiveTab('blocked')}
               className={cn(
@@ -65,16 +90,19 @@ const Users: React.FC = () => {
                   : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'
               )}
             >
-              Blocked Users
+              Blocked Drivers
             </button>
           </div>
         </div>
 
         {activeTab === 'active' && (
-          <UserList users={activeUsers} type="user" isBlocked={activeTab} />
+          <UserList users={verifiedDrivers} type="driver" isBlocked={activeTab} />
         )}
         {activeTab === 'blocked' && (
-          <UserList users={blockedUsers} type="user" isBlocked={activeTab} />
+          <UserList users={blockedDrivers} type="driver" isBlocked={activeTab} />
+        )}
+        {activeTab === 'pending' && (
+          <UserList users={pendingDrivers} type="driver" isBlocked={activeTab} />
         )}
       </div>
     </AdminLayout>
