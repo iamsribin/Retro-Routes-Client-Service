@@ -5,6 +5,7 @@ import { axiosAdmin } from '@/services/axios/adminAxios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils'; // Assuming you have a utility for classnames
+import { useDispatch } from 'react-redux';
 
 const Users: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'blocked'>('active');
@@ -12,9 +13,11 @@ const Users: React.FC = () => {
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const navigate = useNavigate();
 
+  const dispatch = useDispatch();
+
   const fetchActiveUsers = async () => {
     try {
-      const { data } = await axiosAdmin().get('/getActiveUserData');
+      const { data } = await axiosAdmin(dispatch).get('/getActiveUserData');
       setActiveUsers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch active users');
@@ -23,7 +26,7 @@ const Users: React.FC = () => {
 
   const fetchBlockedUsers = async () => {
     try {
-      const { data } = await axiosAdmin().get('/blockedUserData');
+      const { data } = await axiosAdmin(dispatch).get('/blockedUserData');
       setBlockedUsers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch blocked users');

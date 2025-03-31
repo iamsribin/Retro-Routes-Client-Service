@@ -99,6 +99,7 @@ function DriverLocation() {
 
             if (accuracy > 100) {
                 toast.info("Waiting for a more accurate location...");
+                handleGetCurrentLocation()
                 return; 
             }
 

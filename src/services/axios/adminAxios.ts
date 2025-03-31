@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
+import { adminLogout } from "../redux/slices/adminAuthSlice";
 
-export const axiosAdmin=()=>{
-    const axiosAdmin=axios.create({
-        baseURL:`${import.meta.env.VITE_API_GATEWAY_URL}/admin`,
-        headers:{
-            "Content-Type":"application/json"
+export const axiosAdmin = (dispatch: any) => {  // Accept dispatch as a parameter
+    const axiosAdminInstance = axios.create({
+        baseURL: `${import.meta.env.VITE_API_GATEWAY_URL}/admin`,
+        headers: {
+            "Content-Type": "application/json"
         }
     });
 
-    
-    axiosAdmin.interceptors.request.use(
+    axiosAdminInstance.interceptors.request.use(
         (config: any) => {
-            const token = localStorage.getItem('adminToken')
+            const token = localStorage.getItem('adminToken');
             return {
                 ...config,
                 headers: {
@@ -26,14 +26,53 @@ export const axiosAdmin=()=>{
         }
     );
 
-    axiosAdmin.interceptors.response.use(
+    axiosAdminInstance.interceptors.response.use(
         (response) => {
             console.log(response);
             return response;
         },
-        (error) => {
+        async (error) => {
+            console.log(error);
+            const originalRequest = error.config;
+
+            if (error.response?.status === 401 && !originalRequest._retry) {
+                try {
+                    originalRequest._retry = true;
+                    const refreshToken = localStorage.getItem('adminRefreshToken');
+
+                    if (!refreshToken) {
+                        localStorage.removeItem('adminToken');
+                        dispatch(adminLogout()); 
+                        window.location.href = '/login';
+                        return Promise.reject(error);
+                    }
+
+                    const response = await axios.post(`${import.meta.env.VITE_API_GATEWAY_URL}/auth/refresh`, { token: refreshToken });
+
+                    const newAccessToken = response.data.token;
+                    const newRefreshToken = response.data.refreshToken;
+
+                    localStorage.setItem('adminToken', newAccessToken);
+                    if (newRefreshToken) {
+                        localStorage.setItem('adminRefreshToken', newRefreshToken);
+                    }
+
+                    originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                    axiosAdminInstance.defaults.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                    return axiosAdminInstance(originalRequest);
+                } catch (refreshError) {
+                    console.log("refresh admin error", refreshError);
+                    localStorage.removeItem('adminToken');
+                    localStorage.removeItem('adminRefreshToken');
+                    dispatch(adminLogout()); 
+                    window.location.href = '/login';
+                    return Promise.reject(refreshError);
+                }
+            }
+
             return Promise.reject(error);
         }
     );
-    return axiosAdmin
-}
+
+    return axiosAdminInstance;
+};

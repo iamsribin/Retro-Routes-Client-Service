@@ -120,6 +120,7 @@ function Login() {
           if (userData.isAdmin) {
             toast.success("Login Successfully");
             localStorage.setItem("adminToken", userData.userToken);
+            localStorage.setItem("adminRefreshToken", userData.refreshToken);
             dispatch(adminLogin({ name: userData.user }));
             navigate("/admin/dashboard");
           } else {
