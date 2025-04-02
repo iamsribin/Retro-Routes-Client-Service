@@ -144,7 +144,7 @@ function Signup() {
     try {
       const { data } = await axiosUser().post("/resendOtp", formik.values);
       if (data.message === "OTP resent successfully") {
-        toast.success(data.message); // Fixed typo in data.mesaage
+        toast.success(data.message); 
       }
     } catch (error) {
       toast.error((error as Error).message);

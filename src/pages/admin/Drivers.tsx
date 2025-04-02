@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import UserList from '@/components/admin/UserList';
+import UserList from '@/components/admin/users/UserList';
 import { axiosAdmin } from '@/services/axios/adminAxios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';

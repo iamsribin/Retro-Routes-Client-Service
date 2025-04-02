@@ -10,6 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Shield, ShieldOff, MoreHorizontal, Eye } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useDispatch } from 'react-redux';
+import { axiosAdmin } from '@/services/axios/adminAxios';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   _id: string;
@@ -30,6 +34,32 @@ interface UserListProps {
 }
 
 const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
+
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const adminAxios = axiosAdmin(dispatch);
+
+const handleBlockAndUnblock = async(_id :string)=>{
+
+  if(isBlocked === "active"){
+    try {
+      const response = await adminAxios.patch(`/blockUser/${_id}`);
+      console.log(response);
+    } catch (error) {
+      toast.error((error as Error).message || "faild to block user");
+    }
+   
+  }else{
+    try {
+      const response = await adminAxios.patch(`/unblockUser/${_id}`)
+      console.log(response);
+      
+    } catch (error) {
+      toast.error((error as Error).message || "faild to unblock user")
+    }
+  }
+}
+
   return (
     <div>
       {/* Mobile view - card based layout */}
@@ -112,7 +142,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                     >
                       {isBlocked==='blocked' ? (
                         <>
-                          <ShieldOff className="mr-1 h-4 w-4" />
+                          <ShieldOff className="mr-1 h-4 w-4 bg-black text-red-500" />
                           Unblock
                         </>
                       ) : (
@@ -151,7 +181,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user, index) => (
+              users.map((user) => (
                 <TableRow key={user._id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -179,21 +209,24 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                   {type === 'driver' && <TableCell>{user.vehicle || 'N/A'}</TableCell>}
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => navigate("/admin/userDetails/" + user._id) }>
                         <Eye className="mr-1 h-4 w-4" />
                         View
                       </Button>
-                      <Button 
+                      {/* {isBlocked !== "pending" && (
+                        
+                        <Button 
+                        onClick={()=>handleBlockAndUnblock(user._id)}
                         variant={isBlocked==="blocked" ? "default" : "destructive"}
                         size="sm"
                         className={`${isBlocked==="blocked" ? 
-                          'bg-emerald-600 hover:bg-emerald-700' : 
+                          'bg-green-600 hover:bg-green-700' : 
                           'bg-red-600 hover:bg-red-700'} 
                           text-white transition-colors duration-200`}
                       >
                         {isBlocked==="blocked" ? (
                           <>
-                            <ShieldOff className="mr-1 h-4 w-4" />
+                            <ShieldOff className="mr-1 h-4 w-4 "/>
                             Unblock
                           </>
                         ) : (
@@ -203,6 +236,8 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                           </>
                         )}
                       </Button>
+                        )}
+                       */}
                     </div>
                   </TableCell>
                 </TableRow>
