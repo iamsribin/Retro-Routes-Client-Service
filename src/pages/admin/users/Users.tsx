@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'; // Assuming you have a utility for classnames
 import { useDispatch } from 'react-redux';
 
 const Users: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'active' | 'blocked'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'block'>('active');
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -27,6 +27,8 @@ const Users: React.FC = () => {
   const fetchBlockedUsers = async () => {
     try {
       const { data } = await axiosAdmin(dispatch).get('/blockedUserData');
+      console.log(data);
+      
       setBlockedUsers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch blocked users');
@@ -60,10 +62,10 @@ const Users: React.FC = () => {
               Active Users
             </button>
             <button
-              onClick={() => setActiveTab('blocked')}
+              onClick={() => setActiveTab('block')}
               className={cn(
                 "px-4 py-2 text-sm font-medium border rounded-r-lg",
-                activeTab === 'blocked'
+                activeTab === 'block'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'
               )}
@@ -76,7 +78,7 @@ const Users: React.FC = () => {
         {activeTab === 'active' && (
           <UserList users={activeUsers} type="user" isBlocked={activeTab} />
         )}
-        {activeTab === 'blocked' && (
+        {activeTab === 'block' && (
           <UserList users={blockedUsers} type="user" isBlocked={activeTab} />
         )}
       </div>

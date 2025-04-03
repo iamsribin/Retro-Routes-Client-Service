@@ -47,6 +47,7 @@ function App() {
            <Route path='/admin/dashboard' element={admin? <Dashboard/> : <Navigate to={'/login'}/>} />
            <Route path='/admin/users' element={admin? <Users/> : <Navigate to={'/login'}/>} />
            <Route path='/admin/userDetails/:id' element={admin? <AdminUserDetails/> : <Navigate to={'/login'}/>} />
+           <Route path='/admin/driverDetails/:id' element={admin? <AdminUserDetails/> : <Navigate to={'/login'}/>} />
            <Route path='/admin/drivers' element={admin? <Drivers/> : <Navigate to={'/login'}/>} />
            
           <Route path="*" element={<NotFound />} />

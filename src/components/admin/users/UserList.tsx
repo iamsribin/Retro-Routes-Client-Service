@@ -11,8 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Shield, ShieldOff, MoreHorizontal, Eye } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useDispatch } from 'react-redux';
-import { axiosAdmin } from '@/services/axios/adminAxios';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 interface User {
@@ -30,35 +28,13 @@ interface User {
 interface UserListProps {
   users: User[];
   type: 'user' | 'driver';
-  isBlocked: 'active' | 'blocked' |'pending' ;
+  isBlocked: 'active' | 'block' |'pending' ;
 }
 
 const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const adminAxios = axiosAdmin(dispatch);
-
-const handleBlockAndUnblock = async(_id :string)=>{
-
-  if(isBlocked === "active"){
-    try {
-      const response = await adminAxios.patch(`/blockUser/${_id}`);
-      console.log(response);
-    } catch (error) {
-      toast.error((error as Error).message || "faild to block user");
-    }
-   
-  }else{
-    try {
-      const response = await adminAxios.patch(`/unblockUser/${_id}`)
-      console.log(response);
-      
-    } catch (error) {
-      toast.error((error as Error).message || "faild to unblock user")
-    }
-  }
-}
 
   return (
     <div>
@@ -66,7 +42,7 @@ const handleBlockAndUnblock = async(_id :string)=>{
       <div className="md:hidden space-y-4">
         {users.length === 0 ? (
           <p className="text-center py-6">
-            No {isBlocked ==='blocked' ? 'blocked' : isBlocked ==='active'? 'active':'pending'} {type}s found.
+            No {isBlocked ==='block' ? 'blocked' : isBlocked ==='active'? 'active':'pending'} {type}s found.
           </p>
         ) : (
           users.map((user) => (
@@ -133,14 +109,14 @@ const handleBlockAndUnblock = async(_id :string)=>{
                       View
                     </Button>
                     <Button 
-                      variant={isBlocked ==='blocked' ? "default" : "destructive"} 
+                      variant={isBlocked ==='block' ? "default" : "destructive"} 
                       size="sm"
-                      className={`flex-1 ${isBlocked =="blocked" ? 
+                      className={`flex-1 ${isBlocked =="block" ? 
                         'bg-emerald-600 hover:bg-emerald-700' : 
                         'bg-red-600 hover:bg-red-700'} 
                         text-white transition-colors duration-200`}
                     >
-                      {isBlocked==='blocked' ? (
+                      {isBlocked==='block' ? (
                         <>
                           <ShieldOff className="mr-1 h-4 w-4 bg-black text-red-500" />
                           Unblock
@@ -177,7 +153,7 @@ const handleBlockAndUnblock = async(_id :string)=>{
             {users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={type === 'driver' ? 7 : 6} className="text-center">
-                No {isBlocked ==='blocked' ? 'blocked' : isBlocked ==='active'? 'active':'pending'} {type}s found.
+                No {isBlocked ==='block' ? 'blocked' : isBlocked ==='active'? 'active':'pending'} {type}s found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -209,35 +185,19 @@ const handleBlockAndUnblock = async(_id :string)=>{
                   {type === 'driver' && <TableCell>{user.vehicle || 'N/A'}</TableCell>}
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => navigate("/admin/userDetails/" + user._id) }>
+                      {type=="user" ?(<Button variant="outline" size="sm" onClick={() => navigate("/admin/userDetails/" + user._id) }>
                         <Eye className="mr-1 h-4 w-4" />
                         View
-                      </Button>
-                      {/* {isBlocked !== "pending" && (
-                        
-                        <Button 
-                        onClick={()=>handleBlockAndUnblock(user._id)}
-                        variant={isBlocked==="blocked" ? "default" : "destructive"}
-                        size="sm"
-                        className={`${isBlocked==="blocked" ? 
-                          'bg-green-600 hover:bg-green-700' : 
-                          'bg-red-600 hover:bg-red-700'} 
-                          text-white transition-colors duration-200`}
-                      >
-                        {isBlocked==="blocked" ? (
-                          <>
-                            <ShieldOff className="mr-1 h-4 w-4 "/>
-                            Unblock
-                          </>
-                        ) : (
-                          <>
-                            <Shield className="mr-1 h-4 w-4" />
-                            Block
-                          </>
-                        )}
-                      </Button>
-                        )}
-                       */}
+                      </Button>):(
+
+<Button variant="outline" size="sm" onClick={() => navigate("/admin/DriverDetails/" + user._id) }>
+<Eye className="mr-1 h-4 w-4" />
+View
+</Button>
+                      )   }
+                      
+                     
+                       
                     </div>
                   </TableCell>
                 </TableRow>

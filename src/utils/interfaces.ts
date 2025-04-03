@@ -112,6 +112,7 @@ export interface UserInterface extends Document {
     account_status: string;
     accountStatus:string;
     joiningDate: string;
+    reason: string;
     wallet: {
         balance: number;
         transactions: {

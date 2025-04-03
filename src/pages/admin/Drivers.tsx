@@ -2,17 +2,15 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import UserList from '@/components/admin/users/UserList';
 import { axiosAdmin } from '@/services/axios/adminAxios';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils'; 
 import { useDispatch } from 'react-redux';
 
 const Users: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'active' | 'blocked' | 'pending'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'block' | 'pending'>('active');
   const [verifiedDrivers, setverifiedDrivers] = useState<any[]>([]);
   const [blockedDrivers, setBlockedDrivers] = useState<any[]>([]);
   const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
-  const navigate = useNavigate();
   const dispatch = useDispatch()
 
   const fetchActiveUsers = async () => {
@@ -27,7 +25,7 @@ const Users: React.FC = () => {
   const fetchPendingDrivers = async () => {
     try {
       const { data } = await axiosAdmin(dispatch).get('/pendingDrivers');
-      console.log("pending drivers===", data);
+      console.log("pending drivers==", data);
       
       setPendingDrivers(data);
     } catch (error) {
@@ -86,10 +84,10 @@ const Users: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab('blocked')}
+              onClick={() => setActiveTab('block')}
               className={cn(
                 "px-4 py-2 text-sm font-medium border rounded-r-lg",
-                activeTab === 'blocked'
+                activeTab === 'block'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'
               )}
@@ -102,7 +100,7 @@ const Users: React.FC = () => {
         {activeTab === 'active' && (
           <UserList users={verifiedDrivers} type="driver" isBlocked={activeTab} />
         )}
-        {activeTab === 'blocked' && (
+        {activeTab === 'block' && (
           <UserList users={blockedDrivers} type="driver" isBlocked={activeTab} />
         )}
         {activeTab === 'pending' && (

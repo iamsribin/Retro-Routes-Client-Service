@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { axiosAdmin } from '../../../services/axios/adminAxios';
 import { toast } from 'sonner';
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { UserInterface } from "../../../utils/interfaces";
 import { useDispatch } from "react-redux";
+import { Eye } from "lucide-react";
+import { Button } from "@chakra-ui/react";
 
 const UserDetails = () => {
     const [statusModal, setStatusModal] = useState(false);
+    const [reasonModal,setReasonModal] = useState(false);
     const [userData, setUserData] = useState<UserInterface | null>(null);
     const { id } = useParams();
-    const navigate = useNavigate();
     const dispatch = useDispatch();
     const adminAxios = axiosAdmin(dispatch);
 
@@ -42,11 +44,15 @@ const UserDetails = () => {
         }),
         onSubmit: async (values, { setSubmitting }) => {
             try {
-                const { data } = await adminAxios.patch(`updateUserStatus?id=${id}`, values);
+                console.log(values);
+                
+                const { data } = await adminAxios.patch(`/updateUserStatus?id=${id}`, values);
+                console.log("data",data);
+                
                 if (data.message === "Success") {
                     setStatusModal(false);
                     toast.success("Status updated successfully!");
-                    navigate("/admin/users");
+                    getData();
                 } else {
                     toast.error("Something internal error");
                 }
@@ -145,6 +151,51 @@ const UserDetails = () => {
                     </div>
                 </div>
             )}
+{reasonModal && userData?.reason && (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full mx-4 sm:mx-auto">
+            {/* Modal Header */}
+            <div className="px-6 pt-5 pb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                    <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="w-6 h-6 text-red-600"
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                    >
+                        <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth="2" 
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+                        />
+                    </svg>
+                </div>
+
+                {/* Modal Title and Content */}
+                <div className="mt-4 text-center">
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-white">
+                        Reason for Account {userData?.accountStatus === "Good" ? "Unblock:" : "Block:"}
+                    </h3>
+                    <div className="mt-3 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                        <p>{userData.reason}</p>
+                    </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="mt-6 flex justify-center gap-4">
+                    <button
+                        onClick={() => setReasonModal(false)}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring focus:ring-gray-300 focus:ring-opacity-40 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
 
             <div className="min-h-screen p-6">
                 <h1 className="text-3xl font-bold text-black mb-6">User Profile</h1>
@@ -188,6 +239,14 @@ const UserDetails = () => {
         <div className="flex justify-between">
             <span className="font-semibold">Referral Code:</span>
             <span>{userData?.referralCode || "N/A"}</span>
+        </div>        
+        <div className="flex justify-between">
+            <span className="font-semibold">Resone for {userData?.accountStatus === "Good" ? "Unblock:" : "Block:"}</span>
+            <span>      
+                <Button variant="outline" size="sm" onClick={()=>setReasonModal(true)}>
+                        <Eye className="mr-1 h-4 w-4" />
+                        View
+                      </Button></span>
         </div>
         <div className="flex justify-between">
             <span className="font-semibold">Account Status:</span>
@@ -238,13 +297,10 @@ const UserDetails = () => {
                                 </div>
                             </div>
 
-                            {/* Location - Note: Add location field to schema if needed */}
                             <div className="bg-white rounded-xl shadow-lg p-6">
                                 <h3 className="text-xl font-semibold mb-4">Location</h3>
                                 <p className="text-gray-600">
-                                    {/* If location isn't in your schema, you might need to add it */}
                                     Location data not available
-                                    {/* Example if you add location to schema: */}
                                     {/* {userData.location || "Not specified"} */}
                                 </p>
                             </div>
