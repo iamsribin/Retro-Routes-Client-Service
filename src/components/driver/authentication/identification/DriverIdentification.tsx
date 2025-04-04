@@ -1,10 +1,11 @@
 import { useState } from "react"
 import { DriverIdentificationValidation } from "../../../../utils/validation";
 import { useFormik } from "formik";
-import axiosDriver from "../../../../services/axios/userAxios";
+import axiosDriver from "../../../../services/axios/driverAxios";
 import {toast} from 'sonner' ;
 import DriverPhotoPage from "../photo/DriverPhoto";
 import Loader from "../../../shimmer/Loader";
+import { Player } from "@lottiefiles/react-lottie-player";
 
 function DriverIdentification() {
     const [photoPage,setphotoPage]=useState(false);
@@ -62,11 +63,15 @@ function DriverIdentification() {
                                 </h1>
                             </div>
                             <div className="hidden  md:flex md:items-center justify-center" style={{ marginTop: "-30px" }}>
-                                {load ? <Loader/>: (<img
-                                    style={{ height: "250px", width: "auto" ,marginTop:'50px'}}
-                                    src="/images/image.jpg"
-                                    alt=""
-                                />)}
+                                {load ? <Loader/>: (
+                                    <Player
+                                    autoplay
+                                    loop
+                                    src="https://lottie.host/4d9f98cb-2a44-4a20-b422-649992c60069/MTxuwxSyrs.json"
+                                    style={{ height: '80%', width: '80%',background:"transparent" }}
+                                    
+                                />
+                                )}
                                 
                             </div>
                         </div>

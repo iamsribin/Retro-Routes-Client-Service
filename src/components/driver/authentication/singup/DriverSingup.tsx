@@ -15,7 +15,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ConfirmationResult } from "firebase/auth";
-import DriverIdentificationPage from "../../../../pages/driver/authentication/DriverVehiclePage";
+import DriverIdentificationPage from "../../../../pages/driver/authentication/DriverIdentification";
 import { auth } from "../../../../services/firebase";
 import { toast } from "sonner";
 import { useFormik } from "formik";

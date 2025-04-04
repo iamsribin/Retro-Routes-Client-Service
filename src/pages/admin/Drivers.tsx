@@ -5,13 +5,15 @@ import { axiosAdmin } from '@/services/axios/adminAxios';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils'; 
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
-const Users: React.FC = () => {
+const Drivers: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'block' | 'pending'>('active');
   const [verifiedDrivers, setverifiedDrivers] = useState<any[]>([]);
   const [blockedDrivers, setBlockedDrivers] = useState<any[]>([]);
   const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
   const dispatch = useDispatch()
+  const navigate = useNavigate()
 
   const fetchActiveUsers = async () => {
     try {
@@ -104,11 +106,16 @@ const Users: React.FC = () => {
           <UserList users={blockedDrivers} type="driver" isBlocked={activeTab} />
         )}
         {activeTab === 'pending' && (
-          <UserList users={pendingDrivers} type="driver" isBlocked={activeTab} />
+          <UserList 
+          users={pendingDrivers} 
+          type="driver" 
+          isBlocked={activeTab}
+          onView={(id) => navigate(`/admin/driverDetails/${id}`)}
+        />
         )}
       </div>
     </AdminLayout>
   );
 };
 
-export default Users;
+export default Drivers;

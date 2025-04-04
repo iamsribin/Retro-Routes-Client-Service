@@ -38,7 +38,7 @@ function DriverPhoto() {
                     formData.append('driverImage',file)
 
                     const driverId=localStorage.getItem("driverId");
-                    const response=await axiosDriver().post(`uploadDriverImage?driverId=${driverId}`,formData,{
+                    const response=await axiosDriver().post(`/uploadDriverImage?driverId=${driverId}`,formData,{
                         headers:{
                             "Content-Type":"multipart/form-data"
                         },
