@@ -68,8 +68,7 @@ function DriverIdentification() {
                                     autoplay
                                     loop
                                     src="https://lottie.host/4d9f98cb-2a44-4a20-b422-649992c60069/MTxuwxSyrs.json"
-                                    style={{ height: '80%', width: '80%',background:"transparent" }}
-                                    
+                                    style={{ height: '80%', width: '80%',background:"transparent" }}            
                                 />
                                 )}
                                 

@@ -29,10 +29,9 @@ interface UserListProps {
   users: User[];
   type: 'user' | 'driver';
   isBlocked: 'active' | 'block' |'pending' ;
-  onView?: (id: string) => void;
 }
 
-const UserList: React.FC<UserListProps> = ({ users, type, isBlocked,onView }) => {
+const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -191,7 +190,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked,onView }) =>
                         View
                       </Button>):(
 
-<Button variant="outline" size="sm" onClick={() => onView ? onView(user._id) : navigate(`/admin/driverDetails/${user._id}`)}>
+<Button variant="outline" size="sm" onClick={() => navigate(`/admin/driverDetails/${user._id}`)}>
 <Eye className="mr-1 h-4 w-4" />
 View
 </Button>

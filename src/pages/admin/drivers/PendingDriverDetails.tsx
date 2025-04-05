@@ -37,7 +37,7 @@ const PendingDriverDetails: React.FC = () => {
   useEffect(() => {
     const fetchDriverDetails = async () => {
       try {
-        const { data } = await axiosAdmin(dispatch).get(`/driver/?id=${id}&status=Pending`);
+        const { data } = await axiosAdmin(dispatch).get(`/driverDetails/${id}`);
         console.log("====data=====", data);
         setDriver(data);
         setLoading(false);
@@ -64,15 +64,6 @@ const PendingDriverDetails: React.FC = () => {
         });
         console.log(response);
       toast.success(`Driver ${status} successfully`);
-
-    // Send email notification with the note
-    //   await axiosAdmin(dispatch).post('/send-driver-verification-email', {
-    //     driverId: id,
-    //     status,
-    //     email: driver?.email,
-    //     name: driver?.name,
-    //     note, 
-    //   });
 
       navigate('/admin/drivers');
 

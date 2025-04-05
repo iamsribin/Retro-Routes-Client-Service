@@ -110,7 +110,6 @@ const Drivers: React.FC = () => {
           users={pendingDrivers} 
           type="driver" 
           isBlocked={activeTab}
-          onView={(id) => navigate(`/admin/driverDetails/${id}`)}
         />
         )}
       </div>

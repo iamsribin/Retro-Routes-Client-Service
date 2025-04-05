@@ -3,7 +3,7 @@ import {Route,Routes,BrowserRouter, Navigate} from "react-router-dom";
 import {useSelector} from 'react-redux'
 import { Toaster } from "sonner";
 import { ChakraProvider, } from "@chakra-ui/react";
-
+ 
 import LoginPage from './pages/user/authntication/loginPage';
 import SingupPage from './pages/user/authntication/singupPage';
 import HomePage from './pages/user/home/Index.tsx';
@@ -13,7 +13,7 @@ import { ToastContainer } from 'react-toastify';
 import NotFound from './pages/NotFound.tsx';
 import Dashboard from './pages/admin/Dashboard.tsx';
 import Users from './pages/admin/users/Users.tsx'
-import Drivers from './pages/admin/Drivers.tsx'
+import Drivers from './pages/admin/drivers/Drivers.tsx'
 import AdminUserDetails from './pages/admin/users/AdminUserDetailsPage.tsx'
 import PendingDriverDetails from './pages/admin/drivers/PendingDriverDetails.tsx';
 
