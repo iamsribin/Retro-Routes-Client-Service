@@ -4,7 +4,7 @@ import { axiosAdmin } from '@/services/axios/adminAxios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, X, ArrowLeft } from 'lucide-react';
+import { Check, X, ArrowLeft, Unlock, Lock } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useDispatch } from 'react-redux';
 import { Textarea } from '@/components/ui/textarea'; 
@@ -24,6 +24,7 @@ interface Driver {
     carImageUrl: string 
   };
   joiningDate: string;
+  account_status: "Good" | "Block" | "Pending"
 }
 
 const PendingDriverDetails: React.FC = () => {
@@ -49,7 +50,7 @@ const PendingDriverDetails: React.FC = () => {
     fetchDriverDetails();
   }, [id, dispatch]);
 
-  const handleVerification = async (status: "Verified" | "Rejected") => {
+  const handleVerification = async (status: "Verified" | "Rejected"| "Good"| "Block") => {
     try {
 
     if(!note){
@@ -139,31 +140,62 @@ const PendingDriverDetails: React.FC = () => {
           {/* Action Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Verification Actions</CardTitle>
+              <CardTitle>
+                {driver.account_status === 'Pending' ? 'Verification Actions' : 'Manage Driver'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <Textarea
-                  placeholder="Add a note"
+                  placeholder={
+                    driver.account_status === 'Pending'
+                      ? 'Add a note'
+                      : 'Add a reason for block/unblock'
+                  }
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   className="w-full"
                 />
-                <Button
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  onClick={() => handleVerification('Verified')}
-                >
-                  <Check className="mr-2 h-4 w-4" />
-                  Accept Driver
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => handleVerification('Rejected')}
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Reject Driver
-                </Button>
+                {driver.account_status === 'Pending' ? (
+                  <>
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => handleVerification('Verified')}
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      Accept Driver
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => handleVerification('Rejected')}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Reject Driver
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {driver.account_status === 'Good' ? (
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => handleVerification('Block')}
+                      >
+                        <Lock className="mr-2 h-4 w-4" />
+                        Block Driver
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        onClick={() => handleVerification('Good')}
+                      >
+                        <Unlock className="mr-2 h-4 w-4" />
+                        Unblock Driver
+                      </Button>
+                    )}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -199,11 +231,13 @@ const PendingDriverDetails: React.FC = () => {
                     ID: {driver.license?.licenseId || 'Not provided'}
                   </p>
                   {driver.license?.licenseImage ? (
+                    <a href={driver.license.licenseImage} >
                     <img
                       src={driver.license.licenseImage}
                       alt="License"
                       className="w-full h-40 object-cover rounded-md"
                     />
+                    </a>
                   ) : (
                     <p className="text-sm text-gray-500">Image not available</p>
                   )}

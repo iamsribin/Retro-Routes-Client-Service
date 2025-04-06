@@ -16,6 +16,7 @@ import Users from './pages/admin/users/Users.tsx'
 import Drivers from './pages/admin/drivers/Drivers.tsx'
 import AdminUserDetails from './pages/admin/users/AdminUserDetailsPage.tsx'
 import PendingDriverDetails from './pages/admin/drivers/PendingDriverDetails.tsx';
+// import PendingDriverDetails from './components/admin/drivers/PendingDriversDetails.tsx';
 
 function App() {
   const  user  = useSelector((store:{ user: { loggedIn: boolean } })=>store.user.loggedIn);
