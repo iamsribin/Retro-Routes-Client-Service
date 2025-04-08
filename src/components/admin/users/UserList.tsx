@@ -1,17 +1,16 @@
-import React from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Shield, ShieldOff, MoreHorizontal, Eye } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Shield, ShieldOff, MoreHorizontal, Eye } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 interface User {
   _id: string;
@@ -27,14 +26,12 @@ interface User {
 
 interface UserListProps {
   users: User[];
-  type: 'user' | 'driver';
-  isBlocked: 'active' | 'block' |'pending' ;
+  type: "user" | "driver";
+  isBlocked: "active" | "block" | "pending";
 }
 
 const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
-
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   return (
     <div>
@@ -42,7 +39,13 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
       <div className="md:hidden space-y-4">
         {users.length === 0 ? (
           <p className="text-center py-6">
-            No {isBlocked ==='block' ? 'blocked' : isBlocked ==='active'? 'active':'pending'} {type}s found.
+            No{" "}
+            {isBlocked === "block"
+              ? "blocked"
+              : isBlocked === "active"
+              ? "active"
+              : "pending"}{" "}
+            {type}s found.
           </p>
         ) : (
           users.map((user) => (
@@ -52,7 +55,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                       {user.userImage ? (
-                        <img 
+                        <img
                           src={user.userImage}
                           alt={user.name}
                           width={40}
@@ -68,7 +71,9 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                       )}
                       <div>
                         <h3 className="font-medium">{user.name}</h3>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email}
+                        </p>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -83,7 +88,13 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Status</p>
-                      <p className={`font-medium ${user.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                      <p
+                        className={`font-medium ${
+                          user.status === "active"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
                         {user.status}
                       </p>
                     </div>
@@ -91,32 +102,32 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                       <p className="text-muted-foreground">Join Date</p>
                       <p>{new Date(user.joiningDate).toLocaleDateString()}</p>
                     </div>
-                    {type === 'driver' && (
+                    {type === "driver" && (
                       <div className="col-span-2">
                         <p className="text-muted-foreground">Vehicle</p>
-                        <p>{user.vehicle || 'N/A'}</p>
+                        <p>{user.vehicle || "N/A"}</p>
                       </div>
                     )}
                   </div>
 
                   <div className="pt-2 flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="flex-1"
-                    >
+                    <Button variant="outline" size="sm" className="flex-1">
                       <Eye className="mr-1 h-4 w-4" />
                       View
                     </Button>
-                    <Button 
-                      variant={isBlocked ==='block' ? "default" : "destructive"} 
+                    <Button
+                      variant={
+                        isBlocked === "block" ? "default" : "destructive"
+                      }
                       size="sm"
-                      className={`flex-1 ${isBlocked =="block" ? 
-                        'bg-emerald-600 hover:bg-emerald-700' : 
-                        'bg-red-600 hover:bg-red-700'} 
+                      className={`flex-1 ${
+                        isBlocked == "block"
+                          ? "bg-emerald-600 hover:bg-emerald-700"
+                          : "bg-red-600 hover:bg-red-700"
+                      } 
                         text-white transition-colors duration-200`}
                     >
-                      {isBlocked==='block' ? (
+                      {isBlocked === "block" ? (
                         <>
                           <ShieldOff className="mr-1 h-4 w-4 bg-black text-red-500" />
                           Unblock
@@ -145,15 +156,24 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
               <TableHead>Email</TableHead>
               <TableHead>Mobile</TableHead>
               <TableHead>Join Date</TableHead>
-              {type === 'driver' && <TableHead>Vehicle</TableHead>}
+              {type === "driver" && <TableHead>Vehicle</TableHead>}
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={type === 'driver' ? 7 : 6} className="text-center">
-                No {isBlocked ==='block' ? 'blocked' : isBlocked ==='active'? 'active':'pending'} {type}s found.
+                <TableCell
+                  colSpan={type === "driver" ? 7 : 6}
+                  className="text-center"
+                >
+                  No{" "}
+                  {isBlocked === "block"
+                    ? "blocked"
+                    : isBlocked === "active"
+                    ? "active"
+                    : "pending"}{" "}
+                  {type}s found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -162,7 +182,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       {user.userImage ? (
-                        <img 
+                        <img
                           src={user.userImage}
                           alt={user.name}
                           width={40}
@@ -181,23 +201,50 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.mobile}</TableCell>
-                  <TableCell>{new Date(user.joiningDate).toLocaleDateString()}</TableCell>
-                  {type === 'driver' && <TableCell>{user.vehicle || 'N/A'}</TableCell>}
+                  <TableCell>
+                    {new Date(user.joiningDate).toLocaleDateString()}
+                  </TableCell>
+                  {type === "driver" && (
+                    <TableCell>{user.vehicle || "N/A"}</TableCell>
+                  )}
                   <TableCell>
                     <div className="flex space-x-2">
-                      {type=="user" ?(<Button variant="outline" size="sm" onClick={() => navigate("/admin/userDetails/" + user._id) }>
-                        <Eye className="mr-1 h-4 w-4" />
-                        View
-                      </Button>):(
+                      {type == "user" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigate("/admin/userDetails/" + user._id)
+                          }
+                        >
+                          <Eye className="mr-1 h-4 w-4" />
+                          View
+                        </Button>
+                      )}
 
-<Button variant="outline" size="sm" onClick={() => navigate(`/admin/driverDetails/${user._id}`)}>
-<Eye className="mr-1 h-4 w-4" />
-View
-</Button>
-                      )   }
-                      
-                     
-                       
+                      {type == "driver" && isBlocked ==="pending" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigate(`/admin/PendingDriverDetails/${user._id}`)
+                          }
+                        >
+                          <Eye className="mr-1 h-4 w-4" />
+                          View
+                        </Button>
+                      ): (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigate(`/admin/driverDetails/${user._id}`)
+                          }
+                        >
+                          <Eye className="mr-1 h-4 w-4" />
+                          View
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

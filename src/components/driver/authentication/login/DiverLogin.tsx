@@ -5,7 +5,6 @@ import { auth } from "../../../../services/firebase";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
 import axiosDriver from "../../../../services/axios/driverAxios";
 
@@ -20,6 +19,7 @@ import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { openRejectedModal } from "../../../../services/redux/slices/rejectModalSlice";
 import { sendOtp } from "../../../../hooks/auth";
 import Loader from "../../../shimmer/Loader";
+import { loginValidation } from "@/utils/validation";
 
 function DriverLogin() {
   const dispatch = useDispatch();
@@ -48,12 +48,7 @@ function DriverLogin() {
     initialValues: {
       mobile: "",
     },
-    validationSchema: yup.object({
-      mobile: yup
-        .string()
-        .length(10, "Enter a valid mobile number")
-        .required("Please enter the mobile number"),
-    }),
+    validationSchema: loginValidation,
     onSubmit: async (values) => {
       try {
         const { data } = await axiosDriver().post("/checkLoginDriver", values);

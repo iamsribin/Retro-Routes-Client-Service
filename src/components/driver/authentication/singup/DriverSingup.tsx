@@ -1,9 +1,3 @@
-// import FaMobileAlt from "@mui/icons-material/Smartphone";
-// import FaUser from "@mui/icons-material/Person";
-// import FaEnvelope from "@mui/icons-material/AlternateEmail";
-// import FaKey from "@mui/icons-material/VpnKey";
-// import FaUsers from "@mui/icons-material/Group";
-
 import {
   FaMobileAlt,
   FaUser,
@@ -12,25 +6,31 @@ import {
   FaUsers,
 } from "react-icons/fa";
 
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ConfirmationResult } from "firebase/auth";
 import DriverIdentificationPage from "../../../../pages/driver/authentication/DriverIdentification";
 import { auth } from "../../../../services/firebase";
 import { toast } from "sonner";
 import { useFormik } from "formik";
-import * as Yup from "yup";
 import { PinInput, PinInputField, HStack } from "@chakra-ui/react";
 import axiosDriver from "../../../../services/axios/driverAxios";
 import Loader from "../../../shimmer/Loader";
 import { sendOtp } from "../../../../hooks/auth";
+import { signupValidation} from "@/utils/validation";
+import DriverPhotoPage from "../photo/DriverPhoto";
+import DriverVehiclePage from "../../../../pages/driver/authentication/DriverVehiclePage";
+import DriverLocationPage from "@/pages/driver/authentication/DriverLocationPage";
+import DriverInsurancePage from "@/pages/driver/authentication/DriverInsurance";
 
 function DriverSignup() {
   const [counter, setCounter] = useState(40);
   const navigate = useNavigate();
   const [load, setLoad] = useState(false);
   const [otpPage, setOtpPage] = useState(false);
-  const [identificationPage, setIdentificationPage] = useState(true);
+  const [step, setStep] = useState<
+    "credentials" | "documents" | "location" | "driverImage" | "vehicle" | "insurance"
+  >("credentials");
 
   useEffect(() => {
     if (otpPage) {
@@ -44,7 +44,7 @@ function DriverSignup() {
 
   useEffect(() => {
     setOtpPage(false);
-    setIdentificationPage(false);
+    setStep("credentials");
   }, []);
 
   // Handle-OTP change
@@ -64,27 +64,7 @@ function DriverSignup() {
       re_password: "",
       reffered_Code: "",
     },
-    validationSchema: Yup.object({
-      name: Yup.string()
-        .min(3, "Type a valid name")
-        .required("Please enter a name"),
-      email: Yup.string()
-        .email("Please enter a valid email")
-        .required("Please enter an email"),
-      mobile: Yup.string()
-        .length(10, "Please enter a valid number")
-        .required("Please enter an email"),
-      password: Yup.string()
-        .matches(/^(?=.*[A-Z])/, "Must include One uppercase letter")
-        .matches(/^(?=.*\d)/, "Must include one digit")
-        .required("Passowrd is required"),
-      re_password: Yup.string()
-        .oneOf([Yup.ref("password")], "Password must match")
-        .required("Please re-enter the password"),
-      reffered_Code: Yup.string()
-        .min(5, "Enter a valid code")
-        .matches(/^(?=.*\d)/, "Enter a valid code"),
-    }),
+    validationSchema: signupValidation,
     onSubmit: async (values, { setSubmitting }) => {
       setLoad(true);
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -105,18 +85,60 @@ function DriverSignup() {
   const signupHandle = async (formData: unknown) => {
     try {
       const { data } = await axiosDriver().post(`/checkDriver`, formData);
-      if (data.message === "Driver login") {
-        toast.error("Driver Already registered! Please Login to continue");
-        navigate("/driver/login");
-      } else if (data.message === "Driver must fill documents") {
-        toast.info("Driver Already registered!\n Please verify the documents");
-        console.log(data);
-        localStorage.setItem("driverId", data.driverId);
-        setIdentificationPage(true);
-      } else {
-        sendOtp(setotpInput, auth, formik.values.mobile, setConfirmationResult);
-        setLoad(false); 
-        setOtpPage(true);
+      switch (data.message) {
+        case "Document is pending":
+          toast.info(
+            "Driver Already registered!\n Please verify the documents"
+          );
+          console.log(data);
+          localStorage.setItem("driverId", data.driverId);
+          setStep("documents");
+          break;
+
+        case "Driver image is pending":
+          toast.info("Driver Already registered!\n Please submit your image");
+          console.log(data);
+          localStorage.setItem("driverId", data.driverId);
+          setStep("driverImage");
+          break;
+
+        case "Location is pending":
+          toast.info(
+            "Driver Already registered!\n Please submit your location"
+          );
+          console.log(data);
+          localStorage.setItem("driverId", data.driverId);
+          setStep("location");
+          break;
+
+        case "Insurance is pending":
+          toast.info(
+              "Driver Already registered!\n Please submit your insurance and polution"
+            );
+            console.log(data);
+            localStorage.setItem("driverId", data.driverId);
+            setStep("insurance");
+            break;
+
+        case "Vehicle details are pending":
+          toast.info(
+            "Driver Already registered!\n Please submit your vehicle details"
+          );
+          console.log(data);
+          localStorage.setItem("driverId", data.driverId);
+          setStep("vehicle");
+          break;
+
+        default:
+          sendOtp(
+            setotpInput,
+            auth,
+            formik.values.mobile,
+            setConfirmationResult
+          );
+          setLoad(false);
+          setOtpPage(true);
+          break;
       }
     } catch (error) {
       toast.error((error as Error).message);
@@ -156,7 +178,7 @@ function DriverSignup() {
         toast.success("OTP verified successfully");
         localStorage.setItem("driverId", response.data.driverId);
         setLoad(false);
-        setIdentificationPage(true);
+        setStep("documents");
       }
     } catch (error) {
       toast.error((error as Error).message);
@@ -168,20 +190,8 @@ function DriverSignup() {
   const without_error_class = "pl-2 outline-none border-b w-full";
   return (
     <>
-      {/* <nav className="bg-black text-white flex justify-between items-center p-6 ">
-        <div className="flex items-center space-x-4">
-          <Link to="/" className="hover:text-gray-300">
-            <img
-              src="/images/images__1_-removebg-preview.png"
-              alt="Logo"
-              className=" w-[40%]"
-            />
-          </Link>
-        </div>
-      </nav> */}
-      {identificationPage ? (
-        <DriverIdentificationPage />
-      ) : (
+      {step === "documents" && <DriverIdentificationPage />}
+      {step === "credentials" && (
         <>
           <div className="bg-white driver-registration-container h-screen flex justify-center items-center">
             <div className="w-5/6 md:w-4/6 md:h-4/5  md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
@@ -458,6 +468,11 @@ function DriverSignup() {
           <div id="recaptcha-container"></div>
         </>
       )}
+
+      {step === "driverImage" && <DriverPhotoPage />}
+      {step === "vehicle" && <DriverVehiclePage />}
+      {step === "insurance" && <DriverInsurancePage />}
+      {step === "location" && <DriverLocationPage />}
     </>
   );
 }

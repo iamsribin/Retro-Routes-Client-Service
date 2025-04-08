@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import SignupMap from "../map/SingupMap";
 import { useFormik } from "formik";
-import * as Yup from "yup";
 import { toast } from 'sonner';
 import axiosDriver from '../../../../services/axios/driverAxios';
 import { useNavigate } from "react-router-dom";
@@ -12,6 +11,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useDispatch } from "react-redux";
 import { openPendingModal } from "../../../../services/redux/slices/pendingModalSlice";
 import Loader from "../../../shimmer/Loader";
+import { SignupLocationValidation } from "@/utils/validation";
 
 function DriverLocation() {
     const dispatch = useDispatch();
@@ -35,14 +35,7 @@ function DriverLocation() {
             latitude: latitude,
             longitude: longitude,
         },
-        validationSchema: Yup.object({
-            latitude: Yup.number()
-                .min(8.4, "Choose a valid location in India")
-                .max(37.6, "Choose a valid location in India"),
-            longitude: Yup.number()
-                .min(68.7, "Choose a valid location in India")
-                .max(97.25, "Choose a valid location in India"),
-        }),
+        validationSchema: SignupLocationValidation,
         onSubmit: async (values, { setSubmitting }) => {
             try {
                 setLoad(true);

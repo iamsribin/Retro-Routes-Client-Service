@@ -3,11 +3,11 @@ import { useParams } from "react-router-dom";
 import { axiosAdmin } from '../../../services/axios/adminAxios';
 import { toast } from 'sonner';
 import { useFormik } from "formik";
-import * as Yup from "yup";
 import { UserInterface } from "../../../utils/interfaces";
 import { useDispatch } from "react-redux";
 import { Eye } from "lucide-react";
 import { Button } from "@chakra-ui/react";
+import { userBlockUnblockVaidation } from "@/utils/validation";
 
 const UserDetails = () => {
     const [statusModal, setStatusModal] = useState(false);
@@ -38,10 +38,7 @@ const UserDetails = () => {
             reason: "",
             status: "",
         },
-        validationSchema: Yup.object({
-            reason: Yup.string().required("Please provide a valid reason!").min(5, "Enter a valid reason"),
-            status: Yup.string().required("Please select the status"),
-        }),
+        validationSchema:userBlockUnblockVaidation,
         onSubmit: async (values, { setSubmitting }) => {
             try {
                 console.log(values);

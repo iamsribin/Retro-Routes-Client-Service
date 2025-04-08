@@ -3,10 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { axiosAdmin } from '../../../services/axios/adminAxios';
 import { toast } from 'sonner';
 import { useFormik } from "formik";
-import * as Yup from "yup";
 import { Dialog } from "@material-tailwind/react";
 import { UserInterface } from "../../../utils/interfaces";
 import { useDispatch } from "react-redux";
+import { userBlockUnblockVaidation } from "@/utils/validation";
 
 const UserDetails = () => {
     const [statusModal, setStatusModal] = useState(false);
@@ -35,10 +35,7 @@ const UserDetails = () => {
             reason: "",
             status: "",
         },
-        validationSchema: Yup.object({
-            reason: Yup.string().required("Please provide a valid reason!").min(5, "Enter a valid reason"),
-            status: Yup.string().required("Please select the status"),
-        }),
+        validationSchema: userBlockUnblockVaidation,
         onSubmit: async (values, { setSubmitting }) => {
             try {
                 const { data } = await adminAxios.patch(`updateUserStatus?id=${id}`, values);

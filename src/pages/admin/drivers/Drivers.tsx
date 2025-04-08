@@ -13,7 +13,6 @@ const Drivers: React.FC = () => {
   const [blockedDrivers, setBlockedDrivers] = useState<any[]>([]);
   const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
   const dispatch = useDispatch()
-  const navigate = useNavigate()
 
   const fetchActiveUsers = async () => {
     try {

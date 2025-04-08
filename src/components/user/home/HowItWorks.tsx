@@ -94,12 +94,12 @@ const HowItWorks: React.FC = () => {
             <div className="relative">
               <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-lg">
                 <img 
-                  src="https://images.unsplash.com/photo-1560031612-3a336c101145?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                  src="https://m.media-amazon.com/images/I/81QVBFbg2qL.jpg" 
                   alt="Premium cab interior" 
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute -right-6 -bottom-6 glass rounded-xl p-4 shadow-lg">
+              {/* <div className="absolute -right-6 -bottom-6 glass rounded-xl p-4 shadow-lg">
                 <div className="flex items-center space-x-2">
                   <div className="flex -space-x-2">
                     <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden">
@@ -129,7 +129,7 @@ const HowItWorks: React.FC = () => {
                     <p className="text-xs opacity-80">Happy customers</p>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

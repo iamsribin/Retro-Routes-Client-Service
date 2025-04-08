@@ -4,8 +4,8 @@ import Webcam from "react-webcam"
 import {toast} from 'sonner' ;
 import axiosDriver from "../../../../services/axios/driverAxios"
 import DriverVehiclePage from "../../../../pages/driver/authentication/DriverVehiclePage"
-import * as yup from 'yup'
 import Loader from "../../../shimmer/Loader"
+import { driverImageValidation } from "@/utils/validation";
 const videoConstraints={
     width:400,
     height:400,
@@ -19,10 +19,7 @@ function DriverPhoto() {
     const initialValues={
         driverImage:null
     }
-    const validationSchema=yup.object({
-        driverImage:yup.mixed().required('Please upload your photo')
-    })
-
+    const validationSchema=driverImageValidation
     const webcamRef=useRef<Webcam|null>(null)
 
     const formik=useFormik({

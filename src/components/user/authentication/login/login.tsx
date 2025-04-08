@@ -1,9 +1,9 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as yup from "yup";
 // import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import axiosUser from "../../../../services/axios/userAxios";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 
@@ -19,6 +19,7 @@ import { userLogin } from "../../../../services/redux/slices/userAuthSlice";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { sendOtp } from "../../../../hooks/auth";
 import { adminLogin } from "@/services/redux/slices/adminAuthSlice";
+import { loginValidation } from "@/utils/validation";
 
 // Global type declaration for window
 declare global {
@@ -64,12 +65,7 @@ function Login() {
       mobile: "",
     },
 
-    validationSchema: yup.object({
-      mobile: yup
-        .string()
-        .length(10, "Enter a valid mobile number")
-        .required("please enter the mobile number"),
-    }),
+    validationSchema: loginValidation,
 
     onSubmit: async (values) => {
       try {

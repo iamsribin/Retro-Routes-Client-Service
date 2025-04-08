@@ -6,6 +6,8 @@ import FeaturesSection from '@/components/user/home/FeaturesSection';
 import Testimonials from '@/components/user/home/Testimonials';
 import CTA from '@/components/user/home/CTA';
 import RideBooking from '@/components/user/home/RideBooking';
+import HowItWorks from '@/components/user/home/HowItWorks';
+
 const Index: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
@@ -14,8 +16,8 @@ const Index: React.FC = () => {
         <HeroSection />
         <RideBooking />
         <FeaturesSection />   
-        
         <Testimonials />
+        <HowItWorks/>
         <CTA />
       </main>
       <Footer />
