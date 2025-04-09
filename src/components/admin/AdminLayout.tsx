@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// AdminLayout.tsx
+import React from 'react';
 import { 
   SidebarProvider,
   Sidebar,
@@ -11,97 +12,96 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, Users, Car, Gift, PieChart, LogOut, Menu } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { LayoutDashboard, Users, Car, Gift, PieChart, LogOut } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { adminLogout } from "../../services/redux/slices/adminAuthSlice";
 import { useDispatch } from 'react-redux';
 
+// Define the props interface with proper typing for children
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-    const dispatch = useDispatch();
-  
+  const dispatch = useDispatch();
+  const location = useLocation();
+
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full">
-        <Sidebar>
-          <SidebarHeader className="border-b">
-            <div className="p-2">
-              <h2 className="text-xl font-bold text-emerald">Retro Routes</h2>
-              <p className="text-xs text-muted-foreground">Admin Portal</p>
+      <div className="flex min-h-screen w-full bg-gray-50 text-gray-800">
+        <Sidebar className="bg-white border-r border-gray-200 w-64 shadow-md">
+          <SidebarHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                <span className="text-xl font-bold text-blue-600">RR</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Retro Routes</h2>
+                <p className="text-xs text-blue-100">Admin Panel</p>
+              </div>
             </div>
           </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Dashboard">
-                  <Link to="/admin/dashboard">
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Users">
-                  <Link to="/admin/users">
-                    <Users />
-                    <span>Users</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Drivers">
-                  <Link to="/admin/drivers">
-                    <Car />
-                    <span>Drivers</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Offers">
-                  <Link to="/admin/offers">
-                    <Gift />
-                    <span>Offers</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Reports">
-                  <Link to="/admin/reports">
-                    <PieChart />
-                    <span>Reports</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+          
+          <SidebarContent className="py-8">
+            <SidebarMenu className="space-y-3 px-4">
+              {[
+                { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                { to: '/admin/users', icon: Users, label: 'Users' },
+                { to: '/admin/drivers', icon: Car, label: 'Drivers' },
+                { to: '/admin/offers', icon: Gift, label: 'Offers' },
+                { to: '/admin/reports', icon: PieChart, label: 'Reports' },
+              ].map((item) => {
+                const isActive = location.pathname.startsWith(item.to);
+                return (
+                  <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton 
+                      asChild
+                      className={`w-full py-3 px-4 rounded-xl transition-all duration-300 ${
+                        isActive 
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md' 
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Link to={item.to} className="flex items-center">
+                        <item.icon className="h-5 w-5 mr-3" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Back to Site">
-                <Link to="/"
-                 onClick={() => {
-                  dispatch(adminLogout()); 
-                  localStorage.removeItem("userToken"); 
-                    }}>
-                    <LogOut />
-                    <span>Back to Site</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+          
+          <SidebarFooter className="p-4 border-t border-gray-200">
+            <SidebarMenuButton 
+              className="w-full py-3 px-4 rounded-xl text-gray-600 hover:bg-gray-100 transition-all duration-300"
+              onClick={() => {
+                dispatch(adminLogout());
+                localStorage.removeItem("userToken");
+              }}
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              <span>Logout</span>
+            </SidebarMenuButton>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="relative">
-          <div className="sticky top-0 z-10 w-full bg-background p-4 border-b flex items-center justify-between md:justify-end">
-            <SidebarTrigger className="md:hidden" />
+
+        <SidebarInset className="flex-1 flex flex-col">
+          <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-10">
+            <SidebarTrigger className="md:hidden text-gray-600 hover:bg-gray-100 rounded-lg p-2" />
             <div className="flex items-center gap-4">
-              <span className="text-sm hidden md:inline-block">Admin User</span>
+              <span className="text-sm font-medium text-gray-600 hidden md:block">Admin Panel</span>
             </div>
-          </div>
-          {children}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
+                <span className="text-lg font-bold text-white">A</span>
+              </div>
+            </div>
+          </header>
+          <main className="flex-1 overflow-hidden bg-gray-50">
+            {children}
+          </main>
         </SidebarInset>
       </div>
     </SidebarProvider>

@@ -1,149 +1,248 @@
-// components/admin/users/PendingDriverDetails.tsx
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { axiosAdmin } from '@/services/axios/adminAxios';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, X, ArrowLeft, Unlock, Lock, ZoomIn } from 'lucide-react';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { useDispatch } from 'react-redux';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Driver {
   _id: string;
   name: string;
   email: string;
-  mobile: number;
+  mobile: string;
   driverImage?: string;
+  aadhar?: { aadharId: string; aadharFrontImageUrl: string; aadharBackImageUrl: string };
+  license?: { licenseId: string; licenseFrontImageUrl: string; licenseBackImageUrl: string; licenseValidity: string };
+  vehicle_details?: { 
+    registerationID: string; 
+    model: string; 
+    rcFrondImageUrl: string;
+    rcBackImageUrl: string;
+    carFrondImageUrl: string;
+    carBackImageUrl: string;
+  };
   joiningDate: string;
-  aadhar: { aadharId: string; aadharImage: string };
-  license: { licenseId: string; licenseImage: string };
-  vehicle_details: { registerationID: string; model: string; rcImageUrl: string; carImageUrl: string };
+  account_status: "Good" | "Block" | "Pending";
+  location?: { longitude: number; latitude: number };
 }
 
-interface PendingDriverDetailsProps {
-  driver: Driver;
-  isOpen: boolean;
-  onClose: () => void;
-  onUpdate: () => void;
-}
-
-const PendingDriverDetails: React.FC<PendingDriverDetailsProps> = ({ driver, isOpen, onClose, onUpdate }) => {
-  const [rejectionReason, setRejectionReason] = React.useState('');
+const PendingDriverDetails: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [driver, setDriver] = useState<Driver | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [note, setNote] = useState<string>('');
+  const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
 
-  const handleVerify = async (status: 'accepted' | 'rejected') => {
+  useEffect(() => {
+    const fetchDriverDetails = async () => {
+      try {
+        const { data } = await axiosAdmin(dispatch).get(`/driverDetails/${id}`);
+        console.log("-------------",data);
+        
+        setDriver(data);
+        setLoading(false);
+      } catch (error) {
+        toast.error('Failed to fetch driver details');
+        setLoading(false);
+      }
+    };
+    fetchDriverDetails();
+  }, [id, dispatch]);
+
+  const handleVerification = async (status: "Verified" | "Rejected" | "Good" | "Block") => {
+    if (!note) {
+      toast.error("Please provide a note");
+      return;
+    }
     try {
-      const payload = {
-        driverId: driver._id,
-        status,
-        ...(status === 'rejected' && { rejectionReason }),
-      };
-
-      await axiosAdmin(dispatch).post('/verifyDriver', payload);
+      await axiosAdmin(dispatch).post(`/driver/verify/${id}`, { status, note });
       toast.success(`Driver ${status} successfully`);
-      onUpdate();
-      onClose();
+      navigate('/admin/drivers');
     } catch (error) {
-      toast.error(`Failed to ${status} driver: ${(error as Error).message}`);
+      toast.error(`Failed to ${status} driver`);
     }
   };
 
+  if (loading) return <AdminLayout><div className="flex justify-center items-center h-screen text-white">Loading...</div></AdminLayout>;
+  if (!driver) return <AdminLayout><div className="flex justify-center items-center h-screen text-white">Driver not found</div></AdminLayout>;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Driver Verification - {driver.name}</DialogTitle>
-        </DialogHeader>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-          {/* Driver Basic Info */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              {driver.driverImage ? (
-                <img src={driver.driverImage} alt={driver.name} className="w-16 h-16 rounded-full" />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-xl">{driver.name.charAt(0).toUpperCase()}</span>
+    <AdminLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6">
+        <Button
+          variant="ghost"
+          className="mb-6 text-white hover:text-gray-300 hover:bg-gray-700"
+          onClick={() => navigate('/admin/drivers')}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Drivers
+        </Button>
+
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+            <div className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600">
+              <h1 className="text-3xl font-bold">{driver.name}</h1>
+              <p className="text-indigo-200">Driver ID: {driver._id}</p>
+            </div>
+
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-700">
+                <TabsTrigger value="details" className="data-[state=active]:bg-indigo-600">Driver Details</TabsTrigger>
+                <TabsTrigger value="documents" className="data-[state=active]:bg-indigo-600">Documents</TabsTrigger>
+                <TabsTrigger value="map" className="data-[state=active]:bg-indigo-600">Location Map</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="bg-gray-700 border-none">
+                    <CardHeader>
+                      <CardTitle className="text-white">Personal Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {driver.driverImage && (
+                        <img src={driver.driverImage} alt={driver.name} className="w-24 h-24 rounded-full object-cover mx-auto" />
+                      )}
+                      <div>
+                        <p className="text-gray-400">Email</p>
+                        <p>{driver.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Mobile</p>
+                        <p>{driver.mobile}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Joining Date</p>
+                        <p>{new Date(driver.joiningDate).toLocaleDateString()}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gray-700 border-none md:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        {driver.account_status === 'Pending' ? 'Verification Actions' : 'Manage Driver'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Textarea
+                        placeholder={driver.account_status === 'Pending' ? 'Add a verification note' : 'Add a reason for action'}
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                      />
+                      {driver.account_status === 'Pending' ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleVerification('Verified')}>
+                            <Check className="mr-2 h-4 w-4" /> Accept
+                          </Button>
+                          <Button variant="destructive" onClick={() => handleVerification('Rejected')}>
+                            <X className="mr-2 h-4 w-4" /> Reject
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          className={driver.account_status === 'Good' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+                          onClick={() => handleVerification(driver.account_status === 'Good' ? 'Block' : 'Good')}
+                        >
+                          {driver.account_status === 'Good' ? (
+                            <><Lock className="mr-2 h-4 w-4" /> Block Driver</>
+                          ) : (
+                            <><Unlock className="mr-2 h-4 w-4" /> Unblock Driver</>
+                          )}
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
-              )}
-              <div>
-                <h3 className="font-semibold">{driver.name}</h3>
-                <p className="text-sm text-gray-600">{driver.email}</p>
-                <p className="text-sm text-gray-600">{driver.mobile}</p>
-              </div>
-            </div>
-            <div>
-              <Label>Joining Date</Label>
-              <p>{new Date(driver.joiningDate).toLocaleDateString()}</p>
-            </div>
-          </div>
+              </TabsContent>
 
-          {/* Documents */}
-          <div className="space-y-4">
-            {/* Aadhar */}
-            <div>
-              <Label>Aadhar Details</Label>
-              <p>Aadhar ID: {driver.aadhar.aadharId}</p>
-              <a href={driver.aadhar.aadharImage} target="_blank" className="text-blue-600 hover:underline">
-                View Aadhar Image
-              </a>
-            </div>
+              <TabsContent value="documents" className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[
+                    { title: 'Aadhar Card', id: driver.aadhar?.aadharId, front: driver.aadhar?.aadharFrontImageUrl, back: driver.aadhar?.aadharBackImageUrl },
+                    { title: 'Driving License', id: driver.license?.licenseId, front: driver.license?.licenseFrontImageUrl, back: driver.license?.licenseBackImageUrl },
+                    { title: 'Vehicle RC', id: driver.vehicle_details?.registerationID, front: driver.vehicle_details?.rcFrondImageUrl, back: driver.vehicle_details?.rcBackImageUrl },
+                    { title: 'Vehicle Image', id: driver.vehicle_details?.model, front: driver.vehicle_details?.carFrondImageUrl, back: driver.vehicle_details?.carBackImageUrl },
+                  ].map((doc) => (
+                    <Card key={doc.title} className="bg-gray-700 border-none">
+                      <CardHeader>
+                        <CardTitle className="text-white">{doc.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-gray-400">ID: {doc.id || 'Not provided'}</p>
+                        <div className="space-y-2">
+                          {doc.front && (
+                            <div className="relative group">
+                              <img src={doc.front} alt={`${doc.title} front`} className="w-full h-40 object-cover rounded-md" />
+                              <Button
+                                variant="ghost"
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => setSelectedImage(doc.front)}
+                              >
+                                <ZoomIn className="h-5 w-5 text-white" />
+                              </Button>
+                            </div>
+                          )}
+                          {doc.back && (
+                            <div className="relative group">
+                              <img src={doc.back} alt={`${doc.title} back`} className="w-full h-40 object-cover rounded-md" />
+                              <Button
+                                variant="ghost"
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => setSelectedImage(doc.back)}
+                              >
+                                <ZoomIn className="h-5 w-5 text-white" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
 
-            {/* License */}
-            <div>
-              <Label>License Details</Label>
-              <p>License ID: {driver.license.licenseId}</p>
-              <a href={driver.license.licenseImage} target="_blank" className="text-blue-600 hover:underline">
-                View License Image
-              </a>
-            </div>
-
-            {/* Vehicle */}
-            <div>
-              <Label>Vehicle Details</Label>
-              <p>Registration ID: {driver.vehicle_details.registerationID}</p>
-              <p>Model: {driver.vehicle_details.model}</p>
-              <div className="flex gap-2">
-                <a href={driver.vehicle_details.rcImageUrl} target="_blank" className="text-blue-600 hover:underline">
-                  View RC
-                </a>
-                <a href={driver.vehicle_details.carImageUrl} target="_blank" className="text-blue-600 hover:underline">
-                  View Vehicle
-                </a>
-              </div>
-            </div>
+              <TabsContent value="map" className="p-6">
+                <Card className="bg-gray-700 border-none">
+                  <CardHeader>
+                    <CardTitle className="text-white">Driver Location</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {driver.location ? (
+                      // You would need to integrate a map library like react-leaflet or google-maps-react here
+                      <div className="h-96 bg-gray-600 rounded-md flex items-center justify-center">
+                        Map implementation would go here (lat: {driver.location.latitude}, lng: {driver.location.longitude})
+                      </div>
+                    ) : (
+                      <div className="h-96 bg-gray-600 rounded-md flex items-center justify-center text-gray-400">
+                        Location data not available
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
+      </div>
 
-        {/* Rejection Reason */}
-        <div className="space-y-2">
-          <Label>Rejection Reason (Required if rejecting)</Label>
-          <Input
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Enter reason for rejection (if applicable)"
-          />
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => handleVerify('rejected')}
-            disabled={rejectionReason.trim() === ''}
-          >
-            Reject
-          </Button>
-          <Button onClick={() => handleVerify('accepted')}>
-            Accept
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(undefined)}>
+        <DialogContent className="max-w-4xl bg-gray-800 border-none">
+          {selectedImage && (
+            <img src={selectedImage} alt="Zoomed document" className="w-full h-auto rounded-md" />
+          )}
+        </DialogContent>
+      </Dialog>
+    </AdminLayout>
   );
 };
 
-
-export default PendingDriverDetails
+export default PendingDriverDetails;
