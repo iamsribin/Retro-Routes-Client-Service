@@ -16,6 +16,7 @@ import Users from './pages/admin/users/Users.tsx'
 import Drivers from './pages/admin/drivers/Drivers.tsx'
 import AdminUserDetails from './pages/admin/users/AdminUserDetailsPage.tsx'
 import PendingDriverDetails from './pages/admin/drivers/PendingDriverDetails.tsx';
+import ResubmissionPage from './pages/driver/authentication/Resbmission.tsx';
 // import PendingDriverDetails from './components/admin/drivers/PendingDriversDetails.tsx';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
           {/* driver router */}
           <Route path='/driver/login' element={driver ? <Navigate to={'/driver/dashboard'}/>:  <DriverLoginPage/>}/>
           <Route path='/driver/signup' element={driver ? <Navigate to={'/driver/dashboard'}/>:<DriverSignupPage/>}/>
+           <Route path='/driver/identification' element={<ResubmissionPage/>} />
 
            {/* admin router */}
            <Route path='/admin/dashboard' element={admin? <Dashboard/> : <Navigate to={'/login'}/>} />

@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 interface Driver {
   _id: string;
   name: string;
-  email: string;
+  email: string;  
   mobile: string;
   driverImage?: string;
   aadhar?: { aadharId: string; aadharFrontImageUrl: string; aadharBackImageUrl: string };

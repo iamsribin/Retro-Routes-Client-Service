@@ -34,7 +34,7 @@ interface UserData {
   userToken: string;
   refreshToken: string;
   loggedIn: boolean;
-  isAdmin: boolean;
+  role: string;
 }
 
 function Login() {
@@ -47,7 +47,7 @@ function Login() {
     userToken: "",
     refreshToken: "",
     loggedIn: false,
-    isAdmin: false,
+    role: "",
   });
   const dispatch = useDispatch();
   const [otpInput, setotpInput] = useState(false);
@@ -84,7 +84,7 @@ function Login() {
             userToken: data.token,
             refreshToken: data.refreshToken,
             loggedIn: true,
-            isAdmin: data.isAdmin,
+            role: data.role,
           });
         } else if (data.message === "Blocked") {
           toast.info("your account is blocked");
@@ -113,7 +113,7 @@ function Login() {
       confirmationResult
         .confirm(otpValue)
         .then(async () => {
-          if (userData.isAdmin) {
+          if (userData.role =="Admin") {
             toast.success("Login Successfully");
             localStorage.setItem("adminToken", userData.userToken);
             localStorage.setItem("adminRefreshToken", userData.refreshToken);

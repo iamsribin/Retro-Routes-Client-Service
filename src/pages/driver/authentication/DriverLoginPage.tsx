@@ -6,7 +6,6 @@ import  RejectedModal  from "../../../components/RejectModal";
 function DriverLoginPage() {
     const isOpenPending  = useSelector((store: {pendingModal:{isOpenPending:boolean}}) => store.pendingModal.isOpenPending);
     const isOpenRejected  = useSelector((store: {rejectModal:{isOpenRejected:boolean}}) => store.rejectModal.isOpenRejected);
-    console.log(isOpenRejected,"chgvhgh");
     
     return (
         <div>

@@ -75,7 +75,6 @@ export const SignupLocationValidation= yup.object({
       .max(97.25, "Choose a valid location in India"),
 })
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const adminValidation= yup.object({
   email: yup
     .string()
@@ -104,3 +103,166 @@ export const userBlockUnblockVaidation =  yup.object({
   reason: yup.string().required("Please provide a valid reason!").min(5, "Enter a valid reason"),
   status: yup.string().required("Please select the status"),
 })
+
+export const ResubmissionValidation = (fields: string[] = []) =>
+  yup.object().shape({
+    aadharID: fields.includes('aadhar')
+      ? yup
+          .string()
+          .matches(/^\d{4}\s?\d{4}\s?\d{4}$/, 'Aadhaar must be a 12-digit number (e.g., 1234 5678 9012)')
+          .required('Aadhaar ID is required')
+      : yup.string().nullable(),
+    aadharFrontImage: fields.includes('aadhar')
+      ? yup
+          .mixed()
+          .required('Aadhaar front image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    aadharBackImage: fields.includes('aadhar')
+      ? yup
+          .mixed()
+          .required('Aadhaar back image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+
+    licenseID: fields.includes('license')
+      ? yup
+          .string()
+          .matches(/^[A-Z]{2}\d{2}\s?\d{4}\d{7}$/, 'Invalid Indian driving license format (e.g., MH12 20230012345)')
+          .required('License ID is required')
+      : yup.string().nullable(),
+    licenseFrontImage: fields.includes('license')
+      ? yup
+          .mixed()
+          .required('License front image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    licenseBackImage: fields.includes('license')
+      ? yup
+          .mixed()
+          .required('License back image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    licenseValidity: fields.includes('license')
+      ? yup
+          .date()
+          .min(new Date(), 'License validity date must be in the future')
+          .required('License validity date is required')
+      : yup.string().nullable(),
+
+    registerationID: fields.includes('registerationID')
+      ? yup
+          .string()
+          .matches(
+            /^[A-Z]{2}\d{2}\s?[A-Z]{0,2}\s?\d{1,4}$/,
+            'Invalid Indian RC format (e.g., MH04 AB 1234)'
+          )
+          .required('Registration ID is required')
+      : yup.string().nullable(),
+    model: fields.includes('model')
+      ? yup.string().required('Vehicle model is required')
+      : yup.string().nullable(),
+    rcFrontImage: fields.includes('rc')
+      ? yup
+          .mixed()
+          .required('RC front image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    rcBackImage: fields.includes('rc')
+      ? yup
+          .mixed()
+          .required('RC back image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    carFrontImage: fields.includes('carImage')
+      ? yup
+          .mixed()
+          .required('Car front image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    carBackImage: fields.includes('carImage')
+      ? yup
+          .mixed()
+          .required('Car back image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+
+    insuranceImage: fields.includes('insurance')
+      ? yup
+          .mixed()
+          .required('Insurance image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    insuranceStartDate: fields.includes('insurance')
+      ? yup
+          .date()
+          .max(new Date(), 'Insurance start date cannot be in the future')
+          .required('Insurance start date is required')
+      : yup.string().nullable(),
+    insuranceExpiryDate: fields.includes('insurance')
+      ? yup
+          .date()
+          .min(new Date(), 'Insurance expiry date must be in the future')
+          .required('Insurance expiry date is required')
+          .test('is-after-start', 'Expiry date must be after start date', function (value:any) {
+            const { insuranceStartDate } = this.parent;
+            return insuranceStartDate && value ? new Date(value) > new Date(insuranceStartDate) : true;
+          })
+      : yup.string().nullable(),
+
+    pollutionImage: fields.includes('pollution')
+      ? yup
+          .mixed()
+          .required('Pollution certificate image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+    pollutionStartDate: fields.includes('pollution')
+      ? yup
+          .date()
+          .max(new Date(), 'Pollution start date cannot be in the future')
+          .required('Pollution start date is required')
+      : yup.string().nullable(),
+    pollutionExpiryDate: fields.includes('pollution')
+      ? yup
+          .date()
+          .min(new Date(), 'Pollution expiry date must be in the future')
+          .required('Pollution expiry date is required')
+          .test('is-after-start', 'Expiry date must be after start date', function (value:any) {
+            const { pollutionStartDate } = this.parent;
+            return pollutionStartDate && value ? new Date(value) > new Date(pollutionStartDate) : true;
+          })
+      : yup.string().nullable(),
+
+    driverImage: fields.includes('driverImage')
+      ? yup
+          .mixed()
+          .required('Driver image is required')
+          .test('fileType', 'Only image files are allowed', (value:any) => !value || value.type?.startsWith('image/'))
+          .test('fileSize', 'File size must be less than 5MB', (value:any) => !value || value.size <= 5 * 1024 * 1024)
+      : yup.mixed().nullable(),
+
+    latitude: fields.includes('location')
+      ? yup
+          .number()
+          .required('Latitude is required')
+          .min(8.4, 'Choose a valid location in India')
+          .max(37.6, 'Choose a valid location in India')
+      : yup.number().nullable(),
+    longitude: fields.includes('location')
+      ? yup
+          .number()
+          .required('Longitude is required')
+          .min(68.7, 'Choose a valid location in India')
+          .max(97.25, 'Choose a valid location in India')
+      : yup.number().nullable(),
+  });

@@ -1,4 +1,3 @@
-// PendingDriverDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -76,6 +75,8 @@ const PendingDriverDetails = () => {
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [selectedFields, setSelectedFields] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchDriverDetails = async () => {
@@ -91,15 +92,37 @@ const PendingDriverDetails = () => {
     fetchDriverDetails();
   }, [id, dispatch]);
 
-  const handleVerification = async (status: "Verified" | "Rejected" | "Good" | "Block") => {
+  const documentGroups = [
+    { label: 'Driver Image', value: 'driverImge' },
+    { label: 'Aadhar Card', value: 'aadhar' },
+    { label: 'License', value: 'license' },
+    { label: 'Vehicle Model', value: 'model' },
+    { label: 'Registration ID', value: 'registerationID' },
+    { label: 'Vehicle RC', value: 'rc' },
+    { label: 'Vehicle Insurance', value: 'insurance' },
+    { label: 'Pollution Certificate', value: 'polution' },
+    { label: 'Vehicle Photos', value: 'carImage' },
+    { label: 'Location', value: 'location' },
+  ];
+
+  const handleVerification = async (status: "Verified" | "Rejected" | "Good" | "Block", fields?: string[]) => {
     if (!note) {
       toast.error("Please provide a note");
       return;
     }
+    if (status === "Rejected" && (!fields || fields.length === 0)) {
+      toast.error("Please select at least one document for resubmission");
+      return;
+    }
     try {
-      await axiosAdmin(dispatch).post(`/driver/verify/${id}`, { status, note });
-      toast.success(`Driver ${status} successfully`);
-      navigate('/admin/drivers');
+      const payload = status === "Rejected" ? { status: "Rejected", note, fields } : { status, note };
+      const response = await axiosAdmin(dispatch).post(`/driver/verify/${id}`, payload);
+      if (response.status === 200 || response.status === 202) {
+        toast.success(`Driver ${status === "Rejected" ? "rejected and set to Pending" : status} successfully`);
+        navigate('/admin/drivers');
+      }else{
+        toast.error(response.data);
+      }
     } catch (error) {
       toast.error(`Failed to ${status} driver`);
     }
@@ -162,48 +185,99 @@ const PendingDriverDetails = () => {
                     <h3 className="text-lg font-semibold mb-4 text-gray-800">
                       {driver.account_status === 'Pending' ? 'Verification' : 'Manage Driver'}
                     </h3>
-                    <Textarea
-                      placeholder={driver.account_status === 'Pending' ? 'Add verification note' : 'Add reason for action'}
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      className="bg-gray-50 border-gray-300 text-gray-800 placeholder-gray-400 mb-4 rounded-xl"
-                    />
-                    {driver.account_status === 'Pending' ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <Button 
-                          className="bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-xl"
-                          onClick={() => handleVerification('Verified')}
-                        >
-                          <Check className="mr-2 h-4 w-4" /> Accept
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          className="bg-gradient-to-r from-red-400 to-rose-500 hover:from-red-500 hover:to-rose-600 text-white rounded-xl"
-                          onClick={() => handleVerification('Rejected')}
-                        >
-                          <X className="mr-2 h-4 w-4" /> Reject
-                        </Button>
+                    {isRejecting ? (
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium">Select documents for resubmission:</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {documentGroups.map(group => (
+                            <div key={group.value} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id={group.value}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedFields(prev => [...prev, group.value]);
+                                  } else {
+                                    setSelectedFields(prev => prev.filter(f => f !== group.value));
+                                  }
+                                }}
+                              />
+                              <label htmlFor={group.value} className="ml-2 text-sm text-gray-700">{group.label}</label>
+                            </div>
+                          ))}
+                        </div>
+                        <Textarea
+                          placeholder="Add rejection note"
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          className="bg-gray-50 border-gray-300 text-gray-800 placeholder-gray-400 mb-4 rounded-xl"
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsRejecting(false);
+                              setSelectedFields([]);
+                            }}
+                            className="rounded-xl"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            className="bg-gradient-to-r from-red-400 to-rose-500 hover:from-red-500 hover:to-rose-600 text-white rounded-xl"
+                            onClick={() => handleVerification('Rejected', selectedFields)}
+                          >
+                            Confirm Rejection
+                          </Button>
+                        </div>
                       </div>
                     ) : (
-                      <Button
-                        className={`w-full rounded-xl text-white ${
-                          driver.account_status === 'Good' 
-                            ? 'bg-gradient-to-r from-red-400 to-rose-500 hover:from-red-500 hover:to-rose-600' 
-                            : 'bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600'
-                        }`}
-                        onClick={() => handleVerification(driver.account_status === 'Good' ? 'Block' : 'Good')}
-                      >
-                        {driver.account_status === 'Good' ? (
-                          <><Lock className="mr-2 h-4 w-4" /> Block Driver</>
+                      <>
+                        <Textarea
+                          placeholder={driver.account_status === 'Pending' ? 'Add verification note' : 'Add reason for action'}
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          className="bg-gray-50 border-gray-300 text-gray-800 placeholder-gray-400 mb-4 rounded-xl"
+                        />
+                        {driver.account_status === 'Pending' ? (
+                          <div className="grid grid-cols-2 gap-4">
+                            <Button
+                              className="bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-xl"
+                              onClick={() => handleVerification('Verified')}
+                            >
+                              <Check className="mr-2 h-4 w-4" /> Accept
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              className="bg-gradient-to-r from-red-400 to-rose-500 hover:from-red-500 hover:to-rose-600 text-white rounded-xl"
+                              onClick={() => setIsRejecting(true)}
+                            >
+                              <X className="mr-2 h-4 w-4" /> Reject
+                            </Button>
+                          </div>
                         ) : (
-                          <><Unlock className="mr-2 h-4 w-4" /> Unblock Driver</>
+                          <Button
+                            className={`w-full rounded-xl text-white ${
+                              driver.account_status === 'Good'
+                                ? 'bg-gradient-to-r from-red-400 to-rose-500 hover:from-red-500 hover:to-rose-600'
+                                : 'bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600'
+                            }`}
+                            onClick={() => handleVerification(driver.account_status === 'Good' ? 'Block' : 'Good')}
+                          >
+                            {driver.account_status === 'Good' ? (
+                              <><Lock className="mr-2 h-4 w-4" /> Block Driver</>
+                            ) : (
+                              <><Unlock className="mr-2 h-4 w-4" /> Unblock Driver</>
+                            )}
+                          </Button>
                         )}
-                      </Button>
+                      </>
                     )}
                   </div>
                 </div>
               </TabsContent>
 
+              {/* Existing TabsContent for "documents" and "map" remain unchanged */}
               <TabsContent value="documents" className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                   {[

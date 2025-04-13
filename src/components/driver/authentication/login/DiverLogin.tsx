@@ -67,13 +67,13 @@ function DriverLogin() {
             driverToken: data.token,
             driver_id: data._id,
           });
-        } else if (data.message === "Incomplete registration") {
+        } else if (data.message === "Incomplete") {
           toast.info("Please complete the verification!");
           localStorage.setItem("driverId", data.driverId);
           navigate("/driver/signup");
         } else if (data.message === "Blocked") {
           toast.info("Your account is blocked!");
-        } else if (data.message === "Not verified") {
+        } else if (data.message === "Pending") {
           dispatch(openPendingModal());
         } else if (data.message === "Rejected") {
           localStorage.setItem("driverId", data.driverId);
@@ -166,17 +166,6 @@ function DriverLogin() {
 
   return (
     <>
-      {/* <nav className="bg-black text-white flex justify-between items-center p-6 ">
-        <div className="flex items-center space-x-4">
-          <Link to="/driver/login" className="hover:text-gray-300">
-            <img
-              src="/images/images__1_-removebg-preview.png"
-              alt="Logo"
-              className=" w-[40%]"
-            />
-          </Link>
-        </div>
-      </nav> */}
       <div className="driver-registration-container bg-white h-screen flex justify-center items-center">
         <div className="w-5/6 md:w-4/6 md:h-4/5  md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
           <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 i justify-around items-center mb-3 md:m-0">
