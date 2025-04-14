@@ -3,25 +3,19 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/assets";
 import { Menu, X, User, Clock, ChevronDown } from 'lucide-react';
-
-
 import { useDispatch, useSelector } from "react-redux";
 import { userLogout } from "../../services/redux/slices/userAuthSlice";
-import { useNavigate } from "react-router-dom";
+import logoutLocalStorage from "@/utils/localStorage";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // const [isOpen, setIsOpen] = useState(false);
-  // const [windowSize, setWindowSize] = useState(window.innerWidth);
   const dispatch = useDispatch();
   const user = useSelector(
     (store: { user: { user: string } }) => store.user.user
   );
-  const navigate = useNavigate();
 
-  ////////////////
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -94,7 +88,7 @@ const Navbar: React.FC = () => {
                     <Link to="/login" className="block px-4 py-2 text-sm hover:bg-gray-100 rounded-md smooth-transition"
                      onClick={() => {
                       dispatch(userLogout()); 
-                      localStorage.removeItem("userToken"); 
+                      logoutLocalStorage("User")
                     }}
                      >Logout</Link>
                   </div>

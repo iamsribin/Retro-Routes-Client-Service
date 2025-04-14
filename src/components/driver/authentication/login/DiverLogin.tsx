@@ -33,6 +33,7 @@ function DriverLogin() {
     driverToken: "",
     driver_id: "",
     refreshToken: "",
+    role:"Driver"
   });
   const [confirmationResult, setConfirmationResult] =
     useState<ConfirmationResult | null>(null);
@@ -51,7 +52,7 @@ function DriverLogin() {
     validationSchema: loginValidation,
     onSubmit: async (values) => {
       try {
-        const { data } = await axiosDriver().post("/checkLoginDriver", values);
+        const { data } = await axiosDriver(dispatch).post("/checkLoginDriver", values);
         console.log(data);
 
         if (data.message === "Success") {
@@ -61,12 +62,15 @@ function DriverLogin() {
             formik.values.mobile,
             setConfirmationResult
           );
-          setdriverData({
+          const loginData = {
             name: data.name,
             refreshToken: data.refreshToken,
             driverToken: data.token,
             driver_id: data._id,
-          });
+            role: data.role
+          };
+    
+          setdriverData(loginData);
         } else if (data.message === "Incomplete") {
           toast.info("Please complete the verification!");
           localStorage.setItem("driverId", data.driverId);
@@ -77,6 +81,7 @@ function DriverLogin() {
           dispatch(openPendingModal());
         } else if (data.message === "Rejected") {
           localStorage.setItem("driverId", data.driverId);
+          localStorage.setItem("role", "Resubmission");
           dispatch(openRejectedModal());
         } else {
           toast.error("Not registered! Please register to  continue.");
@@ -99,7 +104,8 @@ function DriverLogin() {
           toast.success("Login success");
           localStorage.setItem("driverToken", driverData.driverToken);
           localStorage.setItem("DriverRefreshToken", driverData.refreshToken);
-          dispatch(driverLogin(driverData));
+          localStorage.setItem("role", "Driver");
+          dispatch(driverLogin({name:driverData.name,driver_id:driverData.driver_id,role:"Driver"}));
           navigate("/driver/dashboard");
           localStorage.removeItem("driverId");
         })
@@ -122,7 +128,7 @@ function DriverLogin() {
       const token: string | undefined = datas.credential;
       if (token) {
         const decode = jwtDecode(token) as any;
-        const response = await axiosDriver().post("checkGoogleLoginDriver", {
+        const response = await axiosDriver(dispatch).post("checkGoogleLoginDriver", {
           email: decode.email,
         });
 
@@ -134,11 +140,11 @@ function DriverLogin() {
             response.data.refreshToken
           );
           dispatch(
-            driverLogin({
-              name: response.data.name,
-              driverToken: response.data.token,
-              driver_id: response.data._id,
-            })
+            dispatch(driverLogin({
+              name:response.data.name,
+              driver_id:response.data.driver_id,
+              role:"Driver"
+            }))
           );
           localStorage.removeItem("driverId");
           navigate("/driver/dashboard");

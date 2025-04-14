@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import { useDispatch } from "react-redux";
 import { userLogout } from "../redux/slices/userAuthSlice";
+import logoutLocalStorage from "@/utils/localStorage";
 
-const createAxios=()=>{
+const createAxios=(dispatch: any)=>{
     const axiosUser=axios.create({
         baseURL:`${import.meta.env.VITE_API_GATEWAY_URL}/user`,
         withCredentials:true,
@@ -28,54 +28,51 @@ const createAxios=()=>{
     );
 
     axiosUser.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    async (error) => {
-        console.log(error);
-        
-        const originalRequest = error.config;
-        
-        if (error.response.status === 401 && !originalRequest._retry) {    
+        (response) => response,
+        async (error) => {
+          const originalRequest = error.config;
+      
+          if (error.response.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const refreshToken = localStorage.getItem('refreshToken');
-            console.log("refresh token",refreshToken);
+            const refreshToken = localStorage.getItem("refreshToken");
+      
             if (!refreshToken) {
-                localStorage.removeItem('userToken');
-                const dispatch=useDispatch();
-                dispatch(userLogout());
-                window.location.href = '/login';
-                return Promise.reject(error);
+              logoutLocalStorage("User");
+              dispatch(userLogout());
+              window.location.href = "/login";
+              return Promise.reject(error);
             }
-
+      
             try {
-                const response = await axios.post(`${import.meta.env.VITE_API_GATEWAY_URL}/auth/refresh`, { token: refreshToken });
-                console.log(response,"refresh responbseeyyy");
-                
-                const newAccessToken = response.data.token;
-                const newRefreshToken = response.data.refreshToken;
-
-                localStorage.setItem('userToken', newAccessToken);
-                if (newRefreshToken) {
-                    localStorage.setItem('refreshToken', newRefreshToken);
-                }
-
-                originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                axiosUser.defaults.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                return axiosUser(originalRequest);
+              const response = await axios.post(`${import.meta.env.VITE_API_GATEWAY_URL}/auth/refresh`, {
+                token: refreshToken,
+              });
+      
+              const { access_token, refresh_token, role } = response.data;
+      
+              // Validate role
+              if (role !== "User") {
+                throw new Error("Invalid role received");
+              }
+      
+              localStorage.setItem("userToken", access_token);
+              localStorage.setItem("refreshToken", refresh_token);
+      
+              originalRequest.headers["Authorization"] = `Bearer ${access_token}`;
+              axiosUser.defaults.headers["Authorization"] = `Bearer ${access_token}`;
+              return axiosUser(originalRequest);
             } catch (refreshError) {
-                console.log(refreshError)
-                localStorage.removeItem('userToken');
-                localStorage.removeItem('refreshToken');
-                const dispatch=useDispatch()
-                dispatch(userLogout())
-                window.location.href = '/login';
-                return Promise.reject(refreshError);
+              console.error(refreshError);
+              logoutLocalStorage("User");
+              dispatch(userLogout());
+              window.location.href = "/login";
+              return Promise.reject(refreshError);
             }
+          }
+      
+          return Promise.reject(error);
         }
-
-        return Promise.reject(error);
-    })
+      );
     return axiosUser;
 }
 

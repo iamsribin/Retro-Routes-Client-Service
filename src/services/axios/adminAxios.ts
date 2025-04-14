@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import { adminLogout } from "../redux/slices/adminAuthSlice";
+import logoutLocalStorage from "@/utils/localStorage";
 
-export const axiosAdmin = (dispatch: any) => {  // Accept dispatch as a parameter
+export const axiosAdmin = (dispatch: any) => {  
     const axiosAdminInstance = axios.create({
         baseURL: `${import.meta.env.VITE_API_GATEWAY_URL}/admin`,
         headers: {
@@ -13,6 +14,8 @@ export const axiosAdmin = (dispatch: any) => {  // Accept dispatch as a paramete
     axiosAdminInstance.interceptors.request.use(
         (config: any) => {
             const token = localStorage.getItem('adminToken');
+            console.log(token,"local storage");
+            
             return {
                 ...config,
                 headers: {
@@ -29,7 +32,7 @@ export const axiosAdmin = (dispatch: any) => {  // Accept dispatch as a paramete
     axiosAdminInstance.interceptors.response.use(
         (response) => {
             console.log(response);
-            return response;
+            return response; 
         },
         async (error) => {
             console.log(error);
@@ -37,11 +40,12 @@ export const axiosAdmin = (dispatch: any) => {  // Accept dispatch as a paramete
 
             if (error.response?.status === 401 && !originalRequest._retry) {
                 try {
-                    originalRequest._retry = true;
+                    
+                     originalRequest._retry = true;
                     const refreshToken = localStorage.getItem('adminRefreshToken');
 
                     if (!refreshToken) {
-                        localStorage.removeItem('adminToken');
+                       logoutLocalStorage("Admin");
                         dispatch(adminLogout()); 
                         window.location.href = '/login';
                         return Promise.reject(error);
@@ -53,6 +57,7 @@ export const axiosAdmin = (dispatch: any) => {  // Accept dispatch as a paramete
                     const newRefreshToken = response.data.refreshToken;
 
                     localStorage.setItem('adminToken', newAccessToken);
+
                     if (newRefreshToken) {
                         localStorage.setItem('adminRefreshToken', newRefreshToken);
                     }
@@ -62,8 +67,7 @@ export const axiosAdmin = (dispatch: any) => {  // Accept dispatch as a paramete
                     return axiosAdminInstance(originalRequest);
                 } catch (refreshError) {
                     console.log("refresh admin error", refreshError);
-                    localStorage.removeItem('adminToken');
-                    localStorage.removeItem('adminRefreshToken');
+                    logoutLocalStorage("Admin");
                     dispatch(adminLogout()); 
                     window.location.href = '/login';
                     return Promise.reject(refreshError);

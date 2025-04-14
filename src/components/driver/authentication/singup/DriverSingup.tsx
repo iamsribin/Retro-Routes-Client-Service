@@ -22,6 +22,7 @@ import DriverPhotoPage from "../photo/DriverPhoto";
 import DriverVehiclePage from "../../../../pages/driver/authentication/DriverVehiclePage";
 import DriverLocationPage from "@/pages/driver/authentication/DriverLocationPage";
 import DriverInsurancePage from "@/pages/driver/authentication/DriverInsurance";
+import { useDispatch } from "react-redux";
 
 function DriverSignup() {
   const [counter, setCounter] = useState(40);
@@ -31,6 +32,7 @@ function DriverSignup() {
   const [step, setStep] = useState<
     "credentials" | "documents" | "location" | "driverImage" | "vehicle" | "insurance"
   >("credentials");
+  const dispatch = useDispatch()
 
   useEffect(() => {
     if (otpPage) {
@@ -84,7 +86,7 @@ function DriverSignup() {
 
   const signupHandle = async (formData: unknown) => {
     try {
-      const { data } = await axiosDriver().post(`/checkDriver`, formData);
+      const { data } = await axiosDriver(dispatch).post(`/checkDriver`, formData);
       switch (data.message) {
         case "Document is pending":
           toast.info(
@@ -170,13 +172,14 @@ function DriverSignup() {
 
   const registerSubmit = async () => {
     try {
-      const response = await axiosDriver().post(
+      const response = await axiosDriver(dispatch).post(
         `/registerDriver`,
         formik.values
       );
       if (response.data.message === "Success") {
         toast.success("OTP verified successfully");
         localStorage.setItem("driverId", response.data.driverId);
+        localStorage.setItem("role", "driverRegistration");
         setLoad(false);
         setStep("documents");
       }

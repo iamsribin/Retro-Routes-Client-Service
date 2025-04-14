@@ -42,7 +42,7 @@ function DriverLocation() {
                 console.log(values);
                 
                 const driverId = localStorage.getItem("driverId");
-                const { data } = await axiosDriver().post(
+                const { data } = await axiosDriver(dispatch).post(
                     `location?driverId=${driverId}`,
                     values,
                     {

@@ -10,6 +10,7 @@ import DriverPhotoPage from '../../../components/driver/authentication/identific
 import SignupMap from '../../../components/driver/authentication/map/SingupMap';
 import ExploreIcon from '@mui/icons-material/Explore';
 import WhereToVoteIcon from '@mui/icons-material/WhereToVote';
+import { useDispatch } from 'react-redux';
 
 interface ResubmissionData {
   driverId: string;
@@ -18,6 +19,7 @@ interface ResubmissionData {
 
 const ResubmissionPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch()
   const [resubmissionData, setResubmissionData] = useState<ResubmissionData | null>(null);
   const [photoPage, setPhotoPage] = useState(false);
   const [load, setLoad] = useState(false);
@@ -48,8 +50,7 @@ const ResubmissionPage: React.FC = () => {
       }
       try {
         setLoad(true);
-        const response = await axiosDriver().get(`/resubmission/${driverId}`);
-        // Fix typos in fields
+        const response = await axiosDriver(dispatch).get(`/resubmission/${driverId}`);
         const fixedData = {
           ...response.data,
           fields: response.data.fields.map((field: string) =>
@@ -64,6 +65,8 @@ const ResubmissionPage: React.FC = () => {
         navigate('/driver/login');
       }
     };
+    localStorage.removeItem("role");
+
     fetchResubmissionData();
   }, [driverId, navigate]);
 
@@ -127,7 +130,7 @@ const ResubmissionPage: React.FC = () => {
       setLoad(true);
       setSubmitting(true);
       try {
-        const response = await axiosDriver().post(`/resubmission?driverId=${driverId}`, formData, {
+        const response = await axiosDriver(dispatch).post(`/resubmission?driverId=${driverId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         if (response.data.message === 'Success') {

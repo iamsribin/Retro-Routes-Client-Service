@@ -2,8 +2,9 @@
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { driverLogout } from "../redux/slices/driverAuthSlice";
+import logoutLocalStorage from "@/utils/localStorage";
 
-const createAxios=()=>{
+const createAxios=(dispatch: any)=>{
     const axiosDriver=axios.create({
         baseURL:`${import.meta.env.VITE_API_GATEWAY_URL}/driver`,
         headers:{
@@ -40,8 +41,7 @@ const createAxios=()=>{
                 const refreshToken = localStorage.getItem('DriverRefreshToken');
                 console.log("refresh token",refreshToken);
                 if (!refreshToken) {
-                    localStorage.removeItem('driverToken');
-                    const dispatch=useDispatch()
+                    logoutLocalStorage("Driver");
                     dispatch(driverLogout())
                     window.location.href = '/driver/login';
                     return Promise.reject(error);
@@ -63,8 +63,7 @@ const createAxios=()=>{
                     return axiosDriver(originalRequest);
                 } catch (refreshError) {
                     console.log(refreshError)
-                    localStorage.removeItem('userToken');
-                    localStorage.removeItem('refreshToken');
+                    logoutLocalStorage("Driver");
                     const dispatch=useDispatch()
                     dispatch(driverLogout())
                     window.location.href = '/driver/login';

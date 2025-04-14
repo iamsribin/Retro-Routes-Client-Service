@@ -100,9 +100,9 @@ const PendingDriverDetails = () => {
     { label: 'Registration ID', value: 'registerationID' },
     { label: 'Vehicle RC', value: 'rc' },
     { label: 'Vehicle Insurance', value: 'insurance' },
-    { label: 'Pollution Certificate', value: 'polution' },
+    { label: 'Pollution Certificate', value: 'pollution' },
     { label: 'Vehicle Photos', value: 'carImage' },
-    { label: 'Location', value: 'location' },
+    // { label: 'Location', value: 'location' },
   ];
 
   const handleVerification = async (status: "Verified" | "Rejected" | "Good" | "Block", fields?: string[]) => {

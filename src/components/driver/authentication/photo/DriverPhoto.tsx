@@ -6,6 +6,7 @@ import axiosDriver from "../../../../services/axios/driverAxios"
 import DriverVehiclePage from "../../../../pages/driver/authentication/DriverVehiclePage"
 import Loader from "../../../shimmer/Loader"
 import { driverImageValidation } from "@/utils/validation";
+import { useDispatch } from "react-redux";
 const videoConstraints={
     width:400,
     height:400,
@@ -16,6 +17,7 @@ function DriverPhoto() {
     const [load,setLoad]=useState(false)
     const [initial,setInitial]=useState(true)
     const [vehiclePage,setVehiclePage]=useState(false)
+    const dispatch = useDispatch()
     const initialValues={
         driverImage:null
     }
@@ -35,7 +37,7 @@ function DriverPhoto() {
                     formData.append('driverImage',file)
 
                     const driverId=localStorage.getItem("driverId");
-                    const response=await axiosDriver().post(`/uploadDriverImage?driverId=${driverId}`,formData,{
+                    const response=await axiosDriver(dispatch).post(`/uploadDriverImage?driverId=${driverId}`,formData,{
                         headers:{
                             "Content-Type":"multipart/form-data"
                         },

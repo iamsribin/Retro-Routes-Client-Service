@@ -5,6 +5,7 @@
   import DriverLocationPage from "../../../../pages/driver/authentication/DriverLocationPage";
   import Loader from "../../../shimmer/Loader";
   import * as Yup from "yup";
+import { useDispatch } from "react-redux";
 
   interface InsuranceFormValues {
     pollutionImage: File | null;
@@ -37,6 +38,7 @@
   function Insurance() {
     const [locationPage, setLocationPage] = useState(false);
     const [load, setLoad] = useState(false);
+    const dispatch = useDispatch();
     const [previews, setPreviews] = useState({
       pollutionImage: null as string | null,
       insuranceImage: null as string | null,
@@ -67,7 +69,7 @@
         try {
           setLoad(true);
           const driverId = localStorage.getItem("driverId");
-          const { data } = await axiosDriver().post(
+          const { data } = await axiosDriver(dispatch).post(
             `/insuranceDetails?driverId=${driverId}`,
             formData,
             {

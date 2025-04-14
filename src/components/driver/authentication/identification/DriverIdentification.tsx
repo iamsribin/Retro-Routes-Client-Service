@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import DriverPhotoPage from "../photo/DriverPhoto";
 import Loader from "../../../shimmer/Loader";
 import { Player } from "@lottiefiles/react-lottie-player";
+import { useDispatch } from "react-redux";
 
-// Yup Validation Schema for Indian Documents
 const DriverIdentificationValidation = Yup.object().shape({
   aadharID: Yup.string()
     .matches(/^\d{4}\s?\d{4}\s?\d{4}$/, "Aadhaar must be a 12-digit number (e.g., 1234 5678 9012)")
@@ -39,6 +39,7 @@ const DriverIdentificationValidation = Yup.object().shape({
 function DriverIdentification() {
   const [photoPage, setPhotoPage] = useState(false);
   const [load, setLoad] = useState(false);
+  const dispatch = useDispatch();
   const [previews, setPreviews] = useState({
     aadharFront: null,
     aadharBack: null,
@@ -93,7 +94,7 @@ function DriverIdentification() {
     const driverId = localStorage.getItem("driverId");
     setLoad(true);
     try {
-      const response = await axiosDriver().post(`/identification?driverId=${driverId}`, formData, {
+      const response = await axiosDriver(dispatch).post(`/identification?driverId=${driverId}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (response.data.message === "Success") {

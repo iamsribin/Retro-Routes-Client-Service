@@ -34,7 +34,7 @@ interface UserData {
   userToken: string;
   refreshToken: string;
   loggedIn: boolean;
-  role: string;
+  role: "User" | "Admin";
 }
 
 function Login() {
@@ -47,7 +47,7 @@ function Login() {
     userToken: "",
     refreshToken: "",
     loggedIn: false,
-    role: "",
+    role: "User",
   });
   const dispatch = useDispatch();
   const [otpInput, setotpInput] = useState(false);
@@ -69,7 +69,7 @@ function Login() {
 
     onSubmit: async (values) => {
       try {
-        const { data } = await axiosUser().post("/checkLoginUser", values);
+        const { data } = await axiosUser(dispatch).post("/checkLoginUser", values);
         if (data.message === "Success") {
           sendOtp(
             setotpInput,
@@ -77,7 +77,6 @@ function Login() {
             formik.values.mobile,
             setConfirmationResult
           );
-          console.log("after seding otp data=", data);
           setuserData({
             user: data.name,
             user_id: data._id,
@@ -113,16 +112,18 @@ function Login() {
       confirmationResult
         .confirm(otpValue)
         .then(async () => {
-          if (userData.role =="Admin") {
+          if (userData.role == "Admin") { 
             toast.success("Login Successfully");
+            localStorage.setItem("role", userData.role);
             localStorage.setItem("adminToken", userData.userToken);
             localStorage.setItem("adminRefreshToken", userData.refreshToken);
-            dispatch(adminLogin({ name: userData.user }));
+            dispatch(adminLogin({name:userData.user,role:userData.role}));
             navigate("/admin/dashboard");
           } else {
+            localStorage.setItem("role", userData.role);
             localStorage.setItem("userToken", userData.userToken);
             localStorage.setItem("refreshToken", userData.refreshToken);
-            dispatch(userLogin(userData));
+            dispatch(userLogin({ user: userData.user, user_id: userData.user_id,role:userData.role }));
             toast.success("login success");
             navigate("/");
           }
@@ -141,18 +142,26 @@ function Login() {
       if (token) {
         const decode = jwtDecode(token) as any;
 
-        const { data } = await axiosUser().post("/checkGoogleLoginUser", {
+        const { data } = await axiosUser(dispatch).post("/checkGoogleLoginUser", {
           email: decode.email,
         });
 
         if (data.message === "Success") {
-          toast.success("Login success!");
-          localStorage.setItem("userToken", data.token);
-          localStorage.setItem("refreshToken", data.refreshToken);
-          dispatch(
-            userLogin({ user: data.name, user_id: data._id, loggedIn: true })
-          );
-          navigate("/");
+          if (data.role =="Admin") {
+            toast.success("Login Success");
+            localStorage.setItem("role", data.role);
+            localStorage.setItem("adminToken", data.userToken);
+            localStorage.setItem("adminRefreshToken", data.refreshToken);
+            dispatch(adminLogin({name:data.user,role:data.role}));
+            navigate("/admin/dashboard");
+          } else {
+            localStorage.setItem("role", data.role);
+            localStorage.setItem("userToken", data.userToken);
+            localStorage.setItem("refreshToken", data.refreshToken);
+            dispatch(userLogin(data));
+            toast.success("login success");
+            navigate("/");
+          }
         } else if (data.message === "Blocked") {
           toast.error("Your Blocked By Admin");
         } else {

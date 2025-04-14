@@ -16,6 +16,7 @@ import { LayoutDashboard, Users, Car, Gift, PieChart, LogOut } from 'lucide-reac
 import { Link, useLocation } from 'react-router-dom';
 import { adminLogout } from "../../services/redux/slices/adminAuthSlice";
 import { useDispatch } from 'react-redux';
+import logoutLocalStorage from '@/utils/localStorage';
 
 // Define the props interface with proper typing for children
 interface AdminLayoutProps {
@@ -78,7 +79,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               className="w-full py-3 px-4 rounded-xl text-gray-600 hover:bg-gray-100 transition-all duration-300"
               onClick={() => {
                 dispatch(adminLogout());
-                localStorage.removeItem("userToken");
+                logoutLocalStorage("Admin");
               }}
             >
               <LogOut className="h-5 w-5 mr-3" />

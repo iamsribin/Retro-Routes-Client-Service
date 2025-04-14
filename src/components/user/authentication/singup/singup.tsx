@@ -28,11 +28,13 @@ import {
 import { signupValidation } from "../../../../utils/validation";
 import { Link, useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 
 function Signup() {
   const [counter, setCounter] = useState(30);
   const [otpPage, setOtpPage] = useState(false);
   const [userImageUrl, setUserImageUrl] = useState<string | null>(null);
+  const dispatch = useDispatch();
 
   const navigate = useNavigate();
 
@@ -108,7 +110,7 @@ function Signup() {
         return toast.error("Time expired, tap to resend");
       }      
 
-      const { data } = await axiosUser().post("/register", formData, {
+      const { data } = await axiosUser(dispatch).post("/register", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -126,7 +128,7 @@ function Signup() {
 
   const signipHandle = async (email: string, mobile: string) => {
     try {
-      const { data } = await axiosUser().post("/checkUser", { email, mobile });
+      const { data } = await axiosUser(dispatch).post("/checkUser", { email, mobile });
       console.log("data", data);
       if (data.message === "user already have an account !") {
         toast.info("User already registered. Please login to continue");
@@ -142,7 +144,8 @@ function Signup() {
 
   const resendOtp = async () => {
     try {
-      const { data } = await axiosUser().post("/resendOtp", formik.values);
+  const [otpPage, setOtpPage] = useState(false);
+      const { data } = await axiosUser(dispatch).post("/resendOtp", formik.values);
       if (data.message === "OTP resent successfully") {
         toast.success(data.message); 
       }
