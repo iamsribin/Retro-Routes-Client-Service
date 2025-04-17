@@ -45,6 +45,7 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
     }
   
     const { role, loggedIn } = allowedRole === "User" ? user : allowedRole === "Driver" ? driver : admin;
+  console.log("role, loggedIn",role, loggedIn);
   
     const token = 
         allowedRole === "User"? localStorage.getItem("userToken") 
@@ -70,6 +71,7 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
     }
   
     const isAuthenticated = isTokenValid && loggedIn && role === allowedRole;
+  console.log("isAuthenticated",isAuthenticated);
   
     if (!isAuthenticated) {
       if (role) {

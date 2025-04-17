@@ -144,7 +144,6 @@ function Signup() {
 
   const resendOtp = async () => {
     try {
-  const [otpPage, setOtpPage] = useState(false);
       const { data } = await axiosUser(dispatch).post("/resendOtp", formik.values);
       if (data.message === "OTP resent successfully") {
         toast.success(data.message); 

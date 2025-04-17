@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, ShieldOff, MoreHorizontal, Eye } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
 
 interface User {
   _id: string;
@@ -32,12 +33,50 @@ interface UserListProps {
 
 const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 6;
+
+  // Filter users based on search term
+  const filteredUsers = useMemo(() => {
+    return users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [users, searchTerm]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * usersPerPage,
+    currentPage * usersPerPage
+  );
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   return (
-    <div>
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="flex justify-end">
+        <Input
+          type="text"
+          placeholder="Search by name or email..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // Reset to first page on search
+          }}
+          className="max-w-sm"
+        />
+      </div>
+
       {/* Mobile view - card based layout */}
       <div className="md:hidden space-y-4">
-        {users.length === 0 ? (
+        {paginatedUsers.length === 0 ? (
           <p className="text-center py-6">
             No{" "}
             {isBlocked === "block"
@@ -48,7 +87,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
             {type}s found.
           </p>
         ) : (
-          users.map((user) => (
+          paginatedUsers.map((user) => (
             <Card key={user._id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="space-y-2">
@@ -111,7 +150,20 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                   </div>
 
                   <div className="pt-2 flex space-x-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() =>
+                        navigate(
+                          type === "user"
+                            ? `/admin/userDetails/${user._id}`
+                            : type === "driver" && isBlocked === "pending"
+                            ? `/admin/PendingDriverDetails/${user._id}`
+                            : `/admin/driverDetails/${user._id}`
+                        )
+                      }
+                    >
                       <Eye className="mr-1 h-4 w-4" />
                       View
                     </Button>
@@ -121,11 +173,10 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                       }
                       size="sm"
                       className={`flex-1 ${
-                        isBlocked == "block"
+                        isBlocked === "block"
                           ? "bg-emerald-600 hover:bg-emerald-700"
                           : "bg-red-600 hover:bg-red-700"
-                      } 
-                        text-white transition-colors duration-200`}
+                      } text-white transition-colors duration-200`}
                     >
                       {isBlocked === "block" ? (
                         <>
@@ -161,7 +212,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.length === 0 ? (
+            {paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={type === "driver" ? 7 : 6}
@@ -177,7 +228,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
+              paginatedUsers.map((user) => (
                 <TableRow key={user._id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -209,42 +260,22 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                   )}
                   <TableCell>
                     <div className="flex space-x-2">
-                      {type == "user" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigate("/admin/userDetails/" + user._id)
-                          }
-                        >
-                          <Eye className="mr-1 h-4 w-4" />
-                          View
-                        </Button>
-                      )}
-
-                      {type == "driver" && isBlocked ==="pending" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/admin/PendingDriverDetails/${user._id}`)
-                          }
-                        >
-                          <Eye className="mr-1 h-4 w-4" />
-                          View
-                        </Button>
-                      ): (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/admin/driverDetails/${user._id}`)
-                          }
-                        >
-                          <Eye className="mr-1 h-4 w-4" />
-                          View
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          navigate(
+                            type === "user"
+                              ? `/admin/userDetails/${user._id}`
+                              : type === "driver" && isBlocked === "pending"
+                              ? `/admin/PendingDriverDetails/${user._id}`
+                              : `/admin/driverDetails/${user._id}`
+                          )
+                        }
+                      >
+                        <Eye className="mr-1 h-4 w-4" />
+                        View
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -253,6 +284,45 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredUsers.length > usersPerPage && (
+        <div className="flex items-center justify-between py-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * usersPerPage + 1} to{" "}
+            {Math.min(currentPage * usersPerPage, filteredUsers.length)} of{" "}
+            {filteredUsers.length} {type}s
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

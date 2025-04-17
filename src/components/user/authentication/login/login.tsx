@@ -1,7 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
-import * as yup from "yup";
-// import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import axiosUser from "../../../../services/axios/userAxios";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -20,6 +18,8 @@ import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { sendOtp } from "../../../../hooks/auth";
 import { adminLogin } from "@/services/redux/slices/adminAuthSlice";
 import { loginValidation } from "@/utils/validation";
+import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
+import logoutLocalStorage from "@/utils/localStorage";
 
 // Global type declaration for window
 declare global {
@@ -50,6 +50,8 @@ function Login() {
     role: "User",
   });
   const dispatch = useDispatch();
+  // dispatch(driverLogout());
+  // logoutLocalStorage("Driver");
   const [otpInput, setotpInput] = useState(false);
   const [otp, setOtp] = useState<number>(0);
   const [counter, setCounter] = useState(40);
@@ -145,18 +147,18 @@ function Login() {
         const { data } = await axiosUser(dispatch).post("/checkGoogleLoginUser", {
           email: decode.email,
         });
-
+        
         if (data.message === "Success") {
           if (data.role =="Admin") {
             toast.success("Login Success");
             localStorage.setItem("role", data.role);
-            localStorage.setItem("adminToken", data.userToken);
+            localStorage.setItem("adminToken", data.token);
             localStorage.setItem("adminRefreshToken", data.refreshToken);
-            dispatch(adminLogin({name:data.user,role:data.role}));
+            dispatch(adminLogin({name:data.name,role:data.role}));
             navigate("/admin/dashboard");
           } else {
             localStorage.setItem("role", data.role);
-            localStorage.setItem("userToken", data.userToken);
+            localStorage.setItem("userToken", data.token);
             localStorage.setItem("refreshToken", data.refreshToken);
             dispatch(userLogin(data));
             toast.success("login success");
@@ -177,18 +179,6 @@ function Login() {
 
   return (
     <>
-      {/* nav  */}
-      {/* <nav className="bg-black text-white flex justify-between items-center p-1">
-        <div className="flex items-center space-x-4">
-          <Link to="/" className="hover:text-gray-300">
-            <img
-              src="/images/logo.png"
-              alt="Logo"
-              className="w-[40%]"
-            />
-          </Link>
-        </div>
-      </nav> */}
 
       {/* nav   */}
       <div className="registration-container pb-10 h-screen flex justify-center bg-white items-center">
