@@ -1,4 +1,4 @@
-import Vehicle from "../../../components/driver/authentication/vehicle/Vehicle"
+import Vehicle from "@/components/driver/authentication/vehicle/Vehicle"
 
 function DriverVehiclePage() {
   return (

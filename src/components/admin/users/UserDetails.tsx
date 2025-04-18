@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { axiosAdmin } from '../../../services/axios/adminAxios';
 import { toast } from 'sonner';
 import { useFormik } from "formik";
 import { Dialog } from "@material-tailwind/react";
-import { UserInterface } from "../../../utils/interfaces";
 import { useDispatch } from "react-redux";
-import { userBlockUnblockVaidation } from "@/utils/validation";
+
+import { axiosAdmin } from '@/services/axios/adminAxios';
+import { UserInterface } from "@/utils/interfaces";
+import { userBlockUnblockValidation } from "@/utils/validation";
+import ApiEndpoints from "@/constants/api-end-points";
 
 const UserDetails = () => {
     const [statusModal, setStatusModal] = useState(false);
@@ -18,7 +20,7 @@ const UserDetails = () => {
 
     const getData = async () => {
         try {
-            const { data } = await adminAxios.get(`/userData?id=${id}`);
+            const { data } = await adminAxios.get(ApiEndpoints.ADMIN_USER_DETAILS+`?id=${id}`);
             setUserData(data);
         } catch (error) {
             toast.error((error as Error).message);
@@ -35,10 +37,10 @@ const UserDetails = () => {
             reason: "",
             status: "",
         },
-        validationSchema: userBlockUnblockVaidation,
+        validationSchema: userBlockUnblockValidation,
         onSubmit: async (values, { setSubmitting }) => {
             try {
-                const { data } = await adminAxios.patch(`updateUserStatus?id=${id}`, values);
+                const { data } = await adminAxios.patch(ApiEndpoints.ADMIN_UPDATE_USER_STATUS+`?id=${id}`, values);
                 if (data.message === "Success") {
                     setStatusModal(false);
                     toast.success("Status updated successfully!");
@@ -181,11 +183,9 @@ const UserDetails = () => {
                                 </div>
                             </div>
 
-                            {/* Location - Note: Add location field to schema if needed */}
                             <div className="bg-white rounded-xl shadow-lg p-6">
                                 <h3 className="text-xl font-semibold mb-4">Location</h3>
                                 <p className="text-gray-600">
-                                    {/* If location isn't in your schema, you might need to add it */}
                                     Location data not available
                                     {/* Example if you add location to schema: */}
                                     {/* {userData.location || "Not specified"} */}

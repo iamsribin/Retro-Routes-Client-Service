@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { Input } from "@material-tailwind/react";
 import {
   useJsApiLoader,

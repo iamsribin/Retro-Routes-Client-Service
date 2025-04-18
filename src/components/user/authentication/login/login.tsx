@@ -1,32 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { useFormik } from "formik";
-import axiosUser from "../../../../services/axios/userAxios";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
-
-import { jwtDecode } from "jwt-decode";
-
-import { auth } from "../../../../services/firebase";
-
-import { PinInput, PinInputField, HStack } from "@chakra-ui/react";
-
 import { useDispatch } from "react-redux";
-import { userLogin } from "../../../../services/redux/slices/userAuthSlice";
-
-import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
-import { sendOtp } from "../../../../hooks/auth";
+import { useState } from "react";
+import { ConfirmationResult } from "firebase/auth";
+import { userLogin } from "@/services/redux/slices/userAuthSlice";
 import { adminLogin } from "@/services/redux/slices/adminAuthSlice";
-import { loginValidation } from "@/utils/validation";
-import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
-import logoutLocalStorage from "@/utils/localStorage";
-
-// Global type declaration for window
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-  }
-}
+import { CredentialResponse } from "@react-oauth/google";
+import LoginForm from "@/components/forms/auth/LoginForm";
+import LoginHeader from "@/components/user/authentication/headers/LoginHeader";
+import { auth } from "@/services/firebase";
+import { toast } from "sonner";
+import { jwtDecode } from "jwt-decode";
+import axiosUser from "@/services/axios/userAxios";
+import ApiEndpoints from "@/constants/api-end-points";
 
 interface UserData {
   user: string;
@@ -37,11 +22,18 @@ interface UserData {
   role: "User" | "Admin";
 }
 
-function Login() {
-  const [confirmationResult, setConfirmationResult] =
-    useState<ConfirmationResult | null>(null);
+interface DecodedToken {
+  email: string;
+  name?: string;
+  role?: string;
+  exp?: number;
+}
+
+const Login = () => {
   const navigate = useNavigate();
-  const [userData, setuserData] = useState<UserData>({
+  const dispatch = useDispatch();
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [userData, setUserData] = useState<UserData>({
     user: "",
     user_id: "",
     userToken: "",
@@ -49,281 +41,69 @@ function Login() {
     loggedIn: false,
     role: "User",
   });
-  const dispatch = useDispatch();
-  // dispatch(driverLogout());
-  // logoutLocalStorage("Driver");
-  const [otpInput, setotpInput] = useState(false);
+  const [otpInput, setOtpInput] = useState(false);
   const [otp, setOtp] = useState<number>(0);
   const [counter, setCounter] = useState(40);
 
-  useEffect(() => {
-    if (otpInput) {
-      counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
-    }
-  }, [counter, otpInput]);
-
-  const formik = useFormik({
-    initialValues: {
-      mobile: "",
-    },
-
-    validationSchema: loginValidation,
-
-    onSubmit: async (values) => {
-      try {
-        const { data } = await axiosUser(dispatch).post("/checkLoginUser", values);
-        if (data.message === "Success") {
-          sendOtp(
-            setotpInput,
-            auth,
-            formik.values.mobile,
-            setConfirmationResult
-          );
-          setuserData({
-            user: data.name,
-            user_id: data._id,
-            userToken: data.token,
-            refreshToken: data.refreshToken,
-            loggedIn: true,
-            role: data.role,
-          });
-        } else if (data.message === "Blocked") {
-          toast.info("your account is blocked");
-        } else {
-          toast.error("Not registered! please register to continue.");
-        }
-      } catch (error) {
-        console.log(error);
-        toast.error((error as Error).message);
-      }
-    },
-  });
-
-  const handleOtpChange = (index: number, newValue: number) => {
-    const newOtp = [...otp.toString()];
-    newOtp[index] = newValue.toString();
-    setOtp(parseInt(newOtp.join("")));
-  };
-
-  const otpVerify = (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) => {
-    event.preventDefault();
-    if (otp && confirmationResult) {
-      const otpValue: string = otp.toString();
-      confirmationResult
-        .confirm(otpValue)
-        .then(async () => {
-          if (userData.role == "Admin") { 
-            toast.success("Login Successfully");
-            localStorage.setItem("role", userData.role);
-            localStorage.setItem("adminToken", userData.userToken);
-            localStorage.setItem("adminRefreshToken", userData.refreshToken);
-            dispatch(adminLogin({name:userData.user,role:userData.role}));
-            navigate("/admin/dashboard");
-          } else {
-            localStorage.setItem("role", userData.role);
-            localStorage.setItem("userToken", userData.userToken);
-            localStorage.setItem("refreshToken", userData.refreshToken);
-            dispatch(userLogin({ user: userData.user, user_id: userData.user_id,role:userData.role }));
-            toast.success("login success");
-            navigate("/");
-          }
-        })
-        .catch(() => {
-          toast.error("Enter a valid otp");
-        });
-    } else {
-      toast.error("Enter a valid otp");
-    }
-  };
-
-  const googleLogin = async (datas: CredentialResponse) => {
+  const handleGoogleLogin = async (data: CredentialResponse) => {
     try {
-      const token: string | undefined = datas.credential;
-      if (token) {
-        const decode = jwtDecode(token) as any;
+      const token = data.credential;
+      if (!token) throw new Error("No credential provided");
+      const decode = jwtDecode<DecodedToken>(token);
+      const { data: response } = await axiosUser(dispatch).post(ApiEndpoints.USER_CHECK_GOOGLE_LOGIN, {
+        email: decode.email,
+      });
 
-        const { data } = await axiosUser(dispatch).post("/checkGoogleLoginUser", {
-          email: decode.email,
-        });
-        
-        if (data.message === "Success") {
-          if (data.role =="Admin") {
-            toast.success("Login Success");
-            localStorage.setItem("role", data.role);
-            localStorage.setItem("adminToken", data.token);
-            localStorage.setItem("adminRefreshToken", data.refreshToken);
-            dispatch(adminLogin({name:data.name,role:data.role}));
-            navigate("/admin/dashboard");
-          } else {
-            localStorage.setItem("role", data.role);
-            localStorage.setItem("userToken", data.token);
-            localStorage.setItem("refreshToken", data.refreshToken);
-            dispatch(userLogin(data));
-            toast.success("login success");
-            navigate("/");
-          }
-        } else if (data.message === "Blocked") {
-          toast.error("Your Blocked By Admin");
+      if (response.message === "Success") {
+        const role = response.role as "User" | "Admin";
+        localStorage.setItem("role", role);
+        localStorage.setItem(role === "Admin" ? "adminToken" : "userToken", response.token);
+        localStorage.setItem(
+          role === "Admin" ? "adminRefreshToken" : "refreshToken",
+          response.refreshToken
+        );
+
+        if (role === "Admin") {
+          dispatch(adminLogin({ name: response.name, role }));
+          navigate("/admin/dashboard");
         } else {
-          toast.error("Not registered! Please register to continue.");
+          dispatch(userLogin({ user: response.name, user_id: response._id, role }));
+          navigate("/");
         }
+        toast.success("Login Success");
+      } else if (response.message === "Blocked") {
+        toast.error("Your account is blocked by Admin");
+      } else {
+        toast.error("Not registered! Please register to continue.");
       }
-    } catch (error: any) {
-      console.log("google login errror:", error);
-
-      toast.error(error);
+    } catch (error) {
+      console.error("Google login error:", error);
+      toast.error(error instanceof Error ? error.message : "An unknown error occurred");
     }
   };
 
   return (
-    <>
-
-      {/* nav   */}
-      <div className="registration-container pb-10 h-screen flex justify-center bg-white items-center">
-        <div className="w-5/6 md:w-4/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
-          <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 i justify-around items-center mb-3 md:m-0">
-            <div className="w-full pt-10">
-              <h1 className="text-gradient font-bold text-4xl mx-7 md:mx-0 md:text-5xl user-login-title md:max-w-md">
-                Please sign in with your mobile number!
-              </h1>
-              <h1 className="font-bold text-sm my-3 mx-7 md:mx-0 md:text-sm md:max-w-xs md:mt-3 user-signup-title">
-                We'll send you a One-Time-Password to your registered mobile
-                number.
-              </h1>
-            </div>
-
-            <div
-              className="hidden md:flex md:items-center"
-              style={{ marginTop: "-25px" }}
-            >
-              {otpInput ? (
-                <img
-                  className="mt-2"
-                  style={{ height: "330px", width: "auto" }}
-                  src="/images/otp.jpg"
-                  alt=""
-                />
-              ) : (
-                <img
-                  className="mt-2"
-                  style={{ height: "330px", width: "auto" }}
-                  src="/images/login.jpg"
-                  alt=""
-                />
-              )}
-            </div>
-          </div>
-          <div className="flex md:w-1/2 justify-center pb-10 md:py-10 items-center">
-            <div className="user-signup-form md:w-8/12 px-9 py-8 bg-white drop-shadow-xl">
-              <form onSubmit={formik.handleSubmit}>
-                <div className="flex items-center">
-                  {/* Replace the MUI icon with a simple SVG or emoji */}
-                  <span className="text-gray-400 mr-2">📱</span>
-                  <input
-                    type="text"
-                    name="mobile"
-                    placeholder="Mobile Number"
-                    onChange={formik.handleChange}
-                    value={formik.values.mobile}
-                    className="w-full p-2"
-                  />
-                </div>
-
-                {formik.touched.mobile && formik.errors.mobile && (
-                  <p className="form-error-p-tag">{formik.errors.mobile}</p>
-                )}
-
-                <div className="my-4 px-2">
-                  {otpInput && (
-                    <HStack>
-                      <PinInput otp placeholder="">
-                        {[...Array(6)].map((_, index) => (
-                          <PinInputField
-                            key={index}
-                            onChange={(e) =>
-                              handleOtpChange(index, parseInt(e.target.value))
-                            }
-                          />
-                        ))}
-                      </PinInput>
-                    </HStack>
-                  )}
-                </div>
-
-                {otpInput ? (
-                  <>
-                    <button
-                      onClick={otpVerify}
-                      className="block w-full text-white bg-blue-800 py-1.5 rounded-2xl font-semibold mb-2"
-                    >
-                      Verify OTP
-                    </button>
-
-                    <div className="text-center text-gray-500 mt-4">
-                      {counter > 0 ? (
-                        <p className="text-sm">Resend OTP in 00:{counter}</p>
-                      ) : (
-                        <p
-                          className="text-sm text-blue-800 cursor-pointer"
-                          onClick={() => {
-                            setCounter(40);
-                            setOtp(0);
-                            sendOtp(
-                              setotpInput,
-                              auth,
-                              formik.values.mobile,
-                              setConfirmationResult
-                            );
-                          }}
-                        >
-                          Resend OTP
-                        </p>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <button
-                    type="submit"
-                    className="block w-full text-white bg-black py-1.5 rounded-2xl font-semibold mb-2"
-                  >
-                    Send OTP
-                  </button>
-                )}
-
-                <div className="flex flex-col w-full mt-8 border-opacity-50">
-                  <div className="flex items-center text-xs font-medium">
-                    <div className="flex-grow border-t border-gray-300"></div>
-                    <span className="mx-2">or sign-in using Google</span>
-                    <div className="flex-grow border-t border-gray-300"></div>
-                  </div>
-
-                  <div className="flex justify-center items-center mt-5">
-                    <GoogleLogin
-                      shape="circle"
-                      ux_mode="popup"
-                      onSuccess={googleLogin}
-                    />
-                  </div>
-                </div>
-
-                <div className="text-center mt-3">
-                  <span
-                    onClick={() => navigate("/signup")}
-                    className="text-xs ml-2 hover:text-blue-500 cursor-pointer"
-                  >
-                    Not registered yet? Sign-up here!
-                  </span>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+    <div className="registration-container pb-10 h-screen flex justify-center bg-white items-center">
+      <div className="w-5/6 md:w-4/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
+        <LoginHeader otpInput={otpInput} />
+        <LoginForm
+          auth={auth}
+          otpInput={otpInput}
+          setOtpInput={setOtpInput}
+          otp={otp}
+          setOtp={setOtp}
+          counter={counter}
+          setCounter={setCounter}
+          confirmationResult={confirmationResult}
+          setConfirmationResult={setConfirmationResult}
+          userData={userData}
+          setUserData={setUserData}
+          onGoogleLogin={handleGoogleLogin}
+        />
       </div>
-      <div id="recaptcha-container"></div>
-    </>
+      <div id="recaptcha-container" />
+    </div>
   );
-}
+};
 
 export default Login;

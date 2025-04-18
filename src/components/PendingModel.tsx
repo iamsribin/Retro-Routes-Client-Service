@@ -10,8 +10,7 @@ function PendingModal() {
                     className="fixed inset-0 z-10 overflow-y-auto bg-opacity-40 bg-black"
                     aria-labelledby="modal-title"
                     role="dialog"
-                    aria-modal="true"
-                >
+                    aria-modal="true">
                     <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
                             &#8203;
@@ -33,8 +32,11 @@ function PendingModal() {
                                     </div>
 
                                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                        We're in the process of verifying your account to provide the best experience. Once verified, you'll receive a verification email.<br /> Thanks for your patience.
-                                    </p>
+                                        We're in the process of verifying your account to provide the best experience. Once verified, you'll receive a verification email.
+<br />
+{' '}
+Thanks for your patience.
+</p>
                                 </div>
                             </div>
 

@@ -1,24 +1,22 @@
 enum AppRoutes {
-    // Authentication Routes - User
-    USER_LOGIN = 'login',
-    USER_SIGNUP = 'signup',
+    // comment Routes
+    LOGIN = 'login',
+    SIGNUP = 'signup',
     USER_HOME = '',
+    DASHBOARD = 'dashboard',
 
     // Authentication Routes - Driver
-    DRIVER_LOGIN = 'driver/login',
-    DRIVER_SIGNUP = 'driver/signup',
-    DRIVER_IDENTIFICATION = 'driver/identification',
+    DRIVER_IDENTIFICATION = 'identification',
+    DRIVER_RESUBMISSION = 'resubmission',
 
     // Driver Routes
-    DRIVER_DASHBOARD = 'driver/dashboard',
 
     // Admin Routes
-    ADMIN_DASHBOARD = 'admin/dashboard',
-    ADMIN_USERS = 'admin/users',
-    ADMIN_USER_DETAILS = 'admin/userDetails/:id',
-    ADMIN_PENDING_DRIVER_DETAILS = 'admin/PendingDriverDetails/:id',
-    ADMIN_DRIVER_DETAILS = 'admin/driverDetails/:id',
-    ADMIN_DRIVERS = 'admin/drivers',
+    ADMIN_USERS = 'users',
+    ADMIN_USER_DETAILS = 'userDetails',
+    ADMIN_PENDING_DRIVER_DETAILS = 'PendingDriverDetails',
+    ADMIN_DRIVER_DETAILS = 'driverDetails',
+    ADMIN_DRIVERS = 'drivers',
 }
 
 export default AppRoutes;

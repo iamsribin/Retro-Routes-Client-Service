@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import DriverLogin from "../../../components/driver/authentication/login/DiverLogin";
 import { useSelector } from "react-redux";
 import PendingModal from "../../../components/PendingModel";

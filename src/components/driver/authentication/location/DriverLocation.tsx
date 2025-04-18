@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { useEffect, useState } from "react";
-import SignupMap from "../map/SingupMap";
+import SignupMap from "../map/SignupMap";
 import { useFormik } from "formik";
 import { toast } from 'sonner';
 import axiosDriver from '../../../../services/axios/driverAxios';
@@ -12,6 +12,7 @@ import { useDispatch } from "react-redux";
 import { openPendingModal } from "../../../../services/redux/slices/pendingModalSlice";
 import Loader from "../../../shimmer/Loader";
 import { SignupLocationValidation } from "@/utils/validation";
+import ApiEndpoints from "@/constants/api-end-points";
 
 function DriverLocation() {
     const dispatch = useDispatch();
@@ -42,8 +43,7 @@ function DriverLocation() {
                 console.log(values);
                 
                 const driverId = localStorage.getItem("driverId");
-                const { data } = await axiosDriver(dispatch).post(
-                    `location?driverId=${driverId}`,
+                const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_LOCATION+`?driverId=${driverId}`,
                     values,
                     {
                         headers: {

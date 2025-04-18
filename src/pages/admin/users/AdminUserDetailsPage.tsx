@@ -7,7 +7,8 @@ import { UserInterface } from "../../../utils/interfaces";
 import { useDispatch } from "react-redux";
 import { Eye } from "lucide-react";
 import { Button } from "@chakra-ui/react";
-import { userBlockUnblockVaidation } from "@/utils/validation";
+import { userBlockUnblockValidation } from "@/utils/validation";
+import ApiEndpoints from "@/constants/api-end-points";
 
 const UserDetails = () => {
     const [statusModal, setStatusModal] = useState(false);
@@ -19,9 +20,7 @@ const UserDetails = () => {
 
     const getData = async () => {
         try {
-            const { data } = await adminAxios.get(`/userData?id=${id}`);
-            console.log(data);
-            
+            const { data } = await adminAxios.get(ApiEndpoints.ADMIN_USER_DETAILS+`?id=${id}`);            
             setUserData(data);
         } catch (error) {
             toast.error((error as Error).message);
@@ -38,12 +37,12 @@ const UserDetails = () => {
             reason: "",
             status: "",
         },
-        validationSchema:userBlockUnblockVaidation,
+        validationSchema:userBlockUnblockValidation,
         onSubmit: async (values, { setSubmitting }) => {
             try {
                 console.log(values);
                 
-                const { data } = await adminAxios.patch(`/updateUserStatus?id=${id}`, values);
+                const { data } = await adminAxios.patch(ApiEndpoints.ADMIN_UPDATE_USER_STATUS+`?id=${id}`, values);
                 console.log("data",data);
                 
                 if (data.message === "Success") {

@@ -17,25 +17,19 @@ export const signupValidation = yup.object({
     .string()
     .matches(/^(?=.*[A-Z])/, "Must include One uppercase letter")
     .matches(/^(?=.*\d)/, "Must include one digit")
-    .required("Passowrd is required"),
+    .required("Password is required"),
   re_password: yup
     .string()
     .oneOf([yup.ref("password")], "Password must match")
     .required("Please re-enter the password"),
-  reffered_Code: yup
+  referred_Code: yup
     .string()
     .min(5, "Enter a valid code")
     .matches(/^(?=.*\d)/, "Enter a valid code"),
 });
-export const DriverIdentificationValidation=yup.object().shape({
-  aadharImage:yup.mixed().required('Please upload the adhaar image'),
-  aadharID:yup.string().required("Enter the adhaar ID"),
-  licenseImage:yup.string().required("Please upload the license image"),
-  licenseID:yup.string().required("Enter the license ID"),
-})
 
 export const VehicleValidation = yup.object().shape({
-  registerationID: yup.string()
+  registrationID: yup.string()
     .matches(
       /^[A-Z]{2}\d{2}\s?[A-Z]{0,2}\s?\d{1,4}$/,
       "Invalid Indian RC format (e.g., MH04 AB 1234)"
@@ -84,7 +78,7 @@ export const adminValidation= yup.object({
     .string()
     .matches(/^(?=.*[A-Z])/, "Must include One uppercase letter")
     .matches(/^(?=.*\d)/, "Must include one digit")
-    .required("Passowrd is required"),
+    .required("Password is required"),
 })
 
 
@@ -99,7 +93,7 @@ export const driverImageValidation = yup.object({
         driverImage:yup.mixed().required('Please upload your photo')
 })
 
-export const userBlockUnblockVaidation =  yup.object({
+export const userBlockUnblockValidation =  yup.object({
   reason: yup.string().required("Please provide a valid reason!").min(5, "Enter a valid reason"),
   status: yup.string().required("Please select the status"),
 })
@@ -154,7 +148,7 @@ export const ResubmissionValidation = (fields: string[] = []) =>
           .required('License validity date is required')
       : yup.string().nullable(),
 
-    registerationID: fields.includes('registerationID')
+    registrationID: fields.includes('registrationID')
       ? yup
           .string()
           .matches(
@@ -265,4 +259,51 @@ export const ResubmissionValidation = (fields: string[] = []) =>
           .min(68.7, 'Choose a valid location in India')
           .max(97.25, 'Choose a valid location in India')
       : yup.number().nullable(),
+  });
+
+ export const DriverIdentificationValidation = yup.object().shape({
+    aadharID: yup.string()
+      .matches(/^\d{4}\s?\d{4}\s?\d{4}$/, "Aadhaar must be a 12-digit number (e.g., 1234 5678 9012)")
+      .required("Aadhaar ID is required"),
+    aadharFrontImage: yup.mixed()
+      .required("Aadhaar front image is required")
+      .test("fileType", "Only image files are allowed", (value: any) => value && value.type.startsWith("image/"))
+      .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
+    aadharBackImage: yup.mixed()
+      .required("Aadhaar back image is required")
+      .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
+      .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
+    licenseID: yup.string()
+      .matches(/^[A-Z]{2}\d{2}\s?\d{4}\d{7}$/, "Invalid Indian driving license format (e.g., MH12 20230012345)")
+      .required("License ID is required"),
+    licenseFrontImage: yup.mixed()
+      .required("License front image is required")
+      .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
+      .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
+    licenseBackImage: yup.mixed()
+      .required("License back image is required")
+      .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
+      .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
+    licenseValidity: yup.date()
+      .min(new Date(), "License validity date cannot be in the past")
+      .required("License validity date is required"),
+  });
+
+  export  const InsuranceValidation = yup.object().shape({
+    pollutionImage: yup.mixed().required("Pollution certificate image is required"),
+    insuranceImage: yup.mixed().required("Insurance image is required"),
+    insuranceStartDate: yup.string().required("Insurance start date is required"),
+    insuranceExpiryDate: yup.string()
+      .required("Insurance expiry date is required")
+      .test("is-after-start", "Expiry date must be after start date", function (value) {
+        const { insuranceStartDate } = this.parent;
+        return insuranceStartDate && value ? new Date(value) > new Date(insuranceStartDate) : true;
+      }),
+    pollutionStartDate: yup.string().required("Pollution start date is required"),
+    pollutionExpiryDate: yup.string()
+      .required("Pollution expiry date is required")
+      .test("is-after-start", "Expiry date must be after start date", function (value) {
+        const { pollutionStartDate } = this.parent;
+        return pollutionStartDate && value ? new Date(value) > new Date(pollutionStartDate) : true;
+      }),
   });

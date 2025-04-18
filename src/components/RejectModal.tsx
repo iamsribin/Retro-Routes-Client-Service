@@ -12,8 +12,7 @@ import { useNavigate } from "react-router-dom";
                     className="fixed inset-0 z-10 overflow-y-auto bg-opacity-40 bg-black"
                     aria-labelledby="modal-title"
                     role="dialog"
-                    aria-modal="true"
-                >
+                    aria-modal="true">
                     <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
                             &#8203;
@@ -29,8 +28,11 @@ import { useNavigate } from "react-router-dom";
                                     </div>
 
                                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                    We regret to inform you that your registeration has been rejected. We appreciate your interest in joining our service.<br/> Thanks for your patience.
-                                    </p>
+                                    We regret to inform you that your registeration has been rejected. We appreciate your interest in joining our service.
+<br/>
+{' '}
+Thanks for your patience.
+</p>
                                     <p className="text-sm mt-2">Please check your mail for further information</p>
                                 </div>
                             </div>
@@ -39,8 +41,7 @@ import { useNavigate } from "react-router-dom";
                                 <div className="sm:flex sm:items-center ">
                                     <button
                                         onClick={() => dispatch(closeRejectedModal())}
-                                        className="w-full px-4 py-2 mt-2 text-sm font-medium tracking-wide text-blue-600 capitalize transition-colors duration-300 transform  rounded-md sm:w-auto sm:mt-0 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40"
-                                    >
+                                        className="w-full px-4 py-2 mt-2 text-sm font-medium tracking-wide text-blue-600 capitalize transition-colors duration-300 transform  rounded-md sm:w-auto sm:mt-0 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40">
                                         CLOSE
                                     </button>
                                     <button
@@ -49,8 +50,7 @@ import { useNavigate } from "react-router-dom";
                                             dispatch(closeRejectedModal())
                                         }
                                         }
-                                        className="w-full px-4 ml-4 py-2 mt-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-600 rounded-md sm:w-auto sm:mt-0 hover:bg-blue-500 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40"
-                                    >
+                                        className="w-full px-4 ml-4 py-2 mt-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-600 rounded-md sm:w-auto sm:mt-0 hover:bg-blue-500 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40">
                                         RE-SUBMIT
                                     </button>
                                 </div>

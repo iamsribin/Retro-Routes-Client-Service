@@ -16,8 +16,8 @@ export const onCaptchaVerify = (auth: Auth) => {
     "recaptcha-container",
     {
       size: "invisible",
-      callback: (respose: any) => {
-        console.log("recaptcha verified result:", respose);
+      callback: (response: any) => {
+        console.log("recaptcha verified result:", response);
       },
       "expired-callback": () => {
         toast.error("Verification Expired");
@@ -32,7 +32,7 @@ export const onCaptchaVerify = (auth: Auth) => {
 };
 
 export const sendOtp = async (
-  setotpInput: any,
+  setOtpInput: any,
   auth: any,
   mobile: string,
   setConfirmationResult: any
@@ -52,7 +52,7 @@ export const sendOtp = async (
     const result = await signInWithPhoneNumber(auth, number, appVerifier);
     setConfirmationResult(result);
     toast.success("OTP sent successfully");
-    setotpInput(true)
+    setOtpInput(true)
   } catch (error) {
     console.error("OTP Send Error:", error);
 

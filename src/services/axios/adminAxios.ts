@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import { adminLogout } from "../redux/slices/adminAuthSlice";
 import logoutLocalStorage from "@/utils/localStorage";

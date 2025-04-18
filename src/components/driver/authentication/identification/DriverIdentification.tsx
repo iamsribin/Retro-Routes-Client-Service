@@ -1,40 +1,14 @@
 import { useState } from "react";
 import { useFormik } from "formik";
-import * as Yup from "yup";
 import axiosDriver from "../../../../services/axios/driverAxios";
 import { toast } from "sonner";
 import DriverPhotoPage from "../photo/DriverPhoto";
 import Loader from "../../../shimmer/Loader";
 import { Player } from "@lottiefiles/react-lottie-player";
 import { useDispatch } from "react-redux";
+import { DriverIdentificationValidation } from "@/utils/validation";
+import ApiEndpoints from "@/constants/api-end-points";
 
-const DriverIdentificationValidation = Yup.object().shape({
-  aadharID: Yup.string()
-    .matches(/^\d{4}\s?\d{4}\s?\d{4}$/, "Aadhaar must be a 12-digit number (e.g., 1234 5678 9012)")
-    .required("Aadhaar ID is required"),
-  aadharFrontImage: Yup.mixed()
-    .required("Aadhaar front image is required")
-    .test("fileType", "Only image files are allowed", (value: any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  aadharBackImage: Yup.mixed()
-    .required("Aadhaar back image is required")
-    .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  licenseID: Yup.string()
-    .matches(/^[A-Z]{2}\d{2}\s?\d{4}\d{7}$/, "Invalid Indian driving license format (e.g., MH12 20230012345)")
-    .required("License ID is required"),
-  licenseFrontImage: Yup.mixed()
-    .required("License front image is required")
-    .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  licenseBackImage: Yup.mixed()
-    .required("License back image is required")
-    .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  licenseValidity: Yup.date()
-    .min(new Date(), "License validity date cannot be in the past")
-    .required("License validity date is required"),
-});
 
 function DriverIdentification() {
   const [photoPage, setPhotoPage] = useState(false);
@@ -94,7 +68,7 @@ function DriverIdentification() {
     const driverId = localStorage.getItem("driverId");
     setLoad(true);
     try {
-      const response = await axiosDriver(dispatch).post(`/identification?driverId=${driverId}`, formData, {
+      const response = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_IDENTIFICATION+`?driverId=${driverId}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (response.data.message === "Success") {

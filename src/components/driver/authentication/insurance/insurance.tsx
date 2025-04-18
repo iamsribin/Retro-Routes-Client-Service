@@ -1,11 +1,12 @@
   import { useFormik } from "formik";
   import { useState, useEffect } from "react";
-  import axiosDriver from "../../../../services/axios/driverAxios";
+  import axiosDriver from "@/services/axios/driverAxios";
   import { toast } from "sonner";
-  import DriverLocationPage from "../../../../pages/driver/authentication/DriverLocationPage";
-  import Loader from "../../../shimmer/Loader";
-  import * as Yup from "yup";
-import { useDispatch } from "react-redux";
+  import DriverLocationPage from "@/pages/driver/authentication/DriverLocationPage";
+  import Loader from "@/components/shimmer/Loader";
+  import { useDispatch } from "react-redux"; 
+  import { InsuranceValidation } from "@/utils/validation";
+import ApiEndpoints from "@/constants/api-end-points";
 
   interface InsuranceFormValues {
     pollutionImage: File | null;
@@ -15,25 +16,6 @@ import { useDispatch } from "react-redux";
     pollutionStartDate: string;
     pollutionExpiryDate: string;
   }
-
-  const InsuranceValidation = Yup.object().shape({
-    pollutionImage: Yup.mixed().required("Pollution certificate image is required"),
-    insuranceImage: Yup.mixed().required("Insurance image is required"),
-    insuranceStartDate: Yup.string().required("Insurance start date is required"),
-    insuranceExpiryDate: Yup.string()
-      .required("Insurance expiry date is required")
-      .test("is-after-start", "Expiry date must be after start date", function (value) {
-        const { insuranceStartDate } = this.parent;
-        return insuranceStartDate && value ? new Date(value) > new Date(insuranceStartDate) : true;
-      }),
-    pollutionStartDate: Yup.string().required("Pollution start date is required"),
-    pollutionExpiryDate: Yup.string()
-      .required("Pollution expiry date is required")
-      .test("is-after-start", "Expiry date must be after start date", function (value) {
-        const { pollutionStartDate } = this.parent;
-        return pollutionStartDate && value ? new Date(value) > new Date(pollutionStartDate) : true;
-      }),
-  });
 
   function Insurance() {
     const [locationPage, setLocationPage] = useState(false);
@@ -69,8 +51,7 @@ import { useDispatch } from "react-redux";
         try {
           setLoad(true);
           const driverId = localStorage.getItem("driverId");
-          const { data } = await axiosDriver(dispatch).post(
-            `/insuranceDetails?driverId=${driverId}`,
+          const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_INSURANCE+`?driverId=${driverId}`,
             formData,
             {
               headers: { "Content-Type": "multipart/form-data" },

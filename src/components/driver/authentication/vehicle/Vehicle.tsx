@@ -5,9 +5,10 @@ import { toast } from "sonner";
 import Loader from "../../../shimmer/Loader";
 import { VehicleValidation } from "@/utils/validation";
 import DriverInsurancePage from "@/pages/driver/authentication/DriverInsurance";
-// Define the interface for form values
+import { useDispatch } from "react-redux";
+import ApiEndpoints from "@/constants/api-end-points";
 interface VehicleFormValues {
-  registerationID: string;
+  registrationID: string;
   model: string;
   rcFrontImage: File | null;
   rcBackImage: File | null;
@@ -26,9 +27,10 @@ function Vehicle() {
     carFrontImage: null as string | null,
     carSideImage: null as string | null,
   });
+  const dispatch = useDispatch()
 
   const initialValues: VehicleFormValues = {
-    registerationID: "",
+    registrationID: "",
     model: "",
     rcFrontImage: null,
     rcBackImage: null,
@@ -58,8 +60,7 @@ function Vehicle() {
           console.log(`${key}:`, value);
         }      
         const driverId = localStorage.getItem("driverId");
-        const { data } = await axiosDriver().post(
-          `/vehicleDetails?driverId=${driverId}`, 
+        const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_ADD_VEHICLE_DETAILS+`?driverId=${driverId}`, 
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
@@ -134,16 +135,16 @@ function Vehicle() {
                     <div className="text-left md:pr-5">
                       <h1 className="text-black font-bold text-xs">Vehicle Registration ID</h1>
                       <input
-                        id="registerationID"
+                        id="registrationID"
                         className="pl-2 outline-none border-b w-full mb-2"
                         type="text"
-                        name="registerationID"
+                        name="registrationID"
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
-                        value={formik.values.registerationID}
+                        value={formik.values.registrationID}
                       />
-                      {formik.touched.registerationID && formik.errors.registerationID && (
-                        <p className="text-xs text-red-500">{formik.errors.registerationID}</p>
+                      {formik.touched.registrationID && formik.errors.registrationID && (
+                        <p className="text-xs text-red-500">{formik.errors.registrationID}</p>
                       )}
                     </div>
                     <div className="text-left">

@@ -1,0 +1,238 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useFormik } from "formik";
+import { toast } from "sonner";
+import { ConfirmationResult } from "firebase/auth";
+import { CredentialResponse } from "@react-oauth/google";
+import { HStack, PinInput, PinInputField } from "@chakra-ui/react";
+import { PhoneIcon } from "@chakra-ui/icons";
+import { GoogleLogin } from "@react-oauth/google";
+import axiosDriver from "@/services/axios/driverAxios";
+import { driverLogin } from "@/services/redux/slices/driverAuthSlice";
+import { openPendingModal } from "@/services/redux/slices/pendingModalSlice";
+import { openRejectedModal } from "@/services/redux/slices/rejectModalSlice";
+import { sendOtp } from "@/hooks/useAuth";
+import { loginValidation } from "@/utils/validation";
+import { useDispatch } from "react-redux";
+import ApiEndpoints from "@/constants/api-end-points";
+
+interface DriverData {
+  name: string;
+  driverToken: string;
+  driver_id: string;
+  refreshToken: string;
+  role: "Driver";
+}
+
+interface DriverLoginFormProps {
+  auth: unknown;
+  otpInput: boolean;
+  setOtpInput: (value: boolean) => void;
+  otp: number;
+  setOtp: (value: number) => void;
+  load: boolean;
+  setLoad: (value: boolean) => void;
+  counter: number;
+  setCounter: (value: number) => void;
+  confirmationResult: ConfirmationResult | null;
+  setConfirmationResult: (value: ConfirmationResult | null) => void;
+  driverData: DriverData;
+  setDriverData: (value: DriverData) => void;
+  onGoogleLogin: (data: CredentialResponse) => void;
+}
+
+const DriverLoginForm = ({
+  auth,
+  otpInput,
+  setOtpInput,
+  otp,
+  setOtp,
+  load,
+  setLoad,
+  counter,
+  setCounter,
+  confirmationResult,
+  setConfirmationResult,
+  driverData,
+  setDriverData,
+  onGoogleLogin,
+}: DriverLoginFormProps) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (otpInput && counter > 0) {
+      const timer = setTimeout(() => setCounter(counter - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [counter, otpInput, setCounter]);
+
+  const formik = useFormik({
+    initialValues: { mobile: "" },
+    validationSchema: loginValidation,
+    onSubmit: async (values) => {
+      try {
+        setLoad(true);
+        const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_CHECK_LOGIN, values);
+        setLoad(false);
+
+        switch (data.message) {
+          case "Success":
+            sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
+            setDriverData({
+              name: data.name,
+              refreshToken: data.refreshToken,
+              driverToken: data.token,
+              driver_id: data._id,
+              role: data.role,
+            });
+            break;
+          case "Incomplete":
+            toast.info("Please complete the verification!");
+            localStorage.setItem("driverId", data.driverId);
+            navigate("/driver/signup");
+            break;
+          case "Blocked":
+            toast.info("Your account is blocked!");
+            break;
+          case "Pending":
+            dispatch(openPendingModal());
+            break;
+          case "Rejected":
+            localStorage.setItem("driverId", data.driverId);
+            localStorage.setItem("role", "Resubmission");
+            dispatch(openRejectedModal());
+            break;
+          default:
+            toast.error("Not registered! Please register to continue.");
+        }
+      } catch (error) {
+        setLoad(false);
+        toast.error(error instanceof Error ? error.message : "An unknown error occurred");
+      }
+    },
+  });
+
+  const handleOtpChange = (index: number, newValue: string) => {
+    const parsedValue = parseInt(newValue) || 0;
+    const newOtp = [...otp.toString().padStart(6, "0")];
+    newOtp[index] = parsedValue.toString();
+    setOtp(parseInt(newOtp.join("")) || 0);
+  };
+
+  const handleOtpVerify = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!otp || !confirmationResult) {
+      toast.error("Enter a valid OTP");
+      return;
+    }
+
+    try {
+      await confirmationResult.confirm(otp.toString());
+      toast.success("Login success");
+      localStorage.setItem("driverToken", driverData.driverToken);
+      localStorage.setItem("DriverRefreshToken", driverData.refreshToken);
+      localStorage.setItem("role", "Driver");
+      dispatch(driverLogin({ name: driverData.name, driver_id: driverData.driver_id, role: "Driver" }));
+      localStorage.removeItem("driverId");
+      navigate("/driver/dashboard");
+    } catch {
+      toast.error("Enter a valid OTP");
+    }
+  };
+
+  return (
+    <div className="flex md:w-1/2 justify-center pb-10 md:py-10 items-center">
+      <div className="user-signup-form md:w-8/12 px-9 py-8 bg-white drop-shadow-xl">
+        <form onSubmit={formik.handleSubmit}>
+          <div className="text-center">
+            <h1 className="text-gray-800 font-bold text-2xl mb-5">Welcome back!</h1>
+          </div>
+          <div className="flex items-center py-2 px-3 rounded-2xl mb-2">
+            <PhoneIcon className="text-gray-400" />
+            <input
+              className="pl-2 outline-none border-b w-full"
+              type="number"
+              name="mobile"
+              value={formik.values.mobile}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              id="mobile"
+              placeholder="Mobile number"
+            />
+          </div>
+          {formik.touched.mobile && formik.errors.mobile && (
+            <p className="form-error-p-tag">{formik.errors.mobile}</p>
+          )}
+          {otpInput && (
+            <div className="my-4 px-2">
+              <HStack>
+                <PinInput otp placeholder="">
+                  {[...Array(6)].map((_, index) => (
+                    <PinInputField
+                      key={index}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                    />
+                  ))}
+                </PinInput>
+              </HStack>
+            </div>
+          )}
+          {otpInput ? (
+            <>
+              <button
+                onClick={handleOtpVerify}
+                className="block w-full bg-blue-800 py-1.5 rounded-2xl text-golden font-semibold mb-2"
+              >
+                Verify OTP
+              </button>
+              <div className="text-center text-gray-500 mt-4">
+                {counter > 0 ? (
+                  <p className="text-sm">Resend OTP in 00:{counter}</p>
+                ) : (
+                  <p
+                    className="text-sm text-blue-800 cursor-pointer"
+                    onClick={() => {
+                      setCounter(40);
+                      setOtp(0);
+                      sendOtp(setOtpInput, auth, formik.values.mobile, setConfirmationResult);
+                    }}
+                  >
+                    Resend OTP
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <button
+              type="submit"
+              className="block w-full bg-black py-1.5 rounded-2xl text-white font-semibold mb-2"
+            >
+              Send OTP
+            </button>
+          )}
+          <div className="flex flex-col w-full mt-8 border-opacity-50">
+            <div className="flex items-center text-xs font-medium">
+              <div className="flex-grow border-t border-gray-300" />
+              <span className="mx-2">or sign-in using Google</span>
+              <div className="flex-grow border-t border-gray-300" />
+            </div>
+            <div className="flex justify-center items-center mt-5">
+              <GoogleLogin shape="circle" ux_mode="popup" onSuccess={onGoogleLogin} />
+            </div>
+          </div>
+          <div className="text-center">
+            <span
+              onClick={() => navigate("/driver/signup")}
+              className="text-xs ml-2 hover:text-blue-500 cursor-pointer"
+            >
+              Not registered yet? Sign-up here!
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default DriverLoginForm;

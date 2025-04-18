@@ -5,7 +5,7 @@ import { axiosAdmin } from '@/services/axios/adminAxios';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils'; 
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import ApiEndpoints from '@/constants/api-end-points';
 
 const Drivers: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'block' | 'pending'>('active');
@@ -16,7 +16,7 @@ const Drivers: React.FC = () => {
 
   const fetchActiveUsers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get('/verifiedDrivers');
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_VERIFIED_DRIVERS);
       setverifiedDrivers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch active users');
@@ -25,7 +25,7 @@ const Drivers: React.FC = () => {
 
   const fetchPendingDrivers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get('/pendingDrivers');
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_PENDING_DRIVERS);
       console.log("pending drivers==", data);
       
       setPendingDrivers(data);
@@ -36,7 +36,7 @@ const Drivers: React.FC = () => {
   
   const fetchBlockedDrivers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get('/blockedDrivers');
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_BLOCKED_DRIVERS);
       setBlockedDrivers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch blocked users');

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils'; // Assuming you have a utility for classnames
 import { useDispatch } from 'react-redux';
+import ApiEndpoints from '@/constants/api-end-points';
 
 const Users: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'block'>('active');
@@ -17,7 +18,7 @@ const Users: React.FC = () => {
 
   const fetchActiveUsers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get('/getActiveUserData');
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_ACTIVE_USERS);
       setActiveUsers(data);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to fetch active users');
@@ -26,7 +27,7 @@ const Users: React.FC = () => {
 
   const fetchBlockedUsers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get('/blockedUserData');
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_BLOCKED_USERS);
       console.log(data);
       
       setBlockedUsers(data);
