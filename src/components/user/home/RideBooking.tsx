@@ -15,7 +15,7 @@ function Ride() {
   const [noDriversModal, setNoDriversModal] = useState(false);
   const [center, setCenter] = useState({ lat: 13.003371, lng: 77.589134 });
   const [map, setMap] = useState<google.maps.Map | undefined>(undefined);
-  const [zoom, setZoom] = useState(9);
+  const [zoom, setZoom] = useState(10);
 
   const originRef = useRef<HTMLInputElement | null>(null);
   const destinationRef = useRef<HTMLInputElement | null>(null);

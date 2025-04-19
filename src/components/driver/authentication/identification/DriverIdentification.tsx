@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useFormik } from "formik";
-import axiosDriver from "../../../../services/axios/driverAxios";
+import axiosDriver from "@/services/axios/driverAxios";
 import { toast } from "sonner";
 import DriverPhotoPage from "../photo/DriverPhoto";
-import Loader from "../../../shimmer/Loader";
+import Loader from "@/components/shimmer/Loader";
 import { Player } from "@lottiefiles/react-lottie-player";
 import { useDispatch } from "react-redux";
 import { DriverIdentificationValidation } from "@/utils/validation";
