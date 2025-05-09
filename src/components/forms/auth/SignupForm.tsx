@@ -9,7 +9,6 @@ import { checkUser } from '@/utils/authHelpers';
 import LoadingSpinner from '@/components/loaders/loadingSpinner';
 import SignupFields from "./signupFields"
 
-// Lazy load the OTP form
 const OtpForm = lazy(() => import('./OtpForm'));
 
 const SignupForm = ({ otpPage, setOtpPage, counter, setCounter, otp, setOtp, userImageUrl, setUserImageUrl }: SignupFormProps) => {
@@ -30,7 +29,7 @@ const SignupForm = ({ otpPage, setOtpPage, counter, setCounter, otp, setOtp, use
     validationSchema: signupValidation,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        await checkUser({ email: values.email, mobile: values.mobile, dispatch, navigate, setOtpPage });
+        await checkUser({name:values.name, email: values.email, mobile: values.mobile, dispatch, navigate, setOtpPage });
       } catch (error) {
         setSubmitting(false);
       }

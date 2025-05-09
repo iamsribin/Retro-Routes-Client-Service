@@ -30,7 +30,7 @@ const OtpForm = ({ counter, setCounter, otp, setOtp, formik }: OtpFormProps) => 
       toast.error('Time expired, tap to resend');
       return;
     }
-
+  
     try {
       const formData = new FormData();
       formData.append('name', formik.values.name);
@@ -41,20 +41,25 @@ const OtpForm = ({ counter, setCounter, otp, setOtp, formik }: OtpFormProps) => 
       formData.append('referred_code', formik.values.referred_code);
       formData.append('otp', otp.toString());
       if (formik.values.userImage) formData.append('userImage', formik.values.userImage);
-
+  
       const { data } = await axiosUser(dispatch).post(ApiEndpoints.USER_REGISTER, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      if (data.message === 'Success') {
+  
+      if (data.message === 'User registered successfully') {
         toast.success('OTP verified successfully');
         toast.success('Account created successfully');
         window.location.href = '/login';
-      } else if (data.message === 'Invalid OTP') {
-        toast.error('Invalid OTP');
+      } else {        
+        toast.error(data.message);
       }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'An unknown error occurred');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message 
+        ? error.response.data.message 
+        : 'An unexpected error occurred';
+        console.log(errorMessage);
+        
+      toast.error(errorMessage);
     }
   };
 

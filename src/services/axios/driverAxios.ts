@@ -43,7 +43,7 @@ const createAxios=(dispatch: any)=>{
                 if (!refreshToken) {
                     logoutLocalStorage("Driver");
                     dispatch(driverLogout())
-                    window.location.href = '/driver/login';
+                    // window.location.href = '/driver/login';
                     return Promise.reject(error);
                 }
     

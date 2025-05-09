@@ -22,8 +22,8 @@ function DriverPhoto() {
     const initialValues={
         driverImage:null
     }
-    const validationSchema=driverImageValidation
-    const webcamRef=useRef<Webcam|null>(null)
+    const validationSchema=driverImageValidation;
+    const webcamRef=useRef<Webcam|null>(null);
 
     const formik=useFormik({
         initialValues,

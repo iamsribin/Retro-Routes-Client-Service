@@ -18,14 +18,22 @@ export const fetchResubmissionData = async (
   try {
     setLoad(true);
     const response = await axiosDriver(dispatch).get(`/resubmission/${driverId}`);
+    console.log(response);
+
+    const fields = response.data.data?.fields;
+    if (!Array.isArray(fields)) {
+      throw new Error('Fields is not an array');
+    }
+
     const fixedData = {
-      ...response.data,
-      fields: response.data.fields.map((field: string) =>
+      ...response.data.data,
+      fields: fields.map((field: string) =>
         field === 'driverImge' ? 'driverImage' : field === 'pollution' ? 'pollution' : field
       ),
     };
     setResubmissionData(fixedData);
   } catch (error: any) {
+    console.log(error);
     toast.error('Failed to fetch resubmission requirements: ' + error.message);
     navigate('/driver/login');
   } finally {

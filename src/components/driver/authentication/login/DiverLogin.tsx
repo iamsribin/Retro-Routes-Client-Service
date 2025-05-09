@@ -47,9 +47,12 @@ const DriverLogin = () => {
       const token = req.credential;
       if (!token) throw new Error("No credential provided");
       const decode = jwtDecode<DecodedToken>(token);
+      console.log("==decod",decode.email);
+      
       const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_CHECK_GOOGLE_LOGIN, {
         email: decode.email,
       });
+      console.log("======data=====",data);
 
       switch (data.message) {
         case "Success":
@@ -59,7 +62,7 @@ const DriverLogin = () => {
           localStorage.setItem("role", "Driver");
           dispatch(driverLogin({ name: data.name, driver_id: data._id, role: "Driver" }));
           localStorage.removeItem("driverId");
-          navigate("/driver/dashboard");
+          // navigate("/driver/dashboard");
           break;
         case "Incomplete registration":
           toast.info("Please complete the registration!");
@@ -79,7 +82,10 @@ const DriverLogin = () => {
         default:
           toast.error("Not registered! Please register to continue.");
       }
+
     } catch (error) {
+      console.log(error);
+      
       toast.error(error instanceof Error ? error.message : "An unknown error occurred");
     }
   };

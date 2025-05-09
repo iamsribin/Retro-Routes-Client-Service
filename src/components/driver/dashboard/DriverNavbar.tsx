@@ -2,12 +2,16 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Wallet, MapPin, FileText, LogOut } from 'lucide-react';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList, NavigationMenuLink } from "@/components/ui/navigation-menu";
+import { useDispatch } from "react-redux";
+import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
+import logoutLocalStorage from "@/utils/localStorage";
 
 const DriverNavbar: React.FC = () => {
   const navigate = useNavigate();
-
+  const dispatch = useDispatch()
   const handleLogout = () => {
-    localStorage.removeItem('driverId');
+    dispatch(driverLogout());
+    logoutLocalStorage("Driver");
     navigate('/login');
   };
 

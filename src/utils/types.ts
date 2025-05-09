@@ -1,8 +1,6 @@
-import { FormikProps } from 'formik';
 import { Dispatch } from 'redux';
 
 export interface SignupFormValues {
-  name: string;
   email: string;
   mobile: string;
   password: string;
@@ -24,6 +22,7 @@ export interface SignupFormProps {
 }
 
 export interface CheckUserParams {
+  name: string;
   email: string;
   mobile: string;
   dispatch: Dispatch;

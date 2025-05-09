@@ -1,138 +1,220 @@
+// ```typescript
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Card } from "@/components/ui/card";
-import { MessageSquare, Phone } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PhoneCall, MessageSquare, Navigation, MapPin } from 'lucide-react';
+import { Feature, LineString, GeoJSON } from 'geojson';
+
+mapboxgl.accessToken = 'pk.eyJ1Ijoic3JpYmluIiwiYSI6ImNtOW56MnEzNDB0a3gycXNhdGppZGVjY2kifQ.e5Wf0msIvOjm7tXjFXP0dA';
 
 interface ActiveRideMapProps {
-  pickup: string;
-  dropoff: string;
-  customerName: string;
-  customerLocation: [number, number];
-  driverLocation: [number, number] | null;
+  booking: {
+    ride_id: string;
+    user_id: string;
+    pickupCoordinates: { latitude: number; longitude: number };
+    dropoffCoordinates: { latitude: number; longitude: number };
+    pickupLocation: string;
+    dropoffLocation: string;
+    distance: string;
+    vehicleModel: string;
+    price: number;
+    status: string;
+    pin: number;
+    _id: string;
+    date: string;
+  };
+  driverLocation: { latitude: number; longitude: number };
+  customer: {
+    name: string;
+    avatar: string;
+    rating: number;
+  };
+  onArrived: () => void;
+  onCancelRide: () => void;
 }
 
-const ActiveRideMap: React.FC<ActiveRideMapProps> = ({ 
-  pickup, 
-  dropoff, 
-  customerName,
-  customerLocation,
+const ActiveRideMap: React.FC<ActiveRideMapProps> = ({
+  booking,
   driverLocation,
+  customer,
+  onArrived,
+  onCancelRide,
 }) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const [mapboxToken, setMapboxToken] = useState('');
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const pickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const [eta, setEta] = useState<string>('Calculating...');
+  const [routeDistance, setRouteDistance] = useState<string>('');
 
   useEffect(() => {
-    if (!mapContainer.current || !mapboxToken) return;
+    if (!mapContainerRef.current) return;
 
-    mapboxgl.accessToken = mapboxToken;
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: driverLocation || customerLocation,
-      zoom: 12,
+      center: [driverLocation.longitude, driverLocation.latitude],
+      zoom: 14,
     });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    mapRef.current = map;
 
-    // Add markers
-    if (driverLocation) {
-      new mapboxgl.Marker({ color: '#10B981' })
-        .setLngLat(driverLocation)
-        .addTo(map.current);
-    }
+    map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-    new mapboxgl.Marker({ color: '#EF4444' })
-      .setLngLat(customerLocation)
-      .addTo(map.current);
+    driverMarkerRef.current = new mapboxgl.Marker({ color: '#10b981' })
+      .setLngLat([driverLocation.longitude, driverLocation.latitude])
+      .addTo(map);
 
-    // Draw route if driver location is available
-    if (driverLocation) {
-      const getRoute = async () => {
-        const query = await fetch(
-          `https://api.mapbox.com/directions/v5/mapbox/driving/${driverLocation[0]},${driverLocation[1]};${customerLocation[0]},${customerLocation[1]}?geometries=geojson&access_token=${mapboxToken}`
-        );
-        const json = await query.json();
-        const data = json.routes[0];
-        const route = data.geometry.coordinates;
+    pickupMarkerRef.current = new mapboxgl.Marker({ color: '#ef4444' })
+      .setLngLat([booking.pickupCoordinates.longitude, booking.pickupCoordinates.latitude])
+      .addTo(map);
 
-        map.current?.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: route,
-            },
-          },
-        });
+    map.on('load', () => {
+      updateRoute(map);
 
-        map.current?.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#10B981', 'line-width': 4 },
-        });
+      const bounds = new mapboxgl.LngLatBounds()
+        .extend([driverLocation.longitude, driverLocation.latitude])
+        .extend([booking.pickupCoordinates.longitude, booking.pickupCoordinates.latitude]);
 
-        // Fit map to bounds
-        const bounds = new mapboxgl.LngLatBounds();
-        route.forEach((coord: [number, number]) => bounds.extend(coord));
-        map.current?.fitBounds(bounds, { padding: 50 });
-      };
-
-      getRoute();
-    }
+      map.fitBounds(bounds, { padding: 100 });
+    });
 
     return () => {
-      map.current?.remove();
+      map.remove();
     };
-  }, [mapboxToken, driverLocation, customerLocation]);
+  }, []);
+
+  useEffect(() => {
+    if (driverMarkerRef.current && driverLocation) {
+      driverMarkerRef.current.setLngLat([driverLocation.longitude, driverLocation.latitude]);
+
+      if (mapRef.current && mapRef.current.loaded()) {
+        updateRoute(mapRef.current);
+      }
+    }
+  }, [driverLocation]);
+
+  const updateRoute = async (map: mapboxgl.Map) => {
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${driverLocation.longitude},${driverLocation.latitude};${booking.pickupCoordinates.longitude},${booking.pickupCoordinates.latitude}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`
+      );
+
+      const data = await response.json();
+
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+
+        const durationMinutes = Math.round(route.duration / 60);
+        setEta(durationMinutes <= 1 ? '1 min' : `${durationMinutes} mins`);
+
+        const distanceKm = (route.distance / 1000).toFixed(1);
+        setRouteDistance(`${distanceKm} km`);
+
+        const routeSource = map.getSource('route');
+        const routeData: Feature<LineString> = {
+          type: 'Feature',
+          properties: {},
+          geometry: route.geometry as LineString,
+        };
+
+        if (routeSource) {
+          (routeSource as mapboxgl.GeoJSONSource).setData(routeData);
+        } else {
+          map.addSource('route', {
+            type: 'geojson',
+            data: routeData as GeoJSON,
+          });
+
+          map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': '#10b981',
+              'line-width': 6,
+              'line-opacity': 0.8,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching route:', error);
+    }
+  };
 
   return (
-    <div className="relative">
-      <div className="absolute top-4 left-4 right-4 z-10">
-        <Card className="p-4 bg-white shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-base sm:text-lg">{customerName}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">En route to pickup</p>
+    <div className="flex flex-col h-full">
+      <div className="relative flex-1 min-h-[400px]" ref={mapContainerRef} />
+
+      <Card className="mt-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span>Pickup: {eta}</span>
+            <Button size="sm" variant="ghost" className="text-emerald-500">
+              <Navigation className="h-4 w-4 mr-1" /> Navigate
+            </Button>
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <div className="flex items-center gap-4 mb-4">
+            <Avatar className="h-12 w-12 border-2 border-emerald-200">
+              <AvatarImage src={customer.avatar} alt={customer.name} />
+              <AvatarFallback>{customer.name[0]}</AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1">
+              <p className="font-medium">{customer.name}</p>
+              <p className="text-sm text-gray-500">PIN: {booking.pin}</p>
             </div>
+
             <div className="flex gap-2">
-              <Button variant="outline" size="icon">
-                <Phone className="h-4 w-4" />
+              <Button size="icon" variant="outline" className="rounded-full h-10 w-10">
+                <MessageSquare className="h-5 w-5" />
               </Button>
-              <Button variant="outline" size="icon">
-                <MessageSquare className="h-4 w-4" />
+              <Button size="icon" variant="outline" className="rounded-full h-10 w-10">
+                <PhoneCall className="h-5 w-5" />
               </Button>
             </div>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 mt-2 rounded-full bg-emerald" />
-              <p className="flex-1 text-sm">{pickup}</p>
-            </div>
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 mt-2 rounded-full bg-red-500" />
-              <p className="flex-1 text-sm">{dropoff}</p>
+
+          <div className="space-y-4 mb-4">
+            <div className="flex gap-3 items-start">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">PICKUP</p>
+                <p className="text-sm font-medium">{booking.pickupLocation}</p>
+              </div>
             </div>
           </div>
-        </Card>
-      </div>
-      <div className="h-[calc(100vh-12rem)] sm:h-[calc(100vh-8rem)] w-full rounded-lg overflow-hidden">
-        <input 
-          type="text"
-          placeholder="Enter your Mapbox token"
-          className="absolute top-0 left-1/2 -translate-x-1/2 z-20 p-2 border rounded w-11/12 sm:w-1/2 text-sm"
-          onChange={(e) => setMapboxToken(e.target.value)}
-          value={mapboxToken}
-        />
-        <div ref={mapContainer} className="w-full h-full" />
-      </div>
+
+          <div className="flex gap-4">
+            <Button
+              onClick={onCancelRide}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel Ride
+            </Button>
+            <Button
+              onClick={onArrived}
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600"
+            >
+              I've Arrived
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

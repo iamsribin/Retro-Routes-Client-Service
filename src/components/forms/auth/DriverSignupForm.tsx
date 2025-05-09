@@ -81,6 +81,8 @@ const DriverSignupForm = ({
     switch (data.message) {
       case "Document is pending":
         toast.info("Driver Already registered!\n Please verify the documents");
+        console.log("===============", data.driverId);
+        
         localStorage.setItem("driverId", data.driverId);
         setStep("documents");
         break;

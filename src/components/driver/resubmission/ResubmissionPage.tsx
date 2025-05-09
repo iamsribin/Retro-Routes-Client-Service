@@ -84,6 +84,7 @@ const ResubmissionPage: React.FC = () => {
           formData,
           { headers: { 'Content-Type': 'multipart/form-data' } }
         );
+        
         if (response.data.message === 'Success') {
           toast.success('Resubmission successful');
           navigate('/driver/login');
