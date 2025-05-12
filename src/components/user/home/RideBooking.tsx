@@ -23,7 +23,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/components/ui/use-toast';
 
 // Vehicle type definition
 interface VehicleOption {
@@ -75,7 +75,7 @@ const Ride: React.FC = () => {
   const destinationRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
   const socketRef = useRef<Socket | null>(null);
-  const { toast } = useToast();
+  // const { toast } = useToast();
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
@@ -93,8 +93,8 @@ const Ride: React.FC = () => {
     });
 
     socketRef.current.on('rideStatus', (data: RideStatusData) => {
-      setRideStatus(data);
       console.log("data===", data);
+      setRideStatus(data);
       
       if (data.status === 'accepted') {
         setIsSearching(false);
@@ -228,35 +228,35 @@ const Ride: React.FC = () => {
           {
             id: 'standard',
             name: 'Standard',
-            image: '/api/placeholder/80/80',
+            image: '/images/standard.png',
             price: basePrice,
             eta: '2-5 min',
             features: ['Up to 4 passengers', 'Air conditioning', 'Economy vehicle']
           },
           {
-            id: 'comfort',
-            name: 'Comfort',
-            image: '/api/placeholder/80/80',
+            id: 'sedan',
+            name: 'Sedan',
+            image: '/images/sedan.png',
             price: Math.ceil(basePrice * 1.4),
             eta: '3-7 min',
             features: ['Up to 4 passengers', 'Premium vehicle', 'Extra legroom']
           },
           {
-            id: 'premium',
-            name: 'Premium',
-            image: '/api/placeholder/80/80',
+            id: 'suv',
+            name: 'Suv',
+            image: '/images/suv.png',
             price: Math.ceil(basePrice * 2),
             eta: '5-10 min',
             features: ['Up to 4 passengers', 'Luxury vehicle', 'Professional driver']
           },
-          {
-            id: 'xl',
-            name: 'XL',
-            image: '/api/placeholder/80/80',
-            price: Math.ceil(basePrice * 1.7),
-            eta: '4-8 min',
-            features: ['Up to 6 passengers', 'SUV or minivan', 'Extra space for luggage']
-          }
+          // {
+          //   id: 'xl',
+          //   name: 'XL',
+          //   image: '/api/placeholder/80/80',
+          //   price: Math.ceil(basePrice * 1.7),
+          //   eta: '4-8 min',
+          //   features: ['Up to 6 passengers', 'SUV or minivan', 'Extra space for luggage']
+          // }
         ]);
         
         setShowVehicleSheet(true);
@@ -367,7 +367,7 @@ const Ride: React.FC = () => {
       }
 
       const vehicleModel = vehicles.find(v => v.id === selectedVehicle)?.name || 'Standard';
-
+      
       const bookingData = {
         pickupLocation: { 
           address: origin, 
@@ -512,7 +512,7 @@ const Ride: React.FC = () => {
             </div>
 
             <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
                 <Switch 
                   id="schedule-ride"
                   checked={isScheduled}
@@ -521,7 +521,7 @@ const Ride: React.FC = () => {
                 <Label htmlFor="schedule-ride" className="text-sm font-medium">
                   Schedule for later
                 </Label>
-              </div>
+              </div> */}
 
               {isScheduled && (
                 <div className="grid grid-cols-2 gap-4">
