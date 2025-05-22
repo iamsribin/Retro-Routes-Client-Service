@@ -128,6 +128,8 @@ const DriverDashboard: React.FC = () => {
 
   const emitDriverLocation = useCallback(() => {
     if (socket && driverLocation && isOnline) {
+      console.log("emmititng");
+      
       socket.emit('driverLocation', {
         latitude: driverLocation.latitude,
         longitude: driverLocation.longitude,
@@ -315,41 +317,65 @@ const DriverDashboard: React.FC = () => {
     }
   }, [socket]);
 
-  const handleAcceptRide = useCallback(() => {
-    console.log("accept==", activeRide);
-    console.log("socket==",socket);
-  
-    if (socket && activeRide) {
-      socket.emit('rideResponse', {
-        ride_id: activeRide.bookingId, 
-        accepted: true,
-      });
-  
-      setShowRideRequest(false);
-      setIsRideAccepted(true);
-  
-      if (timeoutRef.current) {
-        clearInterval(timeoutRef.current);
-      }
-  
+const handleAcceptRide = useCallback(() => {
+  console.log("Accepting ride:", activeRide);
+  console.log("Socket:", socket);
+
+  if (socket && activeRide) {
+    if (!socket.connected) {
+      console.error("Socket is not connected");
       toast({
-        title: 'Ride Accepted',
-        description: 'Navigate to pickup location.',
-        status: 'success',
-        duration: 3000,
+        title: "Connection Error",
+        description: "Unable to accept ride due to disconnected socket. Please try again.",
+        status: "error",
+        duration: 5000,
         isClosable: true,
       });
+      return;
     }
-  }, [socket, activeRide, toast]);
-  
-  const handleDeclineRide = useCallback(() => {
-    if (socket && activeRide) {
-      socket.emit('rideResponse', {
-        ride_id: activeRide.bookingId,
-        accepted: false,
-      });
+
+    console.log("Emitting rideResponse with bookingId:", activeRide.bookingId);
+      socket.emit(`rideResponse:${activeRide.bookingId}`, {
+      ride_id: activeRide.bookingId,
+      accepted: true,
+    });
+
+    setShowRideRequest(false);
+    setIsRideAccepted(true);
+
+    if (timeoutRef.current) {
+      clearInterval(timeoutRef.current);
     }
-  }, [socket, activeRide]);
+
+    toast({
+      title: "Ride Accepted",
+      description: "Navigate to pickup location.",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  } else {
+    console.error("Cannot accept ride: socket or activeRide is null", { socket, activeRide });
+    toast({
+      title: "Error",
+      description: "Unable to accept ride. Please try again.",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+    });
+  }
+}, [socket, activeRide, toast]);
+
+const handleDeclineRide = useCallback(() => {
+  if (socket && activeRide) {
+    console.log("Emitting decline rideResponse with bookingId:", activeRide.bookingId);
+    socket.emit(`rideResponse:${activeRide.bookingId}`, {
+      ride_id: activeRide.bookingId,
+      accepted: false,
+    });
+  }
+}, [socket, activeRide]);
+
   const handleArrived = useCallback(() => {
     if (socket && activeRide) {
       socket.emit('driverArrived', {

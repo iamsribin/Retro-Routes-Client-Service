@@ -47,7 +47,6 @@ const DriverLogin = () => {
       const token = req.credential;
       if (!token) throw new Error("No credential provided");
       const decode = jwtDecode<DecodedToken>(token);
-      console.log("==decod",decode.email);
       
       const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_CHECK_GOOGLE_LOGIN, {
         email: decode.email,

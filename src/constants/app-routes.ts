@@ -4,6 +4,7 @@ enum AppRoutes {
     SIGNUP = 'signup',
     USER_HOME = '',
     DASHBOARD = 'dashboard',
+    PROFILE = 'profile',
 
     // Authentication Routes - Driver
     DRIVER_IDENTIFICATION = 'identification',

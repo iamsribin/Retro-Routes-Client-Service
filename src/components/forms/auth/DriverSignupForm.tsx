@@ -86,6 +86,9 @@ const DriverSignupForm = ({
         localStorage.setItem("driverId", data.driverId);
         setStep("documents");
         break;
+      case "Driver login":
+     toast.info("Already register");
+      break;
       case "Driver image is pending":
         toast.info("Driver Already registered!\n Please submit your image");
         localStorage.setItem("driverId", data.driverId);

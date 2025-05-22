@@ -8,7 +8,7 @@ import {
 } from '@react-google-maps/api';
 import { useJsApiLoader } from '@react-google-maps/api';
 import { Player } from '@lottiefiles/react-lottie-player';
-import { io, Socket } from 'socket.io-client';
+// import { io, Socket } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,21 +16,30 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import { toast } from '@/components/ui/use-toast';
+import NotificationDialog from '@/hooks/useNotificationDialog';
+import axiosUser from '@/services/axios/userAxios';
+import { useDispatch } from 'react-redux';
+import { useSocket } from '@/context/SocketContext';
 
-// Vehicle type definition
+// Define backend vehicle data structure
+interface BackendVehicle {
+  vehicleModel: string;
+  image: string;
+  basePrice: number;
+  pricePerKm: number;
+  eta: string;
+  features: string[];
+}
+
+// Define frontend vehicle option interface
 interface VehicleOption {
   id: string;
   name: string;
   image: string;
   price: number;
+  pricePerKm: number;
   eta: string;
   features: string[];
 }
@@ -40,7 +49,7 @@ interface RideStatusData {
   status: 'searching' | 'accepted' | 'Failed' | 'cancelled';
   message?: string;
   driverId?: string;
-  booking?: any;
+  booking?: unknown;
   driverLocation?: { lat: number; lng: number };
 }
 
@@ -49,33 +58,48 @@ interface ScheduledRide {
   time: string;
 }
 
+interface NotificationState {
+  open: boolean;
+  type: 'success' | 'error' | 'info';
+  title: string;
+  message: string;
+}
+
 const Ride: React.FC = () => {
-  const [center, setCenter] = useState({ lat: 13.003371, lng: 77.589134 });
+  const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 13.003371, lng: 77.589134 });
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [zoom, setZoom] = useState(13);
+  const [zoom, setZoom] = useState<number>(13);
   const [origin, setOrigin] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [rideStatus, setRideStatus] = useState<RideStatusData | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [distanceInfo, setDistanceInfo] = useState<{ distance: string; duration: string } | null>(null);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
-  const [useCurrentLocationAsPickup, setUseCurrentLocationAsPickup] = useState(false);
-  const [showVehicleSheet, setShowVehicleSheet] = useState(false);
-  const [isScheduled, setIsScheduled] = useState(false);
+  const [useCurrentLocationAsPickup, setUseCurrentLocationAsPickup] = useState<boolean>(false);
+  const [showVehicleSheet, setShowVehicleSheet] = useState<boolean>(false);
+  const [isScheduled, setIsScheduled] = useState<boolean>(false);
   const [scheduledRide, setScheduledRide] = useState<ScheduledRide>({
     date: null,
     time: '',
   });
   const [driverDirections, setDriverDirections] = useState<google.maps.DirectionsResult | null>(null);
-  
-  const originRef = useRef<HTMLInputElement | null>(null);
-  const destinationRef = useRef<HTMLInputElement | null>(null);
+  const [notification, setNotification] = useState<NotificationState>({
+    open: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+
+  const dispatch = useDispatch()
+
+  const originRef = useRef<HTMLInputElement>(null);
+  const destinationRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const socketRef = useRef<Socket | null>(null);
-  // const { toast } = useToast();
+  // const socketRef = useRef<Socket | null>(null);
+  const { socket, isConnected } = useSocket();
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
@@ -83,28 +107,29 @@ const Ride: React.FC = () => {
   });
 
   useEffect(() => {
-    socketRef.current = io(import.meta.env.VITE_API_GATEWAY_URL_SOCKET, {
-      query: {
-        token: localStorage.getItem('userToken'),
-        refreshToken: localStorage.getItem('refreshToken'),
-      },
-      reconnectionAttempts: 3,
-      reconnectionDelay: 1000,
-    });
+    // socketRef.current = io(import.meta.env.VITE_API_GATEWAY_URL_SOCKET, {
 
-    socketRef.current.on('rideStatus', (data: RideStatusData) => {
-      console.log("data===", data);
+    //   query: {
+    //     token: localStorage.getItem('userToken') || '',
+    //     refreshToken: localStorage.getItem('refreshToken') || '',
+    //   },
+    //   reconnectionAttempts: 3,
+    //   reconnectionDelay: 1000,
+    // });
+   if (!socket || !isConnected) return;
+
+    socket.on('rideStatus', (data: RideStatusData) => {
       setRideStatus(data);
-      
+
       if (data.status === 'accepted') {
         setIsSearching(false);
-        toast({
+        setNotification({
+          open: true,
+          type: 'success',
           title: 'Ride Accepted',
-          description: 'A driver has accepted your ride request!',
-          variant: 'default',
+          message: 'A driver has accepted your ride request!',
         });
 
-        // If driver location is provided, fetch route from driver to pickup
         if (data.driverLocation && userLocation) {
           fetchDriverRoute(data.driverLocation, userLocation);
         }
@@ -113,52 +138,52 @@ const Ride: React.FC = () => {
           state: {
             booking: data.booking,
             driverId: data.driverId,
-            userLocation: userLocation,
+            userLocation,
             driverLocation: data.driverLocation,
           },
         });
       } else if (data.status === 'Failed' || data.status === 'cancelled') {
-        console.log("Failed...");
-        
         setIsSearching(false);
         setShowVehicleSheet(false);
-        toast({
+        setNotification({
+          open: true,
+          type: 'error',
           title: 'Ride Request Failed',
-          description: data.message || 'Unable to find a driver',
-          variant: 'destructive',
+          message: data.message || 'Unable to find a driver',
         });
       } else if (data.status === 'searching') {
-        toast({
+        setNotification({
+          open: true,
+          type: 'info',
           title: 'Searching for Drivers',
-          description: 'Looking for available drivers...',
-          variant: 'default',
+          message: 'Looking for available drivers...',
         });
       }
     });
 
-    socketRef.current.on('tokens-updated', ({ token, refreshToken }) => {
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
-    });
+    // socket.on('tokens-updated', ({ token, refreshToken }: { token: string; refreshToken: string }) => {
+    //   localStorage.setItem('token', token);
+    //   localStorage.setItem('refreshToken', refreshToken);
+    // });
 
-    socketRef.current.on('error', (message: string) => {
-      setIsSearching(false);
-      setShowVehicleSheet(false);
-      toast({
-        title: 'Connection Error',
-        description: message,
-        variant: 'destructive',
-      });
-    });
+    // socket.on('error', (message: string) => {
+    //   setIsSearching(false);
+    //   setShowVehicleSheet(false);
+    //   setNotification({
+    //     open: true,
+    //     type: 'error',
+    //     title: 'Connection Error',
+    //     message,
+    //   });
+    // });
 
-    // Get user location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
           setCenter({ lat: latitude, lng: longitude });
-          
+
           if (useCurrentLocationAsPickup) {
             setOrigin('Current Location');
             if (originRef.current) originRef.current.value = 'Current Location';
@@ -166,24 +191,21 @@ const Ride: React.FC = () => {
         },
         (error) => {
           console.error('Error getting location:', error);
-          toast({
+          setNotification({
+            open: true,
+            type: 'error',
             title: 'Location Error',
-            description: 'Unable to get your current location',
-            variant: 'destructive',
+            message: 'Unable to get your current location',
           });
-        }
+        },
       );
-    }
+    } 
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.off('rideStatus');    
-        socketRef.current.off('tokens-updated');
-        socketRef.current.off('error');
-        socketRef.current.disconnect(); 
-      }
+       socket.off('rideStatus');
     };
-  }, [navigate, toast, useCurrentLocationAsPickup]);
+
+  }, [navigate, useCurrentLocationAsPickup]);
 
   useEffect(() => {
     if (useCurrentLocationAsPickup && userLocation) {
@@ -195,11 +217,58 @@ const Ride: React.FC = () => {
     }
   }, [useCurrentLocationAsPickup, userLocation]);
 
-  const fetchRoute = async () => {    
-    if (!origin || !destination || !userLocation) return;
+  const fetchVehicles = async (distanceInKm: number) => {
+    try {
+      const  response  = await axiosUser(dispatch).get('/vehicles');
+      console.log(response.data);
+      
+     if(response.data.message =="Failed"){
+      setNotification({
+        open: true,
+        type: 'error',
+        title: 'Vehicle Data Error',
+        message: 'Could not fetch vehicle options. Please try again.',
+      });
+      return;
+     }
+
+     const data: BackendVehicle[] = response.data.message;
+      
+      const fetchedVehicles: VehicleOption[] = data.map((vehicle) => ({
+        id: vehicle.vehicleModel.toLowerCase(),
+        name: vehicle.vehicleModel,
+        image: vehicle.image,
+        price: Math.ceil(vehicle.basePrice + vehicle.pricePerKm * distanceInKm),
+        pricePerKm: vehicle.pricePerKm,
+        eta: vehicle.eta,
+        features: vehicle.features,
+      }));
+      setVehicles(fetchedVehicles);
+      setShowVehicleSheet(true);
+    } catch (error) {
+      console.error('Failed to fetch vehicles:', error);
+      setNotification({
+        open: true,
+        type: 'error',
+        title: 'Vehicle Data Error',
+        message: 'Could not fetch vehicle options. Please try again.',
+      });
+    }
+  };
+
+  const fetchRoute = async () => {
+    if (!origin || !destination || !userLocation) {
+      setNotification({
+        open: true,
+        type: 'error',
+        title: 'Missing Information',
+        message: 'Please enter valid pickup and dropoff locations',
+      });
+      return;
+    }
 
     const directionsService = new google.maps.DirectionsService();
-    
+
     try {
       let originLocation: google.maps.LatLng | string = origin;
       if (origin === 'Current Location' && userLocation) {
@@ -208,105 +277,77 @@ const Ride: React.FC = () => {
 
       const result = await directionsService.route({
         origin: originLocation,
-        destination: destination,
+        destination,
         travelMode: google.maps.TravelMode.DRIVING,
       });
-      
+
       setDirections(result);
-      
+
       const route = result.routes[0];
       if (route && route.legs[0]) {
         setDistanceInfo({
-          distance: route.legs[0].distance?.text || 'Unknown',
-          duration: route.legs[0].duration?.text || 'Unknown',
+          distance: route.legs[0].distance?.text ?? 'Unknown',
+          duration: route.legs[0].duration?.text ?? 'Unknown',
         });
-        
-        const distance = route.legs[0].distance?.value || 0;
-        const basePrice = Math.max(5, Math.ceil(distance / 1000) * 2);
-        
-        setVehicles([
-          {
-            id: 'standard',
-            name: 'Standard',
-            image: '/images/standard.png',
-            price: basePrice,
-            eta: '2-5 min',
-            features: ['Up to 4 passengers', 'Air conditioning', 'Economy vehicle']
-          },
-          {
-            id: 'sedan',
-            name: 'Sedan',
-            image: '/images/sedan.png',
-            price: Math.ceil(basePrice * 1.4),
-            eta: '3-7 min',
-            features: ['Up to 4 passengers', 'Premium vehicle', 'Extra legroom']
-          },
-          {
-            id: 'suv',
-            name: 'Suv',
-            image: '/images/suv.png',
-            price: Math.ceil(basePrice * 2),
-            eta: '5-10 min',
-            features: ['Up to 4 passengers', 'Luxury vehicle', 'Professional driver']
-          },
-          // {
-          //   id: 'xl',
-          //   name: 'XL',
-          //   image: '/api/placeholder/80/80',
-          //   price: Math.ceil(basePrice * 1.7),
-          //   eta: '4-8 min',
-          //   features: ['Up to 6 passengers', 'SUV or minivan', 'Extra space for luggage']
-          // }
-        ]);
-        
-        setShowVehicleSheet(true);
+
+        const distanceInMeters = route.legs[0].distance?.value ?? 0;
+        const distanceInKm = distanceInMeters / 1000;
+
+        await fetchVehicles(distanceInKm);
       }
     } catch (error) {
       console.error('Directions request failed:', error);
-      toast({
+      setNotification({
+        open: true,
+        type: 'error',
         title: 'Route Error',
-        description: 'Could not calculate the route',
-        variant: 'destructive',
+        message: 'Could not calculate the route',
       });
     }
   };
 
-  const fetchDriverRoute = async (driverLocation: { lat: number; lng: number }, pickupLocation: { lat: number; lng: number }) => {
+  const fetchDriverRoute = async (
+    driverLocation: { lat: number; lng: number },
+    pickupLocation: { lat: number; lng: number },
+  ) => {
     const directionsService = new google.maps.DirectionsService();
-    
+
     try {
       const result = await directionsService.route({
         origin: driverLocation,
         destination: pickupLocation,
         travelMode: google.maps.TravelMode.DRIVING,
       });
-      
+
       setDriverDirections(result);
     } catch (error) {
       console.error('Driver route request failed:', error);
-      toast({
+      setNotification({
+        open: true,
+        type: 'error',
         title: 'Route Error',
-        description: 'Could not calculate driver route',
-        variant: 'destructive',
+        message: 'Could not calculate driver route',
       });
     }
   };
 
   const handleSearchCabs = async () => {
     if ((useCurrentLocationAsPickup && !userLocation) || !destination) {
-      toast({
+      setNotification({
+        open: true,
+        type: 'error',
         title: 'Missing Information',
-        description: 'Please enter dropoff location and ensure your current location is available',
-        variant: 'destructive',
+        message: 'Please enter dropoff location and ensure your current location is available',
       });
       return;
     }
 
     if (!useCurrentLocationAsPickup && (!origin || !destination)) {
-      toast({
+      setNotification({
+        open: true,
+        type: 'error',
         title: 'Missing Information',
-        description: 'Please enter both pickup and dropoff locations',
-        variant: 'destructive',
+        message: 'Please enter both pickup and dropoff locations',
       });
       return;
     }
@@ -315,9 +356,7 @@ const Ride: React.FC = () => {
   };
 
   const handleScheduleToggle = () => {
-   
-
- setIsScheduled(!isScheduled);
+    setIsScheduled((prev) => !prev);
     if (!isScheduled) {
       setScheduledRide({ date: null, time: '' });
     }
@@ -325,19 +364,21 @@ const Ride: React.FC = () => {
 
   const handleBookRide = () => {
     if (!origin || !destination || !userLocation || !selectedVehicle) {
-      toast({
+      setNotification({
+        open: true,
+        type: 'error',
         title: 'Booking Error',
-        description: 'Please select a vehicle type and ensure all locations are set',
-        variant: 'destructive',
+        message: 'Please select a vehicle type and ensure all locations are set',
       });
       return;
     }
 
     if (isScheduled && (!scheduledRide.date || !scheduledRide.time)) {
-      toast({
+      setNotification({
+        open: true,
+        type: 'error',
         title: 'Booking Error',
-        description: 'Please select both date and time for scheduled ride',
-        variant: 'destructive',
+        message: 'Please select both date and time for scheduled ride',
       });
       return;
     }
@@ -346,10 +387,14 @@ const Ride: React.FC = () => {
     setRideStatus({
       ride_id: '',
       status: 'searching',
-      message: 'Searching for available drivers...'
+      message: 'Searching for available drivers...',
     });
 
     try {
+
+    if (!socket || !isConnected) return;
+
+
       let pickupLat = userLocation.lat;
       let pickupLng = userLocation.lng;
 
@@ -366,33 +411,38 @@ const Ride: React.FC = () => {
         dropoffLng = directions.routes[0].legs[0].end_location.lng();
       }
 
-      const vehicleModel = vehicles.find(v => v.id === selectedVehicle)?.name || 'Standard';
-      
-      const bookingData = {
-        pickupLocation: { 
-          address: origin, 
-          latitude: pickupLat, 
-          longitude: pickupLng 
-        },
-        dropoffLocation: { 
-          address: destination, 
-          latitude: dropoffLat, 
-          longitude: dropoffLng 
-        },
-        vehicleModel: vehicleModel,
-        isScheduled,
-        scheduledDateTime: isScheduled ? {
-          date: scheduledRide.date,
-          time: scheduledRide.time
-        } : null
-      };
+      const vehicleModel = vehicles.find((v) => v.id === selectedVehicle)?.name ?? 'Standard';
 
-      socketRef.current?.emit('requestRide', bookingData);
+      const bookingData = {
+        pickupLocation: {
+          address: origin,
+          latitude: pickupLat,
+          longitude: pickupLng,
+        },
+        dropoffLocation: {
+          address: destination,
+          latitude: dropoffLat,
+          longitude: dropoffLng,
+        },
+        vehicleModel,
+        isScheduled,
+        scheduledDateTime: isScheduled
+          ? {
+              date: scheduledRide.date,
+              time: scheduledRide.time,
+            }
+          : null,
+      };
+    
+    console.log("ride request");
+
+      socket.emit('requestRide', bookingData);
     } catch (error) {
-      toast({
+      setNotification({
+        open: true,
+        type: 'error',
         title: 'Booking Error',
-        description: 'Failed to send ride request. Please try again.',
-        variant: 'destructive',
+        message: 'Failed to send ride request. Please try again.',
       });
       setIsSearching(false);
       handleClear();
@@ -440,7 +490,7 @@ const Ride: React.FC = () => {
               mapTypeControl: false,
               fullscreenControl: false,
             }}
-            onLoad={(map) => setMap(map)}
+            onLoad={(mapInstance) => setMap(mapInstance)}
           >
             {userLocation && !directions && !driverDirections && <Marker position={userLocation} />}
             {driverDirections ? (
@@ -457,7 +507,7 @@ const Ride: React.FC = () => {
         <div className="absolute top-4 left-4 right-4 bg-white rounded-xl shadow-lg p-4 md:w-96 md:left-4 md:right-auto">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Switch 
+              <Switch
                 id="use-current-location"
                 checked={useCurrentLocationAsPickup}
                 onCheckedChange={setUseCurrentLocationAsPickup}
@@ -466,7 +516,7 @@ const Ride: React.FC = () => {
                 Use my current location as pickup
               </Label>
             </div>
-            
+
             {!useCurrentLocationAsPickup && (
               <div className="w-full">
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Pickup Location</label>
@@ -496,7 +546,7 @@ const Ride: React.FC = () => {
                 </div>
               </div>
             )}
-            
+
             <div className="w-full">
               <label className="text-sm font-medium text-gray-700 mb-1 block">Dropoff Location</label>
               <Autocomplete className="w-full">
@@ -511,64 +561,13 @@ const Ride: React.FC = () => {
               </Autocomplete>
             </div>
 
-            <div className="space-y-4 border-t pt-4">
-            {/* <div className="flex items-center gap-2">
-                <Switch 
-                  id="schedule-ride"
-                  checked={isScheduled}
-                  onCheckedChange={handleScheduleToggle}
-                />
-                <Label htmlFor="schedule-ride" className="text-sm font-medium">
-                  Schedule for later
-                </Label>
-              </div> */}
-
-              {isScheduled && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-1 block">Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !scheduledRide.date && "text-muted-foreground"
-                          )}
-                        >
-                          {scheduledRide.date ? format(scheduledRide.date, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={scheduledRide.date || undefined}
-                          onSelect={(date) => setScheduledRide((prev:any) => ({ ...prev, date }))}
-                          disabled={(date) => date < new Date()}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-1 block">Time</Label>
-                    <Input
-                      type="time"
-                      value={scheduledRide.time}
-                      onChange={(e) => setScheduledRide(prev => ({ ...prev, time: e.target.value }))}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            
             <div className="flex gap-2">
               <Button
                 className="w-3/4 h-10 bg-blue-600 hover:bg-blue-700 font-medium"
                 onClick={handleSearchCabs}
                 disabled={
-                  (useCurrentLocationAsPickup && (!userLocation || !destination)) || 
-                  (!useCurrentLocationAsPickup && (!origin || !destination)) || 
+                  (useCurrentLocationAsPickup && (!userLocation || !destination)) ||
+                  (!useCurrentLocationAsPickup && (!origin || !destination)) ||
                   isSearching
                 }
               >
@@ -601,14 +600,14 @@ const Ride: React.FC = () => {
                 </div>
               )}
             </SheetHeader>
-            
+
             <div className="grid gap-4 pb-16">
               {vehicles.map((vehicle) => (
-                <Card 
+                <Card
                   key={vehicle.id}
                   className={`cursor-pointer transition-all ${
-                    selectedVehicle === vehicle.id 
-                      ? 'border-2 border-blue-500 shadow-md' 
+                    selectedVehicle === vehicle.id
+                      ? 'border-2 border-blue-500 shadow-md'
                       : 'border border-gray-200 hover:border-blue-300'
                   }`}
                   onClick={() => setSelectedVehicle(vehicle.id)}
@@ -635,7 +634,7 @@ const Ride: React.FC = () => {
                 </Card>
               ))}
             </div>
-            
+
             <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-200 max-w-2xl mx-auto">
               <Button
                 className="w-full h-14 text-lg font-medium bg-blue-600 hover:bg-blue-700"
@@ -653,12 +652,20 @@ const Ride: React.FC = () => {
                     />
                   </div>
                 ) : (
-                  `Book ${selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.name : 'Ride'}`
+                  `Book ${selectedVehicle ? vehicles.find((v) => v.id === selectedVehicle)?.name ?? 'Ride' : 'Ride'}`
                 )}
               </Button>
             </div>
           </SheetContent>
         </Sheet>
+
+        <NotificationDialog
+          open={notification.open}
+          onOpenChange={(open: boolean) => setNotification((prev) => ({ ...prev, open }))}
+          type={notification.type}
+          title={notification.title}
+          message={notification.message}
+        />
       </div>
     </div>
   );

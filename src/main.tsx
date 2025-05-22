@@ -9,6 +9,7 @@ import "./index.css";
 import ErrorBoundary from "./components/ErrorBounderies.tsx";
 import { persistor, store } from "./services/redux/store.ts";
 import { PersistGate } from "redux-persist/integration/react";
+import { SocketProvider } from "./context/SocketContext.tsx";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Provider store={store}>
           <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <PersistGate persistor={persistor}>
+              <SocketProvider>
               <App />
+              </SocketProvider>
             </PersistGate>
           </GoogleOAuthProvider>
         </Provider>

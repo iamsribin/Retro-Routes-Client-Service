@@ -9,6 +9,7 @@ import ProtectedRoute from "@/routes/ProtectedRoute";
 import AppRoutes from "@/constants/app-routes";
 import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/driver/dashboard/dashboard";
+import DriverProfile from "@/pages/driver/profile/DriverProfile";
 
 const ROLE = "Driver"; 
 
@@ -19,6 +20,7 @@ function DriverRoutes() {
       <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><DriverSignupPage /></AuthRedirect>} />
       <Route path={AppRoutes.DRIVER_IDENTIFICATION} element={<ProtectedRoute allowedRole="Resubmission"><ResubmissionPage /></ProtectedRoute>} />
       <Route path={AppRoutes.DASHBOARD} element={<ProtectedRoute allowedRole={ROLE}><Dashboard/></ProtectedRoute>} />
+      <Route path={AppRoutes.PROFILE} element={<ProtectedRoute allowedRole={ROLE}><DriverProfile/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
   );

@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageSquare, PhoneCall, Clock, LocateFixed, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Player } from '@lottiefiles/react-lottie-player';
+import { useSocket } from '@/context/SocketContext';
 
 // Set your Mapbox token
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || 'YOUR_MAPBOX_TOKEN';
@@ -56,7 +57,7 @@ const RideMap: React.FC = () => {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+  // const socketRef = useRef<Socket | null>(null);
   const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
   
   const [rideStatus, setRideStatus] = useState<string>('waiting');
@@ -66,6 +67,7 @@ const RideMap: React.FC = () => {
   const [routeDistance, setRouteDistance] = useState<string>('');
   const [loadingMessage, setLoadingMessage] = useState<string>('Connecting to your driver...');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const { socket, isConnected } = useSocket();
 
   // Initialize from the navigation state
   useEffect(() => {
@@ -93,15 +95,18 @@ const RideMap: React.FC = () => {
       distance: '0', // Will be updated from socket
     });
 
+    if (socket && isConnected && state?.bookingId) {
+      socket.emit('getRideDetails', { ride_id: state.bookingId });
+    }
     // Initialize socket connection
-    initializeSocket();
+    // initializeSocket();
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, []);
+    // return () => {
+    //   if (socketRef.current) {
+    //     socketRef.current.disconnect();
+    //   }
+    // };
+  }, [socket, isConnected, state, navigate]);
 
   // Initialize the map once we have booking details
   useEffect(() => {
@@ -124,101 +129,101 @@ const RideMap: React.FC = () => {
     updateRoute();
   }, [driverInfo]);
 
-  const initializeSocket = () => {
-    socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
-      query: {
-        token: localStorage.getItem('userToken'),
-        refreshToken: localStorage.getItem('refreshToken'),
-      },
-    });
+  // const initializeSocket = () => {
+  //   socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+  //     query: {
+  //       token: localStorage.getItem('userToken'),
+  //       refreshToken: localStorage.getItem('refreshToken'),
+  //     },
+  //   });
 
-    socketRef.current.on('connect', () => {
-      console.log('Socket connected');
+  //   socketRef.current.on('connect', () => {
+  //     console.log('Socket connected');
       
-      // Request the current driver location and ride details
-      if (state?.bookingId) {
-        socketRef.current?.emit('getRideDetails', { ride_id: state.bookingId });
-      }
-    });
+  //     // Request the current driver location and ride details
+  //     if (state?.bookingId) {
+  //       socketRef.current?.emit('getRideDetails', { ride_id: state.bookingId });
+  //     }
+  //   });
 
-    socketRef.current.on('rideDetails', (data: {
-      driver: DriverInfo;
-      booking: BookingDetails;
-    }) => {
-      setDriverInfo(data.driver);
-      setBookingDetails({
-        ...bookingDetails,
-        ...data.booking,
-        status: data.booking.status || 'accepted',
-        price: data.booking.price || 0,
-        distance: data.booking.distance || '0',
-        pin: data.booking.pin || Math.floor(1000 + Math.random() * 9000)
-      });
+  //   socketRef.current.on('rideDetails', (data: {
+  //     driver: DriverInfo;
+  //     booking: BookingDetails;
+  //   }) => {
+  //     setDriverInfo(data.driver);
+  //     setBookingDetails({
+  //       ...bookingDetails,
+  //       ...data.booking,
+  //       status: data.booking.status || 'accepted',
+  //       price: data.booking.price || 0,
+  //       distance: data.booking.distance || '0',
+  //       pin: data.booking.pin || Math.floor(1000 + Math.random() * 9000)
+  //     });
       
-      setRideStatus(data.booking.status || 'accepted');
+  //     setRideStatus(data.booking.status || 'accepted');
       
-      if (data.booking.status === 'cancelled') {
-        setIsModalOpen(true);
-        setLoadingMessage('Your ride has been cancelled.');
-      }
-    });
+  //     if (data.booking.status === 'cancelled') {
+  //       setIsModalOpen(true);
+  //       setLoadingMessage('Your ride has been cancelled.');
+  //     }
+  //   });
 
-    socketRef.current.on('driverLocationUpdate', (data: {
-      driverId: string;
-      location: { latitude: number; longitude: number };
-    }) => {
-      if (driverInfo && driverInfo.id === data.driverId) {
-        setDriverInfo({
-          ...driverInfo,
-          location: data.location
-        });
-      }
-    });
+  //   socketRef.current.on('driverLocationUpdate', (data: {
+  //     driverId: string;
+  //     location: { latitude: number; longitude: number };
+  //   }) => {
+  //     if (driverInfo && driverInfo.id === data.driverId) {
+  //       setDriverInfo({
+  //         ...driverInfo,
+  //         location: data.location
+  //       });
+  //     }
+  //   });
 
-    socketRef.current.on('rideStatusUpdate', (data: {
-      ride_id: string;
-      status: string;
-      message?: string;
-    }) => {
-      if (data.ride_id === bookingDetails?.ride_id) {
-        setRideStatus(data.status);
+  //   socketRef.current.on('rideStatusUpdate', (data: {
+  //     ride_id: string;
+  //     status: string;
+  //     message?: string;
+  //   }) => {
+  //     if (data.ride_id === bookingDetails?.ride_id) {
+  //       setRideStatus(data.status);
         
-        if (data.status === 'arrived') {
-          toast({
-            title: "Driver has arrived",
-            description: "Your driver is waiting at the pickup location.",
-            duration: 5000,
-          });
-        } else if (data.status === 'cancelled') {
-          setIsModalOpen(true);
-          setLoadingMessage(data.message || 'Your ride has been cancelled.');
-        } else if (data.status === 'completed') {
-          navigate('/ride-completed', { 
-            state: { 
-              bookingDetails,
-              driverInfo,
-            },
-            replace: true
-          });
-        }
-      }
-    });
+  //       if (data.status === 'arrived') {
+  //         toast({
+  //           title: "Driver has arrived",
+  //           description: "Your driver is waiting at the pickup location.",
+  //           duration: 5000,
+  //         });
+  //       } else if (data.status === 'cancelled') {
+  //         setIsModalOpen(true);
+  //         setLoadingMessage(data.message || 'Your ride has been cancelled.');
+  //       } else if (data.status === 'completed') {
+  //         navigate('/ride-completed', { 
+  //           state: { 
+  //             bookingDetails,
+  //             driverInfo,
+  //           },
+  //           replace: true
+  //         });
+  //       }
+  //     }
+  //   });
 
-    socketRef.current.on('tokens-updated', ({ token, refreshToken }) => {
-      localStorage.setItem('userToken', token);
-      localStorage.setItem('refreshToken', refreshToken);
-    });
+  //   socketRef.current.on('tokens-updated', ({ token, refreshToken }) => {
+  //     localStorage.setItem('userToken', token);
+  //     localStorage.setItem('refreshToken', refreshToken);
+  //   });
 
-    socketRef.current.on('error', (message: string) => {
-      console.error('Socket error:', message);
-      toast({
-        title: "Connection Error",
-        description: message,
-        variant: "destructive",
-        duration: 5000,
-      });
-    });
-  };
+  //   socketRef.current.on('error', (message: string) => {
+  //     console.error('Socket error:', message);
+  //     toast({
+  //       title: "Connection Error",
+  //       description: message,
+  //       variant: "destructive",
+  //       duration: 5000,
+  //     });
+  //   });
+  // };
 
   const initializeMap = () => {
     if (!bookingDetails || !mapContainerRef.current) return;
@@ -340,7 +345,7 @@ const RideMap: React.FC = () => {
   const handleCancelRide = () => {
     if (!bookingDetails) return;
     
-    socketRef.current?.emit('cancelRide', { 
+    socket?.emit('cancelRide', { 
       ride_id: bookingDetails.ride_id 
     });
     
