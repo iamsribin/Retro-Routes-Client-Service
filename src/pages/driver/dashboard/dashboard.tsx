@@ -10,9 +10,9 @@ import { useToast } from '@chakra-ui/react';
 import DriverNavbar from '@/components/driver/dashboard/DriverNavbar';
 import RideNotification from '@/components/driver/dashboard/RideNotification';
 import ActiveRideMap from '@/components/driver/dashboard/ActiveRideMap';
+import { useSocket } from '@/context/SocketContext';
 
 const NOTIFICATION_SOUND = '/uber_tune.mp3';
-const SOCKET_URL = 'http://localhost:3000';
 
 interface DriverLocation {
   latitude: number;
@@ -55,13 +55,12 @@ const DriverDashboard: React.FC = () => {
   const [activeRide, setActiveRide] = useState<RideRequestData | null>(null);
   const [isRideAccepted, setIsRideAccepted] = useState<boolean>(false);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dispatch = useDispatch();
   const toast = useToast();
+  const { socket, isConnected } = useSocket();
 
   useEffect(() => {
     audioRef.current = new Audio(NOTIFICATION_SOUND);
@@ -108,9 +107,7 @@ const DriverDashboard: React.FC = () => {
           toast({
             title: 'Location Error',
             description: 'Unable to fetch your location. Please ensure location services are enabled.',
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
+            variant: 'destructive',
           });
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
@@ -119,104 +116,34 @@ const DriverDashboard: React.FC = () => {
       toast({
         title: 'Geolocation Error',
         description: 'Geolocation is not supported by your browser.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
+        variant: 'destructive',
       });
     }
   }, [toast]);
 
   const emitDriverLocation = useCallback(() => {
-    if (socket && driverLocation && isOnline) {
-      console.log("emmititng");
-      
+    if (socket && driverLocation && isOnline && isConnected) {
       socket.emit('driverLocation', {
         latitude: driverLocation.latitude,
         longitude: driverLocation.longitude,
       });
     }
-  }, [socket, driverLocation, isOnline]);
+  }, [socket, driverLocation, isOnline, isConnected]);
 
-  const initializeSocket = useCallback(() => {
-    const token = localStorage.getItem('driverToken');
-    const refreshToken = localStorage.getItem('DriverRefreshToken');
+  useEffect(() => {
+    if (!socket) return;
 
-    if (!token || !refreshToken) {
-      console.error('Missing authentication tokens');
-      toast({
-        title: 'Authentication Error',
-        description: 'Please log in again to continue.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      return null;
-    }             
-
-    const newSocket = io(SOCKET_URL, {
-      query: { token, refreshToken },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-
-    newSocket.on('connect', () => {
-      console.log('Connected to socket server');
-      setConnectionError(null);
-      toast({
-        title: 'Connected',
-        description: 'Successfully connected to the server.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error.message);
-      setConnectionError(error.message);
-      toast({
-        title: 'Connection Error',
-        description: 'Failed to connect to the server. Retrying...',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    });
-
-    newSocket.on('tokens-updated', (data) => {
-      localStorage.setItem('driverToken', data.token);
-      localStorage.setItem('DriverRefreshToken', data.refreshToken);
-      console.log('Tokens updated');
-    });
-
-    newSocket.on('error', (error) => {
-      console.error('Socket error:', error);
-      toast({
-        title: 'Socket Error',
-        description: error,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    });
-
-    newSocket.on('location-updated', (data) => {
+    socket.on('location-updated', (data) => {
       console.log('Location update confirmed:', data);
     });
 
-    newSocket.on('rideRequest', (rideRequest) => {
-      console.log('Ride request received:', JSON.stringify(rideRequest, null, 2));
-      
+    socket.on('rideRequest', (rideRequest) => {
       if (!rideRequest || !rideRequest.booking) {
         console.error('Invalid ride request data:', rideRequest);
         toast({
           title: 'Ride Request Error',
           description: 'Invalid ride request data received.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
+          variant: 'destructive',
         });
         return;
       }
@@ -247,8 +174,6 @@ const DriverDashboard: React.FC = () => {
           },
         };
 
-        console.log('Formatted ride request:', JSON.stringify(formattedRideRequest, null, 2));
-        
         setActiveRide(formattedRideRequest);
         setShowRideRequest(true);
         playNotificationSound();
@@ -258,35 +183,22 @@ const DriverDashboard: React.FC = () => {
         toast({
           title: 'Ride Request Error',
           description: 'Failed to process ride request.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
+          variant: 'destructive',
         });
       }
     });
 
-    return newSocket;
-  }, [playNotificationSound, startCountdown, toast]);
-  
-
-  useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearInterval(timeoutRef.current);
-      }
+      socket.off('location-updated');
+      socket.off('rideRequest');
     };
-  }, []);
+  }, [socket, playNotificationSound, startCountdown, toast]);
 
   useEffect(() => {
     let locationInterval: NodeJS.Timeout | null = null;
     let emitInterval: NodeJS.Timeout | null = null;
 
-    if (isOnline) {
-      if (!socket) {
-        const newSocket = initializeSocket();
-        setSocket(newSocket);
-      }
-
+    if (isOnline && isConnected) {
       updateDriverLocation();
       locationInterval = setInterval(updateDriverLocation, 10000);
       emitInterval = setInterval(emitDriverLocation, 10000);
@@ -295,13 +207,24 @@ const DriverDashboard: React.FC = () => {
     return () => {
       if (locationInterval) clearInterval(locationInterval);
       if (emitInterval) clearInterval(emitInterval);
-      if (socket && !isOnline) {
-        console.log('Disconnecting socket');
-        socket.disconnect();
-        setSocket(null);
-      }
     };
-  }, [isOnline, socket, initializeSocket, updateDriverLocation, emitDriverLocation]);
+  }, [isOnline, isConnected, updateDriverLocation, emitDriverLocation]);
+
+  useEffect(() => {
+    if (!isConnected && isOnline) {
+      toast({
+        title: 'Disconnected',
+        description: 'Lost connection to the server. Retrying...',
+        variant: 'destructive',
+      });
+    } else if (isConnected && isOnline) {
+      toast({
+        title: 'Connected',
+        description: 'Successfully connected to the server.',
+        variant: 'default',
+      });
+    }
+  }, [isConnected, isOnline, toast]);
 
   const handleOnlineChange = useCallback((checked: boolean) => {
     setIsOnline(checked);
@@ -309,75 +232,55 @@ const DriverDashboard: React.FC = () => {
       setShowRideRequest(false);
       setActiveRide(null);
       setIsRideAccepted(false);
-      setConnectionError(null);
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
+    }
+  }, []);
+
+  const handleAcceptRide = useCallback(() => {
+    if (socket && activeRide && isConnected) {
+      socket.emit(`rideResponse:${activeRide.bookingId}`, {
+        ride_id: activeRide.bookingId,
+        accepted: true,
+      });
+
+      setShowRideRequest(false);
+      setIsRideAccepted(true);
+
+      if (timeoutRef.current) {
+        clearInterval(timeoutRef.current);
+      }
+
+      toast({
+        title: 'Ride Accepted',
+        description: 'Navigate to pickup location.',
+        variant: 'default',
+      });
+    } else {
+      console.error('Cannot accept ride: socket disconnected or activeRide is null', { socket, activeRide, isConnected });
+      toast({
+        title: 'Error',
+        description: 'Unable to accept ride. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [socket, activeRide, isConnected, toast]);
+
+  const handleDeclineRide = useCallback(() => {
+    if (socket && activeRide && isConnected) {
+      socket.emit(`rideResponse:${activeRide.bookingId}`, {
+        ride_id: activeRide.bookingId,
+        accepted: false,
+      });
+      setShowRideRequest(false);
+      setActiveRide(null);
+
+      if (timeoutRef.current) {
+        clearInterval(timeoutRef.current);
       }
     }
-  }, [socket]);
-
-const handleAcceptRide = useCallback(() => {
-  console.log("Accepting ride:", activeRide);
-  console.log("Socket:", socket);
-
-  if (socket && activeRide) {
-    if (!socket.connected) {
-      console.error("Socket is not connected");
-      toast({
-        title: "Connection Error",
-        description: "Unable to accept ride due to disconnected socket. Please try again.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    console.log("Emitting rideResponse with bookingId:", activeRide.bookingId);
-      socket.emit(`rideResponse:${activeRide.bookingId}`, {
-      ride_id: activeRide.bookingId,
-      accepted: true,
-    });
-
-    setShowRideRequest(false);
-    setIsRideAccepted(true);
-
-    if (timeoutRef.current) {
-      clearInterval(timeoutRef.current);
-    }
-
-    toast({
-      title: "Ride Accepted",
-      description: "Navigate to pickup location.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-  } else {
-    console.error("Cannot accept ride: socket or activeRide is null", { socket, activeRide });
-    toast({
-      title: "Error",
-      description: "Unable to accept ride. Please try again.",
-      status: "error",
-      duration: 5000,
-      isClosable: true,
-    });
-  }
-}, [socket, activeRide, toast]);
-
-const handleDeclineRide = useCallback(() => {
-  if (socket && activeRide) {
-    console.log("Emitting decline rideResponse with bookingId:", activeRide.bookingId);
-    socket.emit(`rideResponse:${activeRide.bookingId}`, {
-      ride_id: activeRide.bookingId,
-      accepted: false,
-    });
-  }
-}, [socket, activeRide]);
+  }, [socket, activeRide, isConnected]);
 
   const handleArrived = useCallback(() => {
-    if (socket && activeRide) {
+    if (socket && activeRide && isConnected) {
       socket.emit('driverArrived', {
         bookingId: activeRide.bookingId,
       });
@@ -385,15 +288,13 @@ const handleDeclineRide = useCallback(() => {
       toast({
         title: 'Arrival Notification',
         description: 'You have notified the customer of your arrival.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
+        variant: 'default',
       });
     }
-  }, [socket, activeRide, toast]);
+  }, [socket, activeRide, isConnected, toast]);
 
   const handleCancelRide = useCallback(() => {
-    if (socket && activeRide) {
+    if (socket && activeRide && isConnected) {
       socket.emit('cancelRide', {
         bookingId: activeRide.bookingId,
         reason: 'Driver cancelled',
@@ -405,12 +306,10 @@ const handleDeclineRide = useCallback(() => {
       toast({
         title: 'Ride Cancelled',
         description: 'You have cancelled the ride.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
+        variant: 'destructive',
       });
     }
-  }, [socket, activeRide, toast]);
+  }, [socket, activeRide, isConnected, toast]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -431,12 +330,12 @@ const handleDeclineRide = useCallback(() => {
                   checked={isOnline}
                   onCheckedChange={handleOnlineChange}
                   className="data-[state=checked]:bg-emerald-500"
-                  disabled={!!connectionError && isOnline}
+                  disabled={!isConnected && isOnline}
                 />
               </div>
             </div>
-            {connectionError && (
-              <p className="text-red-500 text-sm mt-2">Connection error: {connectionError}</p>
+            {!isConnected && isOnline && (
+              <p className="text-red-500 text-sm mt-2">Disconnected from server. Retrying...</p>
             )}
           </div>
         </div>

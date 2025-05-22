@@ -1,4 +1,3 @@
-// src/contexts/SocketContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
@@ -25,21 +24,32 @@ interface SocketProviderProps {
 const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL_SOCKET;
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-    console.log("=========socket===========");
-    
+  console.log("=========socket===========");
+
   const dispatch = useDispatch<AppDispatch>();
-  const { user, role } = useSelector((state: RootState) => ({
+  const { user, driver, role } = useSelector((state: RootState) => ({
     user: state.user,
+    driver: state.driver,
     role: state.user.role || state.driver.role,
   }));
 
-  console.log("SocketProvider role====",role);
-  
+  console.log("SocketProvider role====", role);
+
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!user?.user_id || !role || !SOCKET_URL) {
+    // Ensure only one role is active
+    if (user.role && driver.role) {
+      console.error('Multiple roles detected. Logging out.');
+      dispatch(userLogout());
+      dispatch(driverLogout());
+      return;
+    }
+
+    const id = role === 'User' ? user.user_id : driver.driverId;
+
+    if (!id || !role || !SOCKET_URL) {
       if (socket) {
         socket.disconnect();
         setSocket(null);
@@ -50,9 +60,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     const token = role === 'User' ? localStorage.getItem('userToken') : localStorage.getItem('driverToken');
     const refreshToken = role === 'User' ? localStorage.getItem('refreshToken') : localStorage.getItem('DriverRefreshToken');
- console.log("tocken==",token);
- console.log("refresh",refreshToken);
-
+    console.log("token==", token);
+    console.log("refresh", refreshToken);
 
     const newSocket = io(SOCKET_URL, {
       query: { token, refreshToken },
@@ -65,7 +74,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log(`${role} socket connected: ${user.user_id}`);
+      console.log(`${role} socket connected: ${id}`);
       setIsConnected(true);
     });
 
@@ -85,7 +94,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     newSocket.on('disconnect', () => {
-      console.log(`${role} socket disconnected: ${user.user_id}`);
+      console.log(`${role} socket disconnected: ${id}`);
       setIsConnected(false);
     });
 
@@ -103,7 +112,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setSocket(null);
       setIsConnected(false);
     };
-  }, [user?.user_id, role, dispatch]);
+  }, [user.user_id, driver.driverId, role, dispatch]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>
