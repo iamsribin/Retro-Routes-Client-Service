@@ -120,6 +120,7 @@ const Ride: React.FC = () => {
 
     socket.on('rideStatus', (data: RideStatusData) => {
       setRideStatus(data);
+console.log("rideStatus accepted==",data);
 
       if (data.status === 'accepted') {
         setIsSearching(false);

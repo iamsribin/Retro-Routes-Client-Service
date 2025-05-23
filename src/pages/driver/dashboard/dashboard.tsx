@@ -237,6 +237,8 @@ const DriverDashboard: React.FC = () => {
 
   const handleAcceptRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
+      console.log("ride response", activeRide.bookingId);
+      
       socket.emit(`rideResponse:${activeRide.bookingId}`, {
         ride_id: activeRide.bookingId,
         accepted: true,

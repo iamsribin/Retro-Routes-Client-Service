@@ -98,6 +98,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsConnected(false);
     });
 
+    newSocket.on("accepted-ride",(data)=>{
+      console.log("accepted-ride==",data); 
+    })
+
     newSocket.on('user-blocked', () => {
       dispatch(role === 'User' ? userLogout() : driverLogout());
     });
