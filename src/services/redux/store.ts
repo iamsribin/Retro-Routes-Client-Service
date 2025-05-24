@@ -5,7 +5,7 @@
     import pendingModalSlice from "./slices/pendingModalSlice";
     import rejectModalSlice from "./slices/rejectModalSlice";
     import storage from "redux-persist/lib/storage";
-
+    import notificationSlice from "./slices/notificationSlice";
     import { userAuthSlice } from "./slices/userAuthSlice";
     import driverAuthSlice from "./slices/driverAuthSlice";
     import adminAuthSlice from "./slices/adminAuthSlice";
@@ -25,6 +25,7 @@
             admin:adminAuthPersistReducer,
             pendingModal: pendingModalSlice,
             rejectModal:rejectModalSlice,
+            notification: notificationSlice,
         },
         middleware: (getDefaultMiddleware) => {
             const middleware = getDefaultMiddleware({

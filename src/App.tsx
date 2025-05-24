@@ -2,14 +2,14 @@ import "./App.scss";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ChakraProvider } from "@chakra-ui/react";
 // import { Toaster } from "sonner";
-import { ToastContainer } from "react-toastify";
-import { Toaster } from "@/components/ui/Toaster"
+import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import UserRoutes from "./routes/user-routes";
 import DriverRoutes from "./routes/driver-routes";
 import AdminRoutes from "./routes/admin-routes";
 import NotFound from "./pages/NotFound";
+import NotificationModal from "@/components/NotificationModal";
 
 function App() {
   return (
@@ -17,7 +17,8 @@ function App() {
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <Router>
+      <Router>  
+         <NotificationModal />
         <Routes>
           <Route path="/*" element={<UserRoutes />} />
           <Route path="/driver/*" element={<DriverRoutes />} />

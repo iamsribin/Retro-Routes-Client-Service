@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/services/redux/store';
 import { userLogout } from '@/services/redux/slices/userAuthSlice';
 import { driverLogout } from '@/services/redux/slices/driverAuthSlice';
+import { showNotification } from '@/services/redux/slices/notificationSlice';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -91,6 +92,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     newSocket.on('error', (error: string) => {
       console.error('Socket error:', error);
       setIsConnected(false);
+      dispatch(showNotification({ type: "error", message: `Socket error: ${error}` }));
     });
 
     newSocket.on('disconnect', () => {
@@ -99,10 +101,24 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     newSocket.on("accepted-ride",(data)=>{
-      console.log("accepted-ride==",data); 
+      console.log("accepted ride context");
+      
+      dispatch(
+        showNotification({
+          type: "ride-accepted",
+          message: "Your ride has been accepted by a driver!",
+          data: { rideId: data.rideId, passengerName: data.passengerName },
+        })
+      );      
     })
 
     newSocket.on('user-blocked', () => {
+       dispatch(
+        showNotification({
+          type: "admin-blocked",
+          message: "Your account has been blocked by an admin.",
+        })
+      );
       dispatch(role === 'User' ? userLogout() : driverLogout());
     });
 

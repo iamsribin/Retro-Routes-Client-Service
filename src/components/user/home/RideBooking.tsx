@@ -46,7 +46,7 @@ interface VehicleOption {
 
 interface RideStatusData {
   ride_id: string;
-  status: 'searching' | 'accepted' | 'Failed' | 'cancelled';
+  status: 'searching' | 'Accepted' | 'Failed' | 'cancelled';
   message?: string;
   driverId?: string;
   booking?: unknown;
@@ -120,9 +120,9 @@ const Ride: React.FC = () => {
 
     socket.on('rideStatus', (data: RideStatusData) => {
       setRideStatus(data);
-console.log("rideStatus accepted==",data);
+      console.log("rideStatus accepted== ride booking",data);
 
-      if (data.status === 'accepted') {
+      if (data.status === "Accepted") {
         setIsSearching(false);
         setNotification({
           open: true,
@@ -143,6 +143,7 @@ console.log("rideStatus accepted==",data);
             driverLocation: data.driverLocation,
           },
         });
+
       } else if (data.status === 'Failed' || data.status === 'cancelled') {
         setIsSearching(false);
         setShowVehicleSheet(false);
