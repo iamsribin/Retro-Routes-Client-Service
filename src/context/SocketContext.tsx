@@ -5,6 +5,7 @@ import { RootState, AppDispatch } from '@/services/redux/store';
 import { userLogout } from '@/services/redux/slices/userAuthSlice';
 import { driverLogout } from '@/services/redux/slices/driverAuthSlice';
 import { showNotification } from '@/services/redux/slices/notificationSlice';
+import { useNavigate } from 'react-router-dom';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -28,6 +29,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   console.log("=========socket===========");
 
   const dispatch = useDispatch<AppDispatch>();
+  
   const { user, driver, role } = useSelector((state: RootState) => ({
     user: state.user,
     driver: state.driver,
@@ -117,6 +119,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         showNotification({
           type: "admin-blocked",
           message: "Your account has been blocked by an admin.",
+          navigate:"/login"
         })
       );
       dispatch(role === 'User' ? userLogout() : driverLogout());

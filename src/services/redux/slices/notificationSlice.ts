@@ -4,6 +4,7 @@ interface NotificationState {
   isOpen: boolean;
   type: "info" | "alert" | "ride-accepted" | "admin-blocked" | "success" | "error";
   message: string;
+  navigate?: string;
   data?: any;
 }
 
@@ -12,6 +13,7 @@ const initialState: NotificationState = {
   type: "info",
   message: "",
   data: null,
+  navigate: ""
 };
 
 const notificationSlice = createSlice({
@@ -23,11 +25,13 @@ const notificationSlice = createSlice({
       state.type = action.payload.type;
       state.message = action.payload.message;
       state.data = action.payload.data;
+      state.navigate = action.payload.navigate
     },
     hideNotification: (state) => {
       state.isOpen = false;
       state.message = "";
       state.data = null;
+      state.navigate = "";
     },
   },
 });

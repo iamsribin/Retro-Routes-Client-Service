@@ -9,6 +9,7 @@ import { Eye } from "lucide-react";
 import { Button } from "@chakra-ui/react";
 import { userBlockUnblockValidation } from "@/utils/validation";
 import ApiEndpoints from "@/constants/api-end-points";
+import { useSocket } from "@/context/SocketContext";
 
 const UserDetails = () => {
     const [statusModal, setStatusModal] = useState(false);
@@ -16,6 +17,7 @@ const UserDetails = () => {
     const [userData, setUserData] = useState<UserInterface | null>(null);
     const { id } = useParams();
     const dispatch = useDispatch();
+    const { socket, isConnected } = useSocket();
     const adminAxios = axiosAdmin(dispatch);
 
     const getData = async () => {
@@ -43,12 +45,18 @@ const UserDetails = () => {
                 console.log(values);
                 
                 const { data } = await adminAxios.patch(ApiEndpoints.ADMIN_UPDATE_USER_STATUS+`?id=${id}`, values);
-                console.log("data",data);
+
+                console.log("update user stauts data==",data);
+            
                 
                 if (data.message === "Success") {
                     setStatusModal(false);
                     toast.success("Status updated successfully!");
                     getData();
+
+                    if(socket && isConnected && values.status == "Block"){
+                        socket.emit("block-user",{userId:data.userId})
+                    }
                 } else {
                     toast.error("Something internal error");
                 }

@@ -22,6 +22,7 @@ import NotificationDialog from '@/hooks/useNotificationDialog';
 import axiosUser from '@/services/axios/userAxios';
 import { useDispatch } from 'react-redux';
 import { useSocket } from '@/context/SocketContext';
+import { showNotification } from '@/services/redux/slices/notificationSlice';
 
 // Define backend vehicle data structure
 interface BackendVehicle {
@@ -124,25 +125,34 @@ const Ride: React.FC = () => {
 
       if (data.status === "Accepted") {
         setIsSearching(false);
-        setNotification({
-          open: true,
-          type: 'success',
-          title: 'Ride Accepted',
-          message: 'A driver has accepted your ride request!',
-        });
+        // setNotification({
+        //   open: true,
+        //   type: 'success',
+        //   title: 'Ride Accepted',
+        //   message: 'A driver has accepted your ride request!',
+        // });
 
         if (data.driverLocation && userLocation) {
           fetchDriverRoute(data.driverLocation, userLocation);
         }
 
-        navigate('/ride-tracking', {
-          state: {
-            booking: data.booking,
-            driverId: data.driverId,
-            userLocation,
-            driverLocation: data.driverLocation,
-          },
-        });
+          dispatch(
+                showNotification({
+                  type: "ride-accepted",
+                  message: "Your ride has been accepted by a driver!",
+                  data: data,
+                  navigate:"/ride-tracking"
+                })
+              ); 
+
+        // navigate('/ride-tracking', {
+        //   state: {
+        //     booking: data.booking,
+        //     driverId: data.driverId,
+        //     userLocation,
+        //     driverLocation: data.driverLocation,
+        //   },
+        // });
 
       } else if (data.status === 'Failed' || data.status === 'cancelled') {
         setIsSearching(false);

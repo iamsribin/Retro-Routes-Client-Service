@@ -8,6 +8,8 @@ import { useDispatch } from "react-redux";
 import { axiosAdmin } from '@/services/axios/adminAxios';
 import { UserInterface } from "@/utils/interfaces";
 import { userBlockUnblockValidation } from "@/utils/validation";
+import { useSocket } from '@/context/SocketContext';
+
 import ApiEndpoints from "@/constants/api-end-points";
 
 const UserDetails = () => {
@@ -17,7 +19,8 @@ const UserDetails = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const adminAxios = axiosAdmin(dispatch);
-
+    const { socket, isConnected } = useSocket();
+    
     const getData = async () => {
         try {
             const { data } = await adminAxios.get(ApiEndpoints.ADMIN_USER_DETAILS+`?id=${id}`);
@@ -41,9 +44,14 @@ const UserDetails = () => {
         onSubmit: async (values, { setSubmitting }) => {
             try {
                 const { data } = await adminAxios.patch(ApiEndpoints.ADMIN_UPDATE_USER_STATUS+`?id=${id}`, values);
+                console.log("update user stauts data==",data);
+                
                 if (data.message === "Success") {
                     setStatusModal(false);
                     toast.success("Status updated successfully!");
+                    if(socket && isConnected){
+                        socket.emit("block-user",{userId:data.userId})
+                    }
                     navigate("/admin/users");
                 } else {
                     toast.error("Something internal error");
