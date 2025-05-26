@@ -62,9 +62,10 @@ const Login = () => {
           role === "Admin" ? "adminRefreshToken" : "refreshToken",
           response.refreshToken
         );
-
+        
         if (role === "Admin") {
-          dispatch(adminLogin({ name: response.name, role }));
+          
+          dispatch(adminLogin({ name: response.name, role, _id: response._id}));
           navigate("/admin/dashboard");
         } else {
           dispatch(userLogin({ user: response.name, user_id: response._id, role }));

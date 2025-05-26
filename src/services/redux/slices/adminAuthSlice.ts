@@ -4,12 +4,14 @@ interface AdminAuthState {
   name: string;
   loggedIn: boolean;
   role: "Admin" | "";
+  _id: string;
 }
 
 const initialState: AdminAuthState = {
   name: "",
   loggedIn: false,
   role: "",
+  _id:""
 };
 
 const adminAuthSlice = createSlice({
@@ -18,11 +20,13 @@ const adminAuthSlice = createSlice({
   reducers: {
     adminLogin: (
       state,
-      action: PayloadAction<{ name: string; role: "Admin" }>
+      action: PayloadAction<{ name: string; role: "Admin", _id:string }>
     ) => {
+      
       state.name = action.payload.name;
       state.loggedIn = true;
       state.role = action.payload.role;
+      state._id = action.payload._id
     },
     adminLogout: (state) => {
       state.name = "";

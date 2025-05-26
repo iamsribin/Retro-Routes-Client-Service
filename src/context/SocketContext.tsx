@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/services/redux/store';
 import { userLogout } from '@/services/redux/slices/userAuthSlice';
 import { driverLogout } from '@/services/redux/slices/driverAuthSlice';
+import { adminLogout } from '@/services/redux/slices/adminAuthSlice'; // Import adminLogout
 import { showNotification } from '@/services/redux/slices/notificationSlice';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,33 +27,62 @@ interface SocketProviderProps {
 const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL_SOCKET;
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  console.log("=========socket===========");
+  console.log("========= SocketProvider Initialized ===========");
 
   const dispatch = useDispatch<AppDispatch>();
-  
-  const { user, driver, role } = useSelector((state: RootState) => ({
+  const navigate = useNavigate();
+
+  const { user, driver, admin, role } = useSelector((state: RootState) => ({
     user: state.user,
     driver: state.driver,
-    role: state.user.role || state.driver.role,
+    admin: state.admin, 
+    role: state.user.role || state.driver.role || state.admin.role, 
   }));
 
-  console.log("SocketProvider role====", role);
+  console.log("SocketProvider state:", {
+    userId: user.user_id,
+    driverId: driver.driverId,
+    adminId: admin._id,
+    role,
+  });
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    // Ensure only one role is active
-    if (user.role && driver.role) {
+    // Prevent multiple roles
+    const activeRoles = [user.role, driver.role, admin.role].filter(Boolean).length;
+    if (activeRoles > 1) {
       console.error('Multiple roles detected. Logging out.');
       dispatch(userLogout());
       dispatch(driverLogout());
+      dispatch(adminLogout());
+      navigate('/login');
       return;
     }
 
-    const id = role === 'User' ? user.user_id : driver.driverId;
+    let id: string | undefined;
+    let token: string | null = null;
+    let refreshToken: string | null = null;
 
-    if (!id || !role || !SOCKET_URL) {
+    if (role === 'User') {
+      id = user.user_id;
+      token = localStorage.getItem('userToken');
+      refreshToken = localStorage.getItem('refreshToken');
+    } else if (role === 'Driver') {
+      id = driver.driverId;
+      token = localStorage.getItem('driverToken');
+      refreshToken = localStorage.getItem('DriverRefreshToken');
+    } else if (role === 'Admin') {
+      id = admin._id;
+      token = localStorage.getItem('adminToken');
+      refreshToken = localStorage.getItem('adminRefreshToken');
+    }
+
+    console.log("SocketProvider id, role, and tokens:", { id, role, token, refreshToken });
+
+    if (!id || !role || !SOCKET_URL || !token) {
+      console.warn('Missing id, role, SOCKET_URL, or token. Disconnecting socket.');
       if (socket) {
         socket.disconnect();
         setSocket(null);
@@ -61,11 +91,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    const token = role === 'User' ? localStorage.getItem('userToken') : localStorage.getItem('driverToken');
-    const refreshToken = role === 'User' ? localStorage.getItem('refreshToken') : localStorage.getItem('DriverRefreshToken');
-    console.log("token==", token);
-    console.log("refresh", refreshToken);
-
+    console.log(`Establishing socket connection for ${role} with id: ${id}`);
     const newSocket = io(SOCKET_URL, {
       query: { token, refreshToken },
       transports: ['websocket'],
@@ -82,19 +108,23 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     newSocket.on('tokens-updated', ({ token, refreshToken }) => {
+      console.log('Tokens updated:', { role, token, refreshToken });
       if (role === 'User') {
         localStorage.setItem('userToken', token);
         localStorage.setItem('refreshToken', refreshToken);
-      } else {
+      } else if (role === 'Driver') {
         localStorage.setItem('driverToken', token);
         localStorage.setItem('DriverRefreshToken', refreshToken);
+      } else if (role === 'Admin') {
+        localStorage.setItem('adminToken', token);
+        localStorage.setItem('adminRefreshToken', refreshToken);
       }
     });
 
     newSocket.on('error', (error: string) => {
       console.error('Socket error:', error);
       setIsConnected(false);
-      dispatch(showNotification({ type: "error", message: `Socket error: ${error}` }));
+      dispatch(showNotification({ type: 'error', message: `Socket error: ${error}` }));
     });
 
     newSocket.on('disconnect', () => {
@@ -102,40 +132,49 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsConnected(false);
     });
 
-    newSocket.on("accepted-ride",(data)=>{
-      console.log("accepted ride context");
-      
+    newSocket.on('accepted-ride', (data) => {
+      console.log('Accepted ride event:', data);
       dispatch(
         showNotification({
-          type: "ride-accepted",
-          message: "Your ride has been accepted by a driver!",
+          type: 'ride-accepted',
+          message: 'Your ride has been accepted by a driver!',
           data: { rideId: data.rideId, passengerName: data.passengerName },
         })
-      );      
-    })
+      );
+    });
 
     newSocket.on('user-blocked', () => {
-       dispatch(
+      console.log(`User-blocked event received for ${role}: ${id}`);
+      dispatch(
         showNotification({
-          type: "admin-blocked",
-          message: "Your account has been blocked by an admin.",
-          navigate:"/login"
+          type: 'admin-blocked',
+          message: 'Your account has been blocked by an admin.',
+          navigate: '/login',
         })
       );
-      dispatch(role === 'User' ? userLogout() : driverLogout());
+      if (role === 'User') {
+        dispatch(userLogout());
+      } else if (role === 'Driver') {
+        dispatch(driverLogout());
+      } else if (role === 'Admin') {
+        dispatch(adminLogout());
+      }
+      navigate('/login');
     });
 
     return () => {
+      console.log(`Cleaning up socket for ${role}: ${id}`);
       newSocket.off('connect');
       newSocket.off('tokens-updated');
       newSocket.off('error');
       newSocket.off('user-blocked');
+      newSocket.off('accepted-ride');
       newSocket.off('disconnect');
       newSocket.disconnect();
       setSocket(null);
       setIsConnected(false);
     };
-  }, [user.user_id, driver.driverId, role, dispatch]);
+  }, [user.user_id, driver.driverId, admin._id, role, dispatch, navigate]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

@@ -116,7 +116,7 @@ const LoginForm = ({
       if (userData.role === "Admin") {
         localStorage.setItem("adminToken", userData.userToken);
         localStorage.setItem("adminRefreshToken", userData.refreshToken);
-        dispatch(adminLogin({ name: userData.user, role: userData.role }));
+        dispatch(adminLogin({ name: userData.user, role: userData.role, _id: userData.user_id }));
         navigate("/admin/dashboard");
       } else {
         localStorage.setItem("userToken", userData.userToken);
