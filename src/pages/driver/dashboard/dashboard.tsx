@@ -133,10 +133,6 @@ const DriverDashboard: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('location-updated', (data) => {
-      console.log('Location update confirmed:', data);
-    });
-
     socket.on('rideRequest', (rideRequest) => {
       if (!rideRequest || !rideRequest.booking) {
         console.error('Invalid ride request data:', rideRequest);

@@ -132,16 +132,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsConnected(false);
     });
 
-    newSocket.on('accepted-ride', (data) => {
-      console.log('Accepted ride event:', data);
-      dispatch(
-        showNotification({
-          type: 'ride-accepted',
-          message: 'Your ride has been accepted by a driver!',
-          data: { rideId: data.rideId, passengerName: data.passengerName },
-        })
-      );
-    });
+
 
     newSocket.on('user-blocked', () => {
       console.log(`User-blocked event received for ${role}: ${id}`);

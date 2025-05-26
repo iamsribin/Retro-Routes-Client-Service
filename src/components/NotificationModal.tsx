@@ -50,6 +50,7 @@ const NotificationModal: React.FC = () => {
 
   const handleClose = () => {
     dispatch(hideNotification());
+    
     if (navigateRoute) {
       navigate(navigateRoute);
     }

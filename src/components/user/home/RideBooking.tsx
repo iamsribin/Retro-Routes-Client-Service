@@ -117,61 +117,61 @@ const Ride: React.FC = () => {
     //   reconnectionAttempts: 3,
     //   reconnectionDelay: 1000,
     // });
-   if (!socket || !isConnected) return;
+  //  if (!socket || !isConnected) return;
 
-    socket.on('rideStatus', (data: RideStatusData) => {
-      setRideStatus(data);
-      console.log("rideStatus accepted== ride booking",data);
+  //   socket.on('rideStatus', (data: RideStatusData) => {
+  //     setRideStatus(data);
+  //     console.log("rideStatus accepted== ride booking",data);
 
-      if (data.status === "Accepted") {
-        setIsSearching(false);
-        // setNotification({
-        //   open: true,
-        //   type: 'success',
-        //   title: 'Ride Accepted',
-        //   message: 'A driver has accepted your ride request!',
-        // });
+  //     if (data.status === "Accepted") {
+  //       setIsSearching(false);
+  //       // setNotification({
+  //       //   open: true,
+  //       //   type: 'success',
+  //       //   title: 'Ride Accepted',
+  //       //   message: 'A driver has accepted your ride request!',
+  //       // });
 
-        if (data.driverLocation && userLocation) {
-          fetchDriverRoute(data.driverLocation, userLocation);
-        }
+  //       if (data.driverLocation && userLocation) {
+  //         fetchDriverRoute(data.driverLocation, userLocation);
+  //       }
 
-          dispatch(
-                showNotification({
-                  type: "ride-accepted",
-                  message: "Your ride has been accepted by a driver!",
-                  data: data,
-                  navigate:"/ride-tracking"
-                })
-              ); 
+  //         dispatch(
+  //               showNotification({
+  //                 type: "ride-accepted",
+  //                 message: "Your ride has been accepted by a driver!",
+  //                 data: data,
+  //                 navigate:"/ride-tracking"
+  //               })
+  //             ); 
 
-        // navigate('/ride-tracking', {
-        //   state: {
-        //     booking: data.booking,
-        //     driverId: data.driverId,
-        //     userLocation,
-        //     driverLocation: data.driverLocation,
-        //   },
-        // });
+  //       // navigate('/ride-tracking', {
+  //       //   state: {
+  //       //     booking: data.booking,
+  //       //     driverId: data.driverId,
+  //       //     userLocation,
+  //       //     driverLocation: data.driverLocation,
+  //       //   },
+  //       // });
 
-      } else if (data.status === 'Failed' || data.status === 'cancelled') {
-        setIsSearching(false);
-        setShowVehicleSheet(false);
-        setNotification({
-          open: true,
-          type: 'error',
-          title: 'Ride Request Failed',
-          message: data.message || 'Unable to find a driver',
-        });
-      } else if (data.status === 'searching') {
-        setNotification({
-          open: true,
-          type: 'info',
-          title: 'Searching for Drivers',
-          message: 'Looking for available drivers...',
-        });
-      }
-    });
+  //     } else if (data.status === 'Failed' || data.status === 'cancelled') {
+  //       setIsSearching(false);
+  //       setShowVehicleSheet(false);
+  //       setNotification({
+  //         open: true,
+  //         type: 'error',
+  //         title: 'Ride Request Failed',
+  //         message: data.message || 'Unable to find a driver',
+  //       });
+  //     } else if (data.status === 'searching') {
+  //       setNotification({
+  //         open: true,
+  //         type: 'info',
+  //         title: 'Searching for Drivers',
+  //         message: 'Looking for available drivers...',
+  //       });
+  //     }
+  //   });
 
     // socket.on('tokens-updated', ({ token, refreshToken }: { token: string; refreshToken: string }) => {
     //   localStorage.setItem('token', token);
@@ -188,6 +188,22 @@ const Ride: React.FC = () => {
     //     message,
     //   });
     // });
+if(socket && isConnected){
+
+  socket.on('accepted-ride', (data) => {
+    console.log('Accepted ride event:', data);
+            setIsSearching(false);
+        setShowVehicleSheet(false);
+    dispatch(
+      showNotification({
+        type: 'ride-accepted',
+        message: 'Your ride has been accepted by a driver!',
+        data: { rideId: data.rideId, passengerName: data.passengerName },
+        navigate:"/ride-tracking"
+      })
+    );
+  });
+}
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -213,9 +229,9 @@ const Ride: React.FC = () => {
       );
     } 
 
-    return () => {
-       socket.off('rideStatus');
-    };
+    // return () => {
+    //    socket.off('rideStatus');
+    // };
 
   }, [navigate, useCurrentLocationAsPickup]);
 
