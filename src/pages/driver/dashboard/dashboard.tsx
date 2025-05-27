@@ -1,18 +1,17 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { CircleDollarSign, Clock, Star, Navigation2 } from 'lucide-react';
-import { io, Socket } from 'socket.io-client';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@chakra-ui/react';
-import DriverNavbar from '@/components/driver/dashboard/DriverNavbar';
-import RideNotification from '@/components/driver/dashboard/RideNotification';
-import ActiveRideMap from '@/components/driver/dashboard/ActiveRideMap';
-import { useSocket } from '@/context/SocketContext';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useDispatch } from "react-redux";
+import { CircleDollarSign, Clock, Star, Navigation2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@chakra-ui/react";
+import DriverNavbar from "@/components/driver/dashboard/DriverNavbar";
+import RideNotification from "@/components/driver/dashboard/RideNotification";
+import ActiveRideMap from "@/components/driver/dashboard/ActiveRideMap";
+import { useSocket } from "@/context/SocketContext";
 
-const NOTIFICATION_SOUND = '/uber_tune.mp3';
+const NOTIFICATION_SOUND = "/uber_tune.mp3";
 
 interface DriverLocation {
   latitude: number;
@@ -75,7 +74,7 @@ const DriverDashboard: React.FC = () => {
   const playNotificationSound = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch((e) => console.error('Error playing sound:', e));
+      audioRef.current.play().catch((e) => console.error("Error playing sound:", e));
     }
   }, []);
 
@@ -103,27 +102,27 @@ const DriverDashboard: React.FC = () => {
           setDriverLocation({ latitude, longitude });
         },
         (error) => {
-          console.error('Error getting location:', error);
+          console.error("Error getting location:", error);
           toast({
-            title: 'Location Error',
-            description: 'Unable to fetch your location. Please ensure location services are enabled.',
-            variant: 'destructive',
+            title: "Location Error",
+            description: "Unable to fetch your location. Please ensure location services are enabled.",
+            variant: "destructive",
           });
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
       toast({
-        title: 'Geolocation Error',
-        description: 'Geolocation is not supported by your browser.',
-        variant: 'destructive',
+        title: "Geolocation Error",
+        description: "Geolocation is not supported by your browser.",
+        variant: "destructive",
       });
     }
   }, [toast]);
 
   const emitDriverLocation = useCallback(() => {
     if (socket && driverLocation && isOnline && isConnected) {
-      socket.emit('driverLocation', {
+      socket.emit("driverLocation", {
         latitude: driverLocation.latitude,
         longitude: driverLocation.longitude,
       });
@@ -133,38 +132,38 @@ const DriverDashboard: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('rideRequest', (rideRequest) => {
+    socket.on("rideRequest", (rideRequest) => {
       if (!rideRequest || !rideRequest.booking) {
-        console.error('Invalid ride request data:', rideRequest);
+        console.error("Invalid ride request data:", rideRequest);
         toast({
-          title: 'Ride Request Error',
-          description: 'Invalid ride request data received.',
-          variant: 'destructive',
+          title: "Ride Request Error",
+          description: "Invalid ride request data received.",
+          variant: "destructive",
         });
         return;
       }
 
       try {
-        const customerName = rideRequest.customer?.name || 'Customer';
+        const customerName = rideRequest.customer?.name || "Customer";
         const formattedRideRequest: RideRequestData = {
-          pickup: rideRequest.pickup || rideRequest.booking.pickupLocation || 'Unknown',
-          dropoff: rideRequest.dropoff || rideRequest.booking.dropoffLocation || 'Unknown',
+          pickup: rideRequest.pickup || rideRequest.booking.pickupLocation || "Unknown",
+          dropoff: rideRequest.dropoff || rideRequest.booking.dropoffLocation || "Unknown",
           customerName,
           customerLocation: rideRequest.customer?.location || [
             rideRequest.booking.pickupCoordinates?.latitude || 0,
             rideRequest.booking.pickupCoordinates?.longitude || 0,
           ],
-          bookingId: rideRequest.bookingId || rideRequest.booking.ride_id || '',
+          bookingId: rideRequest.bookingId || rideRequest.booking.ride_id || "",
           timeout: rideRequest.timeout || 30000,
           customerAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}`,
           customerRating: rideRequest.customer?.rating || 4.8,
-          distance: rideRequest.distance || (rideRequest.booking.distance ? rideRequest.booking.distance + ' km' : 'Unknown'),
-          amount: rideRequest.amount || rideRequest.booking.price || 0,
+          distance: rideRequest.distance || (rideRequest.booking.distance ? rideRequest.booking.distance + " km" : "Unknown"),
+          amount: rideRequest.price || rideRequest.booking.price || 0,
           booking: {
             ...rideRequest.booking,
             pickupCoordinates: rideRequest.booking.pickupCoordinates || { latitude: 0, longitude: 0 },
             dropoffCoordinates: rideRequest.booking.dropoffCoordinates || { latitude: 0, longitude: 0 },
-            distance: rideRequest.booking.distance || '0',
+            distance: rideRequest.booking.distance || "0",
             price: rideRequest.booking.price || 0,
             pin: rideRequest.booking.pin || 0,
           },
@@ -175,18 +174,27 @@ const DriverDashboard: React.FC = () => {
         playNotificationSound();
         startCountdown(formattedRideRequest.timeout);
       } catch (error) {
-        console.error('Error processing ride request:', error);
+        console.error("Error processing ride request:", error);
         toast({
-          title: 'Ride Request Error',
-          description: 'Failed to process ride request.',
-          variant: 'destructive',
+          title: "Ride Request Error",
+          description: "Failed to process ride request.",
+          variant: "destructive",
         });
       }
     });
 
+    socket.on("error", (error: { message: string; code: string }) => {
+      console.error("Socket error:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    });
+
     return () => {
-      socket.off('location-updated');
-      socket.off('rideRequest');
+      socket.off("rideRequest");
+      socket.off("error");
     };
   }, [socket, playNotificationSound, startCountdown, toast]);
 
@@ -209,15 +217,15 @@ const DriverDashboard: React.FC = () => {
   useEffect(() => {
     if (!isConnected && isOnline) {
       toast({
-        title: 'Disconnected',
-        description: 'Lost connection to the server. Retrying...',
-        variant: 'destructive',
+        title: "Disconnected",
+        description: "Lost connection to the server. Retrying...",
+        variant: "destructive",
       });
     } else if (isConnected && isOnline) {
       toast({
-        title: 'Connected',
-        description: 'Successfully connected to the server.',
-        variant: 'default',
+        title: "Connected",
+        description: "Successfully connected to the server.",
+        variant: "default",
       });
     }
   }, [isConnected, isOnline, toast]);
@@ -233,8 +241,11 @@ const DriverDashboard: React.FC = () => {
 
   const handleAcceptRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
-      console.log("ride response", activeRide.bookingId);
-      
+      console.log(`Emitting rideResponse:${activeRide.bookingId}`, {
+        ride_id: activeRide.bookingId,
+        accepted: true,
+      });
+
       socket.emit(`rideResponse:${activeRide.bookingId}`, {
         ride_id: activeRide.bookingId,
         accepted: true,
@@ -248,22 +259,27 @@ const DriverDashboard: React.FC = () => {
       }
 
       toast({
-        title: 'Ride Accepted',
-        description: 'Navigate to pickup location.',
-        variant: 'default',
+        title: "Ride Accepted",
+        description: "Navigate to pickup location.",
+        variant: "default",
       });
     } else {
-      console.error('Cannot accept ride: socket disconnected or activeRide is null', { socket, activeRide, isConnected });
+      console.error("Cannot accept ride:", { socket, activeRide, isConnected });
       toast({
-        title: 'Error',
-        description: 'Unable to accept ride. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Unable to accept ride. Please try again.",
+        variant: "destructive",
       });
     }
   }, [socket, activeRide, isConnected, toast]);
 
   const handleDeclineRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
+      console.log(`Emitting rideResponse:${activeRide.bookingId}`, {
+        ride_id: activeRide.bookingId,
+        accepted: false,
+      });
+
       socket.emit(`rideResponse:${activeRide.bookingId}`, {
         ride_id: activeRide.bookingId,
         accepted: false,
@@ -279,32 +295,32 @@ const DriverDashboard: React.FC = () => {
 
   const handleArrived = useCallback(() => {
     if (socket && activeRide && isConnected) {
-      socket.emit('driverArrived', {
+      socket.emit("driverArrived", {
         bookingId: activeRide.bookingId,
       });
 
       toast({
-        title: 'Arrival Notification',
-        description: 'You have notified the customer of your arrival.',
-        variant: 'default',
+        title: "Arrival Notification",
+        description: "You have notified the customer of your arrival.",
+        variant: "default",
       });
     }
   }, [socket, activeRide, isConnected, toast]);
 
   const handleCancelRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
-      socket.emit('cancelRide', {
+      socket.emit("cancelRide", {
         bookingId: activeRide.bookingId,
-        reason: 'Driver cancelled',
+        reason: "Driver cancelled",
       });
 
       setActiveRide(null);
       setIsRideAccepted(false);
 
       toast({
-        title: 'Ride Cancelled',
-        description: 'You have cancelled the ride.',
-        variant: 'destructive',
+        title: "Ride Cancelled",
+        description: "You have cancelled the ride.",
+        variant: "destructive",
       });
     }
   }, [socket, activeRide, isConnected, toast]);
@@ -321,8 +337,8 @@ const DriverDashboard: React.FC = () => {
                 <p className="mt-1 text-sm text-gray-500">Welcome back, Driver</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className={`text-sm font-medium ${isOnline ? 'text-emerald-500' : 'text-gray-500'}`}>
-                  {isOnline ? 'Online' : 'Offline'}
+                <span className={`text-sm font-medium ${isOnline ? "text-emerald-500" : "text-gray-500"}`}>
+                  {isOnline ? "Online" : "Offline"}
                 </span>
                 <Switch
                   checked={isOnline}

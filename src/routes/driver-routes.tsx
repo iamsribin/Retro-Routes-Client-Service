@@ -10,6 +10,7 @@ import AppRoutes from "@/constants/app-routes";
 import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/driver/dashboard/dashboard";
 import DriverProfile from "@/pages/driver/profile/DriverProfile";
+import BookingTransaction from "@/pages/driver/profile/BookingTransaction";
 
 const ROLE = "Driver"; 
 
@@ -21,6 +22,7 @@ function DriverRoutes() {
       <Route path={AppRoutes.DRIVER_IDENTIFICATION} element={<ProtectedRoute allowedRole="Resubmission"><ResubmissionPage /></ProtectedRoute>} />
       <Route path={AppRoutes.DASHBOARD} element={<ProtectedRoute allowedRole={ROLE}><Dashboard/></ProtectedRoute>} />
       <Route path={AppRoutes.PROFILE} element={<ProtectedRoute allowedRole={ROLE}><DriverProfile/></ProtectedRoute>} />
+      <Route path="transationHistory" element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
   );
