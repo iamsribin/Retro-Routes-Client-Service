@@ -9,14 +9,17 @@
     import { userAuthSlice } from "./slices/userAuthSlice";
     import driverAuthSlice from "./slices/driverAuthSlice";
     import adminAuthSlice from "./slices/adminAuthSlice";
+    import rideSlice from "./slices/rideSlice";
 
     const userPersistConfig={key:"userAuth",storage,version:1}
     const driverPersistConfig={key:"driverAuth",storage,version:1}
     const adminPersistConfig={key:"adminAuth",storage,version:1}
+    const RideMapPersistConfig={key:"RideMap",storage,version:1}
 
     const userAuthPersistReducer=persistReducer(userPersistConfig,userAuthSlice.reducer)
     const driverAuthPersistReducer=persistReducer(driverPersistConfig,driverAuthSlice.reducer)
     const adminAuthPersistReducer=persistReducer(adminPersistConfig,adminAuthSlice.reducer)
+    const RideMapPersistReducer=persistReducer(RideMapPersistConfig,rideSlice.reducer)
 
     export const store=configureStore({
         reducer:{
@@ -26,6 +29,7 @@
             pendingModal: pendingModalSlice,
             rejectModal:rejectModalSlice,
             notification: notificationSlice,
+            RideMap:RideMapPersistReducer,
         },
         middleware: (getDefaultMiddleware) => {
             const middleware = getDefaultMiddleware({

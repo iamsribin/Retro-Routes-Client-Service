@@ -78,14 +78,17 @@ const RideTrackingUI: React.FC = () => {
     },
   };
 
+  // Use store data if isOpen is true and data is valid, otherwise use sample data
   const currentRideData: RideState = sampleRideData;
 
   useEffect(() => {
     if (!currentRideData.isOpen) {
+        
       navigate('/');
     }
   }, [currentRideData.isOpen, navigate]);
 
+  // Handle cancellation timer and driver arrival countdown
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -107,13 +110,13 @@ const RideTrackingUI: React.FC = () => {
         return prev - 1;
       });
     }, 60000); 
-
     return () => {
       clearInterval(timer);
       clearInterval(arrivalTimer);
     };
   }, []);
 
+  // Fetch route between driver and user pickup location
   useEffect(() => {
     const fetchDriverRoute = async () => {
       if (
@@ -147,9 +150,9 @@ const RideTrackingUI: React.FC = () => {
 
     fetchDriverRoute();
   }, [
-    // isLoaded,
-    // currentRideData.driverLocation,
-    // currentRideData.userPickupLocation,
+    isLoaded,
+    currentRideData.driverLocation,
+    currentRideData.userPickupLocation,
   ]);
 
   const handleCancelRide = () => {

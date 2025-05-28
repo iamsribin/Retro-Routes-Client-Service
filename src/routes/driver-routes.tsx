@@ -11,6 +11,8 @@ import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/driver/dashboard/dashboard";
 import DriverProfile from "@/pages/driver/profile/DriverProfile";
 import BookingTransaction from "@/pages/driver/profile/BookingTransaction";
+import RideMap from "@/pages/user/ride/RideMap";
+
 
 const ROLE = "Driver"; 
 

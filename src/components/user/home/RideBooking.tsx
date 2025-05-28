@@ -27,6 +27,7 @@ import axiosUser from "@/services/axios/userAxios";
 import { useDispatch } from "react-redux";
 import { useSocket } from "@/context/SocketContext";
 import { showNotification } from "@/services/redux/slices/notificationSlice";
+import { showRideMap } from "@/services/redux/slices/rideSlice";
 
 interface BackendVehicle {
   vehicleModel: string;
@@ -53,6 +54,7 @@ interface RideStatusData {
   message?: string;
   driverId?: string;
   booking?: unknown;
+  pickupCoordinates?: { latitude: number; longitude: number };
   driverCoordinates?: { latitude: number; longitude: number };
 }
 
@@ -132,6 +134,13 @@ const Ride: React.FC = () => {
 
         switch (data.status) {
           case "Accepted":
+          dispatch(
+          showRideMap({
+           userPickupLocation: data.pickupCoordinates|| null,
+           driverLocation: data.driverCoordinates || null,
+           data: data
+          })
+        );
             notificationType = "success";
             navigateTo = "/ride-tracking";
             break;

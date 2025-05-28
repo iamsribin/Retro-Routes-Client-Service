@@ -116,9 +116,8 @@ const BookingList: React.FC = () => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        const response = await driverAxios(dispatch).get(`/getBookingHistory/${driver.driverId}`);
-        
-        setBookings(response.data);
+        const response = await driverAxios(dispatch).get(`/getBookingHistory/${driver.driverId}`);        
+        setBookings(response.data.data);
         setError(null);
       } catch (err) {
         setError('Failed to fetch bookings');
@@ -127,7 +126,7 @@ const BookingList: React.FC = () => {
         setLoading(false);
       }
     };
-    fetchBookings();
+    fetchBookings(); 
   }, []);
   
 
