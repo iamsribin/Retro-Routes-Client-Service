@@ -18,34 +18,46 @@ interface DriverLocation {
   longitude: number;
 }
 
-interface Booking {
-  ride_id: string;
-  user_id: string;
-  pickupCoordinates: { latitude: number; longitude: number };
-  dropoffCoordinates: { latitude: number; longitude: number };
-  pickupLocation: string;
-  dropoffLocation: string;
-  distance: string;
-  vehicleModel: string;
-  price: number;
-  status: string;
-  pin: number;
-  _id: string;
-  date: string;
+interface Customer {
+  id: string;
+  name: string;
+  profileImageUrl?: string;
+}
+
+interface LocationCoordinates {
+  latitude: number;
+  longitude: number;
+  address: string;
+}
+
+interface RideDetails {
+  rideId: string;
+  estimatedDistance: string;
+  estimatedDuration: string;
+  fareAmount: number;
+  vehicleType: string;
+  securityPin: number;
+}
+
+interface BookingDetails {
+  bookingId: string;
+  userId: string;
+  pickupLocation: LocationCoordinates;
+  dropoffLocation: LocationCoordinates;
+  rideDetails: RideDetails;
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  createdAt: string;
 }
 
 interface RideRequestData {
-  pickup: string;
-  dropoff: string;
-  customerName: string;
-  customerLocation: [number, number];
-  bookingId: string;
-  timeout: number;
-  customerAvatar: string;
-  customerRating: number;
-  distance: string;
-  amount: number;
-  booking: Booking;
+  requestId: string;
+  customer: Customer;
+  pickup: LocationCoordinates;
+  dropoff: LocationCoordinates;
+  ride: RideDetails;
+  booking: BookingDetails;
+  requestTimeout: number;
+  requestTimestamp: string;
 }
 
 const DriverDashboard: React.FC = () => {
@@ -86,7 +98,6 @@ const DriverDashboard: React.FC = () => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           if (timeoutRef.current) clearInterval(timeoutRef.current);
-          handleDeclineRide();
           return 0;
         }
         return prev - 1;
@@ -132,7 +143,7 @@ const DriverDashboard: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("rideRequest", (rideRequest) => {
+    socket.on("rideRequest", (rideRequest: RideRequestData) => {
       if (!rideRequest || !rideRequest.booking) {
         console.error("Invalid ride request data:", rideRequest);
         toast({
@@ -144,35 +155,10 @@ const DriverDashboard: React.FC = () => {
       }
 
       try {
-        const customerName = rideRequest.customer?.name || "Customer";
-        const formattedRideRequest: RideRequestData = {
-          pickup: rideRequest.pickup || rideRequest.booking.pickupLocation || "Unknown",
-          dropoff: rideRequest.dropoff || rideRequest.booking.dropoffLocation || "Unknown",
-          customerName,
-          customerLocation: rideRequest.customer?.location || [
-            rideRequest.booking.pickupCoordinates?.latitude || 0,
-            rideRequest.booking.pickupCoordinates?.longitude || 0,
-          ],
-          bookingId: rideRequest.bookingId || rideRequest.booking.ride_id || "",
-          timeout: rideRequest.timeout || 30000,
-          customerAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}`,
-          customerRating: rideRequest.customer?.rating || 4.8,
-          distance: rideRequest.distance || (rideRequest.booking.distance ? rideRequest.booking.distance + " km" : "Unknown"),
-          amount: rideRequest.price || rideRequest.booking.price || 0,
-          booking: {
-            ...rideRequest.booking,
-            pickupCoordinates: rideRequest.booking.pickupCoordinates || { latitude: 0, longitude: 0 },
-            dropoffCoordinates: rideRequest.booking.dropoffCoordinates || { latitude: 0, longitude: 0 },
-            distance: rideRequest.booking.distance || "0",
-            price: rideRequest.booking.price || 0,
-            pin: rideRequest.booking.pin || 0,
-          },
-        };
-
-        setActiveRide(formattedRideRequest);
+        setActiveRide(rideRequest);
         setShowRideRequest(true);
         playNotificationSound();
-        startCountdown(formattedRideRequest.timeout);
+        startCountdown(rideRequest.requestTimeout);
       } catch (error) {
         console.error("Error processing ride request:", error);
         toast({
@@ -236,19 +222,26 @@ const DriverDashboard: React.FC = () => {
       setShowRideRequest(false);
       setActiveRide(null);
       setIsRideAccepted(false);
+      if (socket && isConnected) {
+        socket.emit("driverOffline", { driverId: socket.id });
+      }
     }
-  }, []);
+  }, [socket, isConnected]);
 
   const handleAcceptRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
-      console.log(`Emitting rideResponse:${activeRide.bookingId}`, {
-        ride_id: activeRide.bookingId,
+      console.log(`Emitting rideResponse:${activeRide.ride.rideId}`, {
+        requestId: activeRide.requestId,
+        rideId: activeRide.ride.rideId,
         accepted: true,
+        timestamp: new Date().toISOString(),
       });
 
-      socket.emit(`rideResponse:${activeRide.bookingId}`, {
-        ride_id: activeRide.bookingId,
+      socket.emit(`rideResponse:${activeRide.ride.rideId}`, {
+        requestId: activeRide.requestId,
+        rideId: activeRide.ride.rideId,
         accepted: true,
+        timestamp: new Date().toISOString(),
       });
 
       setShowRideRequest(false);
@@ -275,28 +268,44 @@ const DriverDashboard: React.FC = () => {
 
   const handleDeclineRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
-      console.log(`Emitting rideResponse:${activeRide.bookingId}`, {
-        ride_id: activeRide.bookingId,
+      console.log(`Emitting rideResponse:${activeRide.ride.rideId}`, {
+        requestId: activeRide.requestId,
+        rideId: activeRide.ride.rideId,
         accepted: false,
+        timestamp: new Date().toISOString(),
       });
 
-      socket.emit(`rideResponse:${activeRide.bookingId}`, {
-        ride_id: activeRide.bookingId,
+      socket.emit(`rideResponse:${activeRide.ride.rideId}`, {
+        requestId: activeRide.requestId,
+        rideId: activeRide.ride.rideId,
         accepted: false,
+        timestamp: new Date().toISOString(),
       });
+
+      socket.emit("cancelRide", {
+        bookingId: activeRide.booking.bookingId,
+        reason: "Driver declined",
+      });
+
       setShowRideRequest(false);
       setActiveRide(null);
 
       if (timeoutRef.current) {
         clearInterval(timeoutRef.current);
       }
+
+      toast({
+        title: "Ride Declined",
+        description: "You have declined the ride request.",
+        variant: "destructive",
+      });
     }
-  }, [socket, activeRide, isConnected]);
+  }, [socket, activeRide, isConnected, toast]);
 
   const handleArrived = useCallback(() => {
     if (socket && activeRide && isConnected) {
       socket.emit("driverArrived", {
-        bookingId: activeRide.bookingId,
+        bookingId: activeRide.booking.bookingId,
       });
 
       toast({
@@ -310,7 +319,7 @@ const DriverDashboard: React.FC = () => {
   const handleCancelRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
       socket.emit("cancelRide", {
-        bookingId: activeRide.bookingId,
+        bookingId: activeRide.booking.bookingId,
         reason: "Driver cancelled",
       });
 
@@ -414,19 +423,15 @@ const DriverDashboard: React.FC = () => {
         {showRideRequest && activeRide && (
           <RideNotification
             customer={{
-              name: activeRide.customerName,
-              avatar: activeRide.customerAvatar,
-              rating: activeRide.customerRating,
+              name: activeRide.customer.name,
+              profileImageUrl: activeRide.customer.profileImageUrl,
             }}
-            ride={{
-              pickup: activeRide.pickup,
-              dropoff: activeRide.dropoff,
-              distance: activeRide.distance,
-              amount: activeRide.amount,
-              bookingId: activeRide.bookingId,
-              timeout: activeRide.timeout,
-            }}
+            pickup={activeRide.pickup}
+            dropoff={activeRide.dropoff}
+            ride={activeRide.ride}
+            booking={activeRide.booking}
             timeLeft={timeLeft}
+            requestTimeout={activeRide.requestTimeout}
             onAccept={handleAcceptRide}
             onDecline={handleDeclineRide}
           />
@@ -435,12 +440,32 @@ const DriverDashboard: React.FC = () => {
         {isRideAccepted && activeRide && driverLocation && (
           <div className="h-[calc(100vh-220px)]">
             <ActiveRideMap
-              booking={activeRide.booking}
+              booking={{
+                ride_id: activeRide.ride.rideId,
+                user_id: activeRide.booking.userId,
+                pickupCoordinates: {
+                  latitude: activeRide.pickup.latitude,
+                  longitude: activeRide.pickup.longitude,
+                },
+                dropoffCoordinates: {
+                  latitude: activeRide.dropoff.latitude,
+                  longitude: activeRide.dropoff.longitude,
+                },
+                pickupLocation: activeRide.pickup.address,
+                dropoffLocation: activeRide.dropoff.address,
+                distance: activeRide.ride.estimatedDistance,
+                vehicleModel: activeRide.ride.vehicleType,
+                price: activeRide.ride.fareAmount,
+                status: activeRide.booking.status,
+                pin: activeRide.ride.securityPin,
+                _id: activeRide.booking.bookingId,
+                date: activeRide.booking.createdAt,
+              }}
               driverLocation={driverLocation}
               customer={{
-                name: activeRide.customerName,
-                avatar: activeRide.customerAvatar,
-                rating: activeRide.customerRating,
+                name: activeRide.customer.name,
+                avatar: activeRide.customer.profileImageUrl || '',
+                rating: 0,
               }}
               onArrived={handleArrived}
               onCancelRide={handleCancelRide}

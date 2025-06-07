@@ -20,6 +20,8 @@ interface UserData {
   refreshToken: string;
   loggedIn: boolean;
   role: "User" | "Admin";
+  mobile:number| undefined;
+  profile: string;
 }
 
 interface DecodedToken {
@@ -40,6 +42,8 @@ const Login = () => {
     refreshToken: "",
     loggedIn: false,
     role: "User",
+    mobile: undefined,
+    profile:""
   });
   const [otpInput, setOtpInput] = useState(false);
   const [otp, setOtp] = useState<number>(0);
@@ -68,7 +72,7 @@ const Login = () => {
           dispatch(adminLogin({ name: response.name, role, _id: response._id}));
           navigate("/admin/dashboard");
         } else {
-          dispatch(userLogin({ user: response.name, user_id: response._id, role }));
+          dispatch(userLogin({ user: response.name, user_id: response._id, role, mobile:response.mobile, profile: response.profile }));
           navigate("/");
         }
         toast.success("Login Success");

@@ -5,6 +5,8 @@ interface UserAuthState {
   user_id: string;
   loggedIn: boolean;
   role: "User" | "";
+  mobile:number | undefined;
+  profile: string;
 }
 
 const initialState: UserAuthState = {
@@ -12,6 +14,8 @@ const initialState: UserAuthState = {
   user_id: "",
   loggedIn: false,
   role: "",
+  mobile:undefined,
+  profile: ""
 };
 
 export const userAuthSlice = createSlice({
@@ -24,18 +28,24 @@ export const userAuthSlice = createSlice({
         user: string;
         user_id: string;
         role: "User";
+        mobile:number | undefined;
+        profile: string;
       }>
     ) => {
       state.user = action.payload.user;
       state.user_id = action.payload.user_id;
       state.loggedIn = true;
       state.role = action.payload.role;
+      state.mobile = action.payload.mobile;
+      state.profile = action.payload.profile
     },
     userLogout: (state) => {
       state.user = "";
       state.user_id = "";
       state.loggedIn = false;
       state.role = "";
+      state.profile = "";
+      state.mobile= undefined;
       localStorage.removeItem("role");
       localStorage.removeItem("userToken");
       localStorage.removeItem("refreshToken");

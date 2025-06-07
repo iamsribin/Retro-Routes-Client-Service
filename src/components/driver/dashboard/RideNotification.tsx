@@ -1,127 +1,203 @@
-// ```typescript
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Timer } from 'lucide-react';
+import { MapPin, Timer, ArrowDown, Car, Clock, IndianRupee } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 interface Customer {
   name: string;
-  avatar: string;
-  rating: number;
+  profileImageUrl?: string;
 }
 
-interface Ride {
-  pickup: string;
-  dropoff: string;
-  distance: string;
-  amount: number;
+interface LocationCoordinates {
+  latitude: number;
+  longitude: number;
+  address: string;
+}
+
+interface RideDetails {
+  rideId: string;
+  estimatedDistance: string;
+  estimatedDuration: string;
+  fareAmount: number;
+  vehicleType: string;
+  securityPin: number;
+}
+
+interface BookingDetails {
   bookingId: string;
-  timeout: number;
+  userId: string;
+  pickupLocation: LocationCoordinates;
+  dropoffLocation: LocationCoordinates;
+  rideDetails: RideDetails;
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  createdAt: string;
 }
 
 interface RideNotificationProps {
   customer: Customer;
-  ride: Ride;
+  pickup: LocationCoordinates;
+  dropoff: LocationCoordinates;
+  ride: RideDetails;
+  booking: BookingDetails;
   timeLeft: number;
+  requestTimeout: number;
   onAccept: () => void;
   onDecline: () => void;
 }
 
 const RideNotification: React.FC<RideNotificationProps> = ({
   customer,
+  pickup,
+  dropoff,
   ride,
+  booking,
   timeLeft,
+  requestTimeout,
   onAccept,
   onDecline,
 }) => {
-  const maxTime = ride.timeout / 1000;
+  const maxTime = requestTimeout / 1000;
   const progressValue = (timeLeft / maxTime) * 100;
 
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      onDecline();
+    }
+  }, [timeLeft, onDecline]);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-90 duration-300">
-        <CardHeader className="bg-emerald-50 border-b">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl text-emerald-600">New Ride Request</CardTitle>
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Timer className="h-4 w-4 text-red-500" />
-              <span className={`${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-700'}`}>
-                {timeLeft}s
-              </span>
-            </div>
-          </div>
-          <Progress value={progressValue} className="h-1 mt-2 bg-gray-200" />
-        </CardHeader>
-
-        <CardContent className="pt-6">
-          <div className="flex items-center mb-6">
-            <Avatar className="h-12 w-12 mr-4 border-2 border-emerald-200">
-              <AvatarImage src={customer.avatar} alt={customer.name} />
-              <AvatarFallback className="bg-emerald-50 text-emerald-600">{customer.name[0]}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold text-base">{customer.name}</p>
-              <div className="flex items-center">
-                <Star className="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500" />
-                <span className="text-sm">{customer.rating.toFixed(1)}</span>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className="w-full max-w-sm mx-auto">
+        <Card className="w-full shadow-2xl border-0 overflow-hidden animate-in zoom-in-95 duration-300">
+          {/* Header with Timer */}
+          <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4">
+            <div className="flex justify-between items-center mb-3">
+              <CardTitle className="text-lg font-bold">New Ride Request</CardTitle>
+              <div className="flex items-center gap-2 bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                <Timer className="h-4 w-4" />
+                <span className={`text-sm font-bold ${timeLeft <= 5 ? 'text-yellow-200 animate-pulse' : 'text-white'}`}>
+                  {timeLeft}s
+                </span>
               </div>
             </div>
-          </div>
+            <Progress
+              value={progressValue}
+              className="h-2 bg-white bg-opacity-30"
+              style={{
+                background: 'rgba(255, 255, 255, 0.3)',
+              }}
+            />
+            <style>
+              {`
+                .progress-bar {
+                  background-color: white !important;
+                }
+              `}
+            </style>
+          </CardHeader>
 
-          <div className="space-y-4 mb-6">
-            <div className="flex gap-3 items-start">
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 font-medium">PICKUP</p>
-                <p className="text-sm font-medium">{ride.pickup}</p>
+          {/* Content */}
+          <CardContent className="p-4 bg-white">
+            {/* Customer Info */}
+            <div className="flex items-center mb-5">
+              <Avatar className="h-16 w-16 mr-4 border-2 border-green-100">
+                <AvatarImage src={customer.profileImageUrl} alt={customer.name} />
+                <AvatarFallback className="bg-green-50 text-green-600 text-xl font-bold">
+                  {customer.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h3 className="font-bold text-xl text-gray-900">{customer.name}</h3>
+                <p className="text-sm text-gray-500 font-medium">Passenger</p>
               </div>
             </div>
 
-            <div className="ml-4 border-l-2 border-dashed border-gray-300 h-6"></div>
-
-            <div className="flex gap-3 items-start">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+            {/* Trip Details */}
+            <div className="space-y-4 mb-5">
+              {/* Pickup Location */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">PICKUP</p>
+                  <p className="text-sm font-medium text-gray-900 leading-tight break-words">{pickup.address}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 font-medium">DROPOFF</p>
-                <p className="text-sm font-medium">{ride.dropoff}</p>
+
+              {/* Route Line with Arrow */}
+              <div className="flex justify-center py-1">
+                <div className="flex flex-col items-center">
+                  <div className="w-px h-3 bg-gray-300"></div>
+                  <div className="w-px h-3 bg-gray-300"></div>
+                  <ArrowDown className="h-4 w-4 text-gray-400 my-1 animate-bounce" />
+                  <div className="w-px h-3 bg-gray-300"></div>
+                  <div className="w-px h-3 bg-gray-300"></div>
+                </div>
+              </div>
+
+              {/* Dropoff Location */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <MapPin className="h-5 w-5 text-red-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">DROPOFF</p>
+                  <p className="text-sm font-medium text-gray-900 leading-tight break-words">{dropoff.address}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500">Distance</p>
-              <p className="font-medium">{ride.distance}</p>
+            {/* Trip Stats */}
+            <div className="grid grid-cols-3 gap-2 mb-6">
+              <div className="bg-gray-50 p-3 rounded-lg text-center border border-gray-100">
+                <div className="flex justify-center mb-1">
+                  <Clock className="h-4 w-4 text-gray-600" />
+                </div>
+                <p className="text-xs text-gray-500 font-medium mb-1">TIME</p>
+                <p className="text-sm font-bold text-gray-900">{ride.estimatedDuration}</p>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg text-center border border-green-100">
+                <div className="flex justify-center mb-1">
+                  <IndianRupee className="h-4 w-4 text-green-600" />
+                </div>
+                <p className="text-xs text-gray-500 font-medium mb-1">FARE</p>
+                <p className="text-lg font-bold text-green-600">₹{ride.fareAmount}</p>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg text-center border border-blue-100">
+                <div className="flex justify-center mb-1">
+                  <Car className="h-4 w-4 text-blue-600" />
+                </div>
+                <p className="text-xs text-gray-500 font-medium mb-1">DISTANCE</p>
+                <p className="text-sm font-bold text-blue-900">{ride.estimatedDistance}</p>
+              </div>
             </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500">Fare</p>
-              <p className="font-medium text-emerald-600">₹{ride.amount}</p>
-            </div>
-          </div>
 
-          <div className="flex gap-4">
-            <Button
-              onClick={onDecline}
-              variant="outline"
-              className="flex-1 border-gray-300 hover:bg-gray-100 hover:text-gray-800"
-            >
-              Decline
-            </Button>
-            <Button
-              onClick={onAccept}
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600"
-            >
-              Accept Ride
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={onDecline}
+                variant="outline"
+                className="flex-1 h-12 border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 hover:text-red-700 font-bold rounded-lg text-base transition-all duration-200 bg-white"
+              >
+                Decline
+              </Button>
+              <Button
+                onClick={onAccept}
+                className="flex-1 h-12 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg text-base shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white'
+                }}
+              >
+                Accept Ride
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

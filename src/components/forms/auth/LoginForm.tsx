@@ -13,6 +13,7 @@ import { loginValidation } from "@/utils/validation";
 import axiosUser from "@/services/axios/userAxios";
 import { toast } from "sonner";
 import ApiEndpoints from "@/constants/api-end-points";
+import { profile } from "console";
 
 interface UserData {
   user: string;
@@ -21,6 +22,8 @@ interface UserData {
   refreshToken: string;
   loggedIn: boolean;
   role: "User" | "Admin";
+  mobile: number | undefined;
+  profile: string;
 }
 
 declare global {
@@ -28,7 +31,6 @@ declare global {
     recaptchaVerifier?: any;
   }
 }
-
 
 interface LoginFormProps {
   auth: unknown;
@@ -77,6 +79,7 @@ const LoginForm = ({
         const { data } = await axiosUser(dispatch).post(ApiEndpoints.USER_CHECK_LOGIN, values);
         if (data.message === "Success") {
           sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
+
           setUserData({
             user: data.name,
             user_id: data._id,
@@ -84,6 +87,8 @@ const LoginForm = ({
             refreshToken: data.refreshToken,
             loggedIn: true,
             role: data.role,
+            mobile: data.mobile,
+            profile: data.profile,
           });
         } else if (data.message === "Blocked") {
           toast.info("Your account is blocked");
@@ -121,7 +126,7 @@ const LoginForm = ({
       } else {
         localStorage.setItem("userToken", userData.userToken);
         localStorage.setItem("refreshToken", userData.refreshToken);
-        dispatch(userLogin({ user: userData.user, user_id: userData.user_id, role: userData.role }));
+        dispatch(userLogin({ user: userData.user, user_id: userData.user_id, role: userData.role, mobile:userData.mobile, profile: userData.profile}));
         navigate("/");
       }
       toast.success("Login Success");
