@@ -241,6 +241,7 @@ const DriverDashboard: React.FC = () => {
         requestId: activeRide.requestId,
         rideId: activeRide.ride.rideId,
         accepted: true,
+        bookingId: activeRide.booking.bookingId,
         timestamp: new Date().toISOString(),
       });
 

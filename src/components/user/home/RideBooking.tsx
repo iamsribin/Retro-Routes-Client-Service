@@ -49,14 +49,61 @@ interface VehicleOption {
   features: string[];
 }
 
+interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+interface Booking {
+  date: string;
+  distance: string;
+  driver: {
+    driverName: string;
+    driverNumber: string;
+    driverProfile: string;
+    driver_id: string;
+  };
+  driverCoordinates: Coordinates;
+  dropoffCoordinates: Coordinates;
+  dropoffLocation: string;
+  duration: string;
+  pickupCoordinates: Coordinates;
+  pickupLocation: string;
+  pin: number;
+  price: number;
+  ride_id: string;
+  status: string;
+  user: {
+    userName: string;
+    userProfile: string;
+    user_id: string;
+    number: string;
+  };
+  vehicleModel: string;
+  _id: string;
+  __v: number;
+}
+
+interface DriverDetails {
+  cancelledRides: number;
+  color: string;
+  driverId: string;
+  driverImage: string;
+  driverName: string;
+  mobile: number;
+  number: string;
+  rating: number;
+  vehicleModel: string;
+}
+
 interface RideStatusData {
   ride_id: string;
   status: "searching" | "Accepted" | "Failed" | "cancelled";
   message?: string;
   driverId?: string;
-  booking?: unknown;
-  pickupCoordinates?: { latitude: number; longitude: number };
-  driverCoordinates?: { latitude: number; longitude: number };
+  booking?: Booking;
+  driverCoordinates?: Coordinates;
+  driverDetails?: DriverDetails;
 }
 
 interface ScheduledRide {
@@ -147,6 +194,7 @@ const Ride: React.FC = () => {
         setIsSearching(false);
         setShowVehicleSheet(false);
         setRideStatus(data);
+        console.log("rideStatus==", data);
 
         const notificationType = getNotificationType(data.status);
         const navigateTo = data.status === "Accepted" ? "/ride-tracking" : undefined;
@@ -160,10 +208,11 @@ const Ride: React.FC = () => {
           })
         );
 
-        if (data.status === "Accepted" && data.driverCoordinates && userLocation) {
+        if (data.status === "Accepted" && data.driverCoordinates && data.booking?.pickupCoordinates) {
+          dispatch(showRideMap(data));
           fetchDriverRoute(data.driverCoordinates, {
-            lat: userLocation.lat,
-            lng: userLocation.lng,
+            lat: data.booking.pickupCoordinates.latitude,
+            lng: data.booking.pickupCoordinates.longitude,
           });
         }
       });
@@ -300,8 +349,8 @@ const Ride: React.FC = () => {
         await fetchVehicles(distanceInMeters / 1000);
       }
     } catch (error) {
-      console.log("Route Error==",error);
-      
+      console.log("Route Error==", error);
+
       setNotification({
         open: true,
         type: "error",
@@ -324,8 +373,8 @@ const Ride: React.FC = () => {
       });
       setDriverDirections(result);
     } catch (error) {
-      console.log("rour Error",error);
-      
+      console.log("rour Error", error);
+
       setNotification({
         open: true,
         type: "error",
@@ -356,119 +405,116 @@ const Ride: React.FC = () => {
   };
 
   const geocodeLatLng = async (lat: number, lng: number): Promise<string> => {
-  const geocoder = new google.maps.Geocoder();
-  const latlng = { lat, lng };
-  
-  return new Promise((resolve, reject) => {
-    geocoder.geocode({ location: latlng }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        resolve(results[0].formatted_address);
-      } else {
-        reject(new Error("Geocoding failed"));
-      }
+    const geocoder = new google.maps.Geocoder();
+    const latlng = { lat, lng };
+
+    return new Promise((resolve, reject) => {
+      geocoder.geocode({ location: latlng }, (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          resolve(results[0].formatted_address);
+        } else {
+          reject(new Error("Geocoding failed"));
+        }
+      });
     });
-  });
-};
+  };
 
-const handleBookRide = async () => {
-  if (!origin || !destination || !userLocation || !selectedVehicle || !distanceInfo) {
-    setNotification({
-      open: true,
-      type: "error",
-      title: "Booking Error",
-      message: "Please select a vehicle and ensure all locations are set",
-    });
-    return;
-  }
-
-  if (isScheduled && (!scheduledRide.date || !scheduledRide.time)) {
-    setNotification({
-      open: true,
-      type: "error",
-      title: "Booking Error",
-      message: "Please select both date and time for scheduled ride",
-    });
-    return;
-  }
-
-  setIsSearching(true);
-  setRideStatus({
-    ride_id: "",
-    status: "searching",
-    message: "Searching for available drivers...",
-  });
-
-  try {
-    if (!socket || !isConnected) {
-      throw new Error("Socket not connected");
+  const handleBookRide = async () => {
+    if (!origin || !destination || !userLocation || !selectedVehicle || !distanceInfo) {
+      setNotification({
+        open: true,
+        type: "error",
+        title: "Booking Error",
+        message: "Please select a vehicle and ensure all locations are set",
+      });
+      return;
     }
 
-    // Get coordinates
-    const pickupLat = directions?.routes[0]?.legs[0]?.start_location?.lat() ?? userLocation.lat;
-    const pickupLng = directions?.routes[0]?.legs[0]?.start_location?.lng() ?? userLocation.lng;
-    const dropoffLat = directions?.routes[0]?.legs[0]?.end_location?.lat() ?? userLocation.lat + 0.05;
-    const dropoffLng = directions?.routes[0]?.legs[0]?.end_location?.lng() ?? userLocation.lng + 0.05;
-
-    // Get human-readable addresses
-    let pickupAddress = origin;
-    let dropoffAddress = destination;
-
-    if (useCurrentLocationAsPickup) {
-      try {
-        pickupAddress = await geocodeLatLng(pickupLat, pickupLng);
-      } catch (error) {
-        console.error("Failed to geocode pickup location:", error);
-        pickupAddress = "Current Location";
-      }
+    if (isScheduled && (!scheduledRide.date || !scheduledRide.time)) {
+      setNotification({
+        open: true,
+        type: "error",
+        title: "Booking Error",
+        message: "Please select both date and time for scheduled ride",
+      });
+      return;
     }
+
+    setIsSearching(true);
+    setRideStatus({
+      ride_id: "",
+      status: "searching",
+      message: "Searching for available drivers...",
+    });
 
     try {
-      dropoffAddress = await geocodeLatLng(dropoffLat, dropoffLng);
+      if (!socket || !isConnected) {
+        throw new Error("Socket not connected");
+      }
+
+      const pickupLat = directions?.routes[0]?.legs[0]?.start_location?.lat() ?? userLocation.lat;
+      const pickupLng = directions?.routes[0]?.legs[0]?.start_location?.lng() ?? userLocation.lng;
+      const dropoffLat = directions?.routes[0]?.legs[0]?.end_location?.lat() ?? userLocation.lat + 0.05;
+      const dropoffLng = directions?.routes[0]?.legs[0]?.end_location?.lng() ?? userLocation.lng + 0.05;
+
+      let pickupAddress = origin;
+      let dropoffAddress = destination;
+
+      if (useCurrentLocationAsPickup) {
+        try {
+          pickupAddress = await geocodeLatLng(pickupLat, pickupLng);
+        } catch (error) {
+          console.error("Failed to geocode pickup location:", error);
+          pickupAddress = "Current Location";
+        }
+      }
+
+      try {
+        dropoffAddress = await geocodeLatLng(dropoffLat, dropoffLng);
+      } catch (error) {
+        console.error("Failed to geocode dropoff location:", error);
+      }
+
+      const selectedVehicleData = vehicles.find((v) => v.id === selectedVehicle);
+      const vehicleModel = selectedVehicleData?.name ?? "Standard";
+
+      const bookingData = {
+        pickupLocation: {
+          address: pickupAddress,
+          latitude: pickupLat,
+          longitude: pickupLng,
+        },
+        dropOffLocation: {
+          address: dropoffAddress,
+          latitude: dropoffLat,
+          longitude: dropoffLng,
+        },
+        vehicleModel,
+        isScheduled,
+        scheduledDateTime: isScheduled ? scheduledRide : null,
+        userName: user.user,
+        estimatedPrice: selectedVehicleData?.price ?? 0,
+        estimatedDuration: distanceInfo.duration,
+        distanceInfo: {
+          distance: distanceInfo.distance,
+          distanceInKm: distanceInfo.distanceInKm
+        },
+        mobile: user.mobile,
+        profile: user.profile
+      };
+
+      socket.emit("requestRide", bookingData);
     } catch (error) {
-      console.error("Failed to geocode dropoff location:", error);
-      // Keep the original destination if geocoding fails
+      setNotification({
+        open: true,
+        type: "error",
+        title: "Booking Error",
+        message: "Failed to send ride request. Please try again.",
+      });
+      setIsSearching(false);
+      handleClear();
     }
-
-    const selectedVehicleData = vehicles.find((v) => v.id === selectedVehicle);
-    const vehicleModel = selectedVehicleData?.name ?? "Standard";
-
-    const bookingData = {
-      pickupLocation: {
-        address: pickupAddress,
-        latitude: pickupLat,
-        longitude: pickupLng,
-      },
-      dropOffLocation: {
-        address: dropoffAddress,
-        latitude: dropoffLat,
-        longitude: dropoffLng,
-      },
-      vehicleModel,
-      isScheduled,
-      scheduledDateTime: isScheduled ? scheduledRide : null,
-      userName: user.user,
-      estimatedPrice: selectedVehicleData?.price ?? 0,
-      estimatedDuration: distanceInfo.duration,
-      distanceInfo: {
-        distance: distanceInfo.distance,
-        distanceInKm: distanceInfo.distanceInKm
-      },
-      mobile: user.mobile,
-      profile: user.profile
-    };
-
-    socket.emit("requestRide", bookingData);
-  } catch (error) {
-    setNotification({
-      open: true,
-      type: "error",
-      title: "Booking Error",
-      message: "Failed to send ride request. Please try again.",
-    });
-    setIsSearching(false);
-    handleClear();
-  }
-};
+  };
 
   const handleClear = () => {
     setOrigin("");
@@ -526,8 +572,8 @@ const handleBookRide = async () => {
                 label="Driver"
               />
             )}
-          </GoogleMap>
-        </div>
+            </GoogleMap>
+          </div>
 
         <div className="absolute top-4 left-4 right-4 bg-white rounded-xl shadow-lg p-4 md:w-96 md:left-4 md:right-auto">
           <div className="space-y-4">
