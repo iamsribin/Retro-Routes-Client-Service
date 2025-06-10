@@ -210,10 +210,10 @@ const Ride: React.FC = () => {
 
         if (data.status === "Accepted" && data.driverCoordinates && data.booking?.pickupCoordinates) {
           dispatch(showRideMap(data));
-          fetchDriverRoute(data.driverCoordinates, {
-            lat: data.booking.pickupCoordinates.latitude,
-            lng: data.booking.pickupCoordinates.longitude,
-          });
+          // fetchDriverRoute(data.driverCoordinates, {
+          //   lat: data.booking.pickupCoordinates.latitude,
+          //   lng: data.booking.pickupCoordinates.longitude,
+          // });
         }
       });
 
@@ -360,29 +360,29 @@ const Ride: React.FC = () => {
     }
   };
 
-  const fetchDriverRoute = async (
-    driverLocation: { latitude: number; longitude: number },
-    pickupLocation: { lat: number; lng: number }
-  ) => {
-    const directionsService = new google.maps.DirectionsService();
-    try {
-      const result = await directionsService.route({
-        origin: { lat: driverLocation.latitude, lng: driverLocation.longitude },
-        destination: pickupLocation,
-        travelMode: google.maps.TravelMode.DRIVING,
-      });
-      setDriverDirections(result);
-    } catch (error) {
-      console.log("rour Error", error);
+  // const fetchDriverRoute = async (
+  //   driverLocation: { latitude: number; longitude: number },
+  //   pickupLocation: { lat: number; lng: number }
+  // ) => {
+  //   const directionsService = new google.maps.DirectionsService();
+  //   try {
+  //     const result = await directionsService.route({
+  //       origin: { lat: driverLocation.latitude, lng: driverLocation.longitude },
+  //       destination: pickupLocation,
+  //       travelMode: google.maps.TravelMode.DRIVING,
+  //     });
+  //     setDriverDirections(result);
+  //   } catch (error) {
+  //     console.log("rour Error", error);
 
-      setNotification({
-        open: true,
-        type: "error",
-        title: "Route Error",
-        message: "Could not calculate driver route",
-      });
-    }
-  };
+  //     setNotification({
+  //       open: true,
+  //       type: "error",
+  //       title: "Route Error",
+  //       message: "Could not calculate driver route",
+  //     });
+  //   }
+  // };
 
   const handleSearchCabs = async () => {
     if (!destination || (useCurrentLocationAsPickup && !userLocation) || (!useCurrentLocationAsPickup && !origin)) {

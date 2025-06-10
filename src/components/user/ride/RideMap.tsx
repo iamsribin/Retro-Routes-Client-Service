@@ -12,8 +12,8 @@ import { useSocket } from "@/context/SocketContext";
 import { hideRideMap } from "@/services/redux/slices/rideSlice";
 
 interface Coordinates {
-  latitude: number ;
-  longitude: number ;
+  latitude: number;
+  longitude: number;
 }
 
 interface Booking {
@@ -60,7 +60,7 @@ interface DriverDetails {
 
 interface RideStatusData {
   ride_id: string;
-  status: "searching" | "Accepted" | "Failed" | "cancelled";
+  status: "searching" | "Accepted" | "Failed" | "cancelled" | "Started";
   message?: string;
   driverId?: string;
   booking?: Booking;
@@ -99,14 +99,14 @@ const RideTrackingPage: React.FC = () => {
   const navigate = useNavigate();
   const { socket, isConnected } = useSocket();
   const rideMapState = useSelector((state: RootState) => state.RideMap);
-  console.log("rideMapState==", rideMapState);
-
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [canCancel, setCanCancel] = useState<boolean>(true);
   const [estimatedArrival, setEstimatedArrival] = useState<number>(5);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [center, setCenter] = useState<{ lat: number; lng: number }>(defaultCenter);
   const [zoom, setZoom] = useState<number>(13);
+  const [rideStarted, setRideStarted] = useState<boolean>(false);
+  const [carIcon, setCarIcon] = useState<google.maps.Icon | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -114,7 +114,17 @@ const RideTrackingPage: React.FC = () => {
     libraries,
   });
 
-  // Validate and parse coordinates
+  // Initialize carIcon after Google Maps API is loaded
+useEffect(() => {
+  if (isLoaded && window.google && !carIcon) {
+    setCarIcon({
+      url: "https://img.icons8.com/color/48/000000/car.png",
+      scaledSize: new window.google.maps.Size(40, 40),
+      anchor: new window.google.maps.Point(20, 20) // Center the icon
+    });
+  }
+}, [isLoaded, carIcon]);
+
   const parseCoordinates = (coords: Coordinates | undefined): Coordinates | null => {
     if (!coords) return null;
     const lat = typeof coords.latitude === "string" ? parseFloat(coords.latitude) : coords.latitude;
@@ -131,7 +141,6 @@ const RideTrackingPage: React.FC = () => {
     return parsed !== null;
   };
 
-  // Initialize timer from localStorage
   useEffect(() => {
     if (!rideMapState.isOpen || rideMapState.rideData?.status !== "Accepted") {
       setCanCancel(false);
@@ -139,76 +148,65 @@ const RideTrackingPage: React.FC = () => {
       return;
     }
 
+    const CANCELLATION_WINDOW = 30 * 1000;
     const savedStartTime = localStorage.getItem("cancelTimerStart");
-    const cancellationWindow = 30 * 1000; // 30 seconds in milliseconds
 
     if (savedStartTime) {
       const startTime = parseInt(savedStartTime, 10);
-      const currentTime = Date.now();
-      const elapsedTime = currentTime - startTime;
-      const remainingTime = Math.max(0, cancellationWindow - elapsedTime);
+      const elapsedTime = Date.now() - startTime;
 
-      if (remainingTime <= 0) {
+      if (elapsedTime >= CANCELLATION_WINDOW) {
         setCanCancel(false);
         setTimeLeft(0);
         localStorage.removeItem("cancelTimerStart");
         return;
       }
 
+      const remainingTime = CANCELLATION_WINDOW - elapsedTime;
       setTimeLeft(Math.ceil(remainingTime / 1000));
+      setCanCancel(true);
     } else {
-      localStorage.setItem("cancelTimerStart", Date.now().toString());
-      setTimeLeft(30);
+      if (canCancel) {
+        const newStartTime = Date.now();
+        localStorage.setItem("cancelTimerStart", newStartTime.toString());
+        setTimeLeft(30);
+        setCanCancel(true);
+      } else {
+        return;
+      }
     }
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        const savedTime = localStorage.getItem("cancelTimerStart");
-        if (!savedTime) {
-          clearInterval(timer);
-          setCanCancel(false);
-          return 0;
-        }
+      const currentStartTime = localStorage.getItem("cancelTimerStart");
+      if (!currentStartTime) {
+        clearInterval(timer);
+        setCanCancel(false);
+        return;
+      }
 
-        const startTime = parseInt(savedTime, 10);
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, cancellationWindow - elapsed);
+      const elapsed = Date.now() - parseInt(currentStartTime, 10);
+      const remaining = CANCELLATION_WINDOW - elapsed;
 
-        if (remaining <= 0) {
-          clearInterval(timer);
-          setCanCancel(false);
-          localStorage.removeItem("cancelTimerStart");
-          return 0;
-        }
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setCanCancel(false);
+        setTimeLeft(0);
+        localStorage.removeItem("cancelTimerStart");
+        return;
+      }
 
-        return Math.ceil(remaining / 1000);
-      });
+      setTimeLeft(Math.ceil(remaining / 1000));
     }, 1000);
 
-    const arrivalTimer = setInterval(() => {
-      setEstimatedArrival((prev) => {
-        if (prev <= 1) {
-          clearInterval(arrivalTimer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 60000);
+    return () => clearInterval(timer);
+  }, [rideMapState.isOpen, rideMapState.rideData?.status, canCancel]);
 
-    return () => {
-      clearInterval(timer);
-      clearInterval(arrivalTimer);
-    };
-  }, [rideMapState.isOpen, rideMapState.rideData?.status]);
-
-  // Redirect if ride is not open
   useEffect(() => {
     if (!rideMapState.isOpen) {
       navigate("/");
     }
   }, [rideMapState.isOpen, navigate]);
 
-  // Log map container dimensions
   useEffect(() => {
     if (mapRef.current) {
       const { offsetHeight, offsetWidth } = mapRef.current;
@@ -216,7 +214,6 @@ const RideTrackingPage: React.FC = () => {
     }
   }, [isLoaded]);
 
-  // Fetch driver route and set map center
   useEffect(() => {
     if (!isLoaded || !rideMapState.rideData) {
       console.log("Map not loaded or ride data missing:", { isLoaded, rideData: rideMapState.rideData });
@@ -225,39 +222,24 @@ const RideTrackingPage: React.FC = () => {
 
     const driverCoords = parseCoordinates(rideMapState.rideData.driverCoordinates);
     const pickupCoords = parseCoordinates(rideMapState.rideData.booking?.pickupCoordinates);
+    const dropoffCoords = parseCoordinates(rideMapState.rideData.booking?.dropoffCoordinates);
 
-    console.log("Parsed coordinates:", { driverCoords, pickupCoords });
-
-    // Set default center if coordinates are invalid
-    if (!driverCoords || !pickupCoords) {
+    if (!driverCoords || (!pickupCoords && !dropoffCoords)) {
       setCenter(defaultCenter);
       console.warn("Invalid coordinates, using default center:", defaultCenter);
       return;
     }
 
-    
-    setCenter({
-      lat: (driverCoords.latitude + pickupCoords.latitude) / 2,
-      lng: (driverCoords.longitude + pickupCoords.longitude) / 2,
-    });
-
-    const fetchDriverRoute = async () => {
+    const fetchRoute = async (origin: Coordinates, destination: Coordinates) => {
       const directionsService = new google.maps.DirectionsService();
       try {
         const result = await directionsService.route({
-          origin: {
-            lat: driverCoords.latitude,
-            lng: driverCoords.longitude,
-          },
-          destination: {
-            lat: pickupCoords.latitude,
-            lng: pickupCoords.longitude,
-          },
+          origin: { lat: origin.latitude, lng: origin.longitude },
+          destination: { lat: destination.latitude, lng: destination.longitude },
           travelMode: google.maps.TravelMode.DRIVING,
         });
         setDirections(result);
 
-        // Adjust zoom based on route bounds
         const bounds = result.routes[0].bounds;
         if (bounds) {
           const ne = bounds.getNorthEast();
@@ -268,20 +250,30 @@ const RideTrackingPage: React.FC = () => {
           const newZoom = Math.min(15, Math.max(10, 13 - Math.floor(Math.log2(maxDiff * 100))));
           setZoom(newZoom);
         }
+
+        setCenter({
+          lat: (origin.latitude + destination.latitude) / 2,
+          lng: (origin.longitude + destination.longitude) / 2,
+        });
       } catch (error) {
         console.error("Error fetching route:", error);
       }
     };
 
-    fetchDriverRoute();
+    if (rideStarted && dropoffCoords) {
+      fetchRoute(driverCoords, dropoffCoords);
+    } else if (pickupCoords) {
+      fetchRoute(driverCoords, pickupCoords);
+    }
   }, [
     isLoaded,
     rideMapState.rideData,
     rideMapState.rideData?.driverCoordinates,
     rideMapState.rideData?.booking?.pickupCoordinates,
+    rideMapState.rideData?.booking?.dropoffCoordinates,
+    rideStarted,
   ]);
 
-  // Socket listener for ride updates
   useEffect(() => {
     if (!socket || !isConnected) return;
 
@@ -290,13 +282,35 @@ const RideTrackingPage: React.FC = () => {
       if (data.status === "cancelled" || data.status === "Failed") {
         dispatch(hideRideMap());
         localStorage.removeItem("cancelTimerStart");
+      } else if (data.status === "Started") {
+        setRideStarted(true);
+        setCanCancel(false);
+        localStorage.removeItem("cancelTimerStart");
+      }
+    });
+
+    socket.on("driverStartRide", (driverLocation: Coordinates) => {
+      console.log("driverStartRide driverLocation:", driverLocation);
+      setRideStarted(true);
+      setCanCancel(false);
+      localStorage.removeItem("cancelTimerStart");
+      const driverCoords = parseCoordinates(driverLocation);
+      if (driverCoords && rideMapState.rideData?.booking?.dropoffCoordinates) {
+        const dropoffCoords = parseCoordinates(rideMapState.rideData.booking.dropoffCoordinates);
+        if (dropoffCoords) {
+          setCenter({
+            lat: (driverCoords.latitude + dropoffCoords.latitude) / 2,
+            lng: (driverCoords.longitude + dropoffCoords.longitude) / 2,
+          });
+        }
       }
     });
 
     return () => {
       socket.off("rideStatus");
+      socket.off("driverStartRide");
     };
-  }, [socket, isConnected, dispatch]);
+  }, [socket, isConnected, dispatch, rideMapState.rideData]);
 
   const handleCancelRide = () => {
     if (socket && isConnected && rideMapState.rideData) {
@@ -317,7 +331,6 @@ const RideTrackingPage: React.FC = () => {
     // Implement messaging functionality
   };
 
-  // Don't render if ride is not open or rideData is missing
   if (!rideMapState.isOpen || !rideMapState.rideData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -329,7 +342,6 @@ const RideTrackingPage: React.FC = () => {
     );
   }
 
-  // Debug Google Maps API loading
   if (!isLoaded) {
     console.log("Google Maps API not loaded. Load error:", loadError);
     return (
@@ -347,16 +359,18 @@ const RideTrackingPage: React.FC = () => {
   const driverDetails = rideData.driverDetails;
   const driverCoords = parseCoordinates(rideData.driverCoordinates);
   const pickupCoords = parseCoordinates(rideData.booking?.pickupCoordinates);
+  const dropoffCoords = parseCoordinates(rideData.booking?.dropoffCoordinates);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-sm border-b px-4 py-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">Driver Found</h1>
+              <h1 className="text-lg font-semibold text-gray-900">
+                {rideStarted ? "Ride in Progress" : "Driver Found"}
+              </h1>
               <p className="text-sm text-gray-600">Arriving in {estimatedArrival} minutes</p>
             </div>
           </div>
@@ -366,7 +380,6 @@ const RideTrackingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* "Driver is on the way" Banner */}
       <div className="bg-white shadow-md px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -374,20 +387,21 @@ const RideTrackingPage: React.FC = () => {
               <Navigation className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="font-semibold text-gray-900">Driver is on the way</p>
+              <p className="font-semibold text-gray-900">
+                {rideStarted ? "En route to destination" : "Driver is on the way"}
+              </p>
               <p className="text-sm text-gray-600">{estimatedArrival} mins away</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs text-gray-500">Pickup at</p>
+            <p className="text-xs text-gray-500">{rideStarted ? "Dropoff at" : "Pickup at"}</p>
             <p className="font-medium text-gray-900 text-sm max-w-32 truncate">
-              {rideData.booking?.pickupLocation}
+              {rideStarted ? rideData.booking?.dropoffLocation : rideData.booking?.pickupLocation}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Map Section */}
       <div
         ref={mapRef}
         className="relative w-full h-[50vh] rounded-xl overflow-hidden shadow-xl bg-gray-200"
@@ -406,10 +420,11 @@ const RideTrackingPage: React.FC = () => {
                     lat: driverCoords.latitude,
                     lng: driverCoords.longitude,
                   }}
+                  icon={carIcon}
                   label="Driver"
                 />
               )}
-              {pickupCoords && (
+              {!rideStarted && pickupCoords && (
                 <Marker
                   position={{
                     lat: pickupCoords.latitude,
@@ -418,11 +433,22 @@ const RideTrackingPage: React.FC = () => {
                   label="Pickup"
                 />
               )}
+              {rideStarted && dropoffCoords && (
+                <Marker
+                  position={{
+                    lat: dropoffCoords.latitude,
+                    lng: dropoffCoords.longitude,
+                  }}
+                  label="Dropoff"
+                />
+              )}
               {directions && <DirectionsRenderer directions={directions} />}
             </GoogleMap>
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-lg">
               <p className="text-sm text-gray-600">
-                {driverCoords && pickupCoords ? "Live driver tracking" : "Waiting for valid location data"}
+                {driverCoords && (rideStarted ? dropoffCoords : pickupCoords)
+                  ? "Live driver tracking"
+                  : "Waiting for valid location data"}
               </p>
             </div>
           </>
@@ -433,9 +459,7 @@ const RideTrackingPage: React.FC = () => {
         )}
       </div>
 
-      {/* Driver Details Section */}
       <div className="bg-white px-4 py-6 space-y-6">
-        {/* Driver Info Card */}
         <Card className="border-0 shadow-sm bg-gradient-to-r from-gray-50 to-white">
           <CardContent className="p-4">
             <div className="flex items-center space-x-4">
@@ -494,23 +518,23 @@ const RideTrackingPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* PIN Section */}
-        <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="mb-3">
-                <MapPin className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-700">Your Ride PIN</p>
+        {!rideStarted && (
+          <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="mb-3">
+                  <MapPin className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-gray-700">Your Ride PIN</p>
+                </div>
+                <div className="text-4xl font-bold text-blue-700 tracking-wider mb-2 font-mono">
+                  {rideData.booking?.pin}
+                </div>
+                <p className="text-xs text-gray-600">Share this PIN with your driver to start the ride</p>
               </div>
-              <div className="text-4xl font-bold text-blue-700 tracking-wider mb-2 font-mono">
-                {rideData.booking?.pin}
-              </div>
-              <p className="text-xs text-gray-600">Share this PIN with your driver to start the ride</p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Trip Details */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
@@ -539,7 +563,6 @@ const RideTrackingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Trip Stats */}
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
@@ -555,7 +578,6 @@ const RideTrackingPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Cancel Button with Timer */}
         {canCancel && rideMapState.rideData?.status === "Accepted" && (
           <Card className="border-red-200 bg-red-50 border-0 shadow-sm">
             <CardContent className="p-4">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { CircleDollarSign, Clock, Star, Navigation2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@chakra-ui/react";
 import DriverNavbar from "@/components/driver/dashboard/DriverNavbar";
 import RideNotification from "@/components/driver/dashboard/RideNotification";
-import ActiveRideMap from "@/components/driver/dashboard/ActiveRideMap";
 import { useSocket } from "@/context/SocketContext";
+import { showRideMap, hideRideMap } from "@/services/redux/slices/driverRideSlice";
 
 const NOTIFICATION_SOUND = "/uber_tune.mp3";
 
@@ -49,9 +50,15 @@ interface BookingDetails {
   createdAt: string;
 }
 
-interface RideRequestData {
+interface CustomerDetails {
+  id: string;
+  name: string;
+  profileImageUrl?: string;
+}
+
+interface DriverRideRequest {
   requestId: string;
-  customer: Customer;
+  customer: CustomerDetails;
   pickup: LocationCoordinates;
   dropoff: LocationCoordinates;
   ride: RideDetails;
@@ -63,13 +70,13 @@ interface RideRequestData {
 const DriverDashboard: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [showRideRequest, setShowRideRequest] = useState<boolean>(false);
-  const [activeRide, setActiveRide] = useState<RideRequestData | null>(null);
-  const [isRideAccepted, setIsRideAccepted] = useState<boolean>(false);
+  const [activeRide, setActiveRide] = useState<DriverRideRequest | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const toast = useToast();
   const { socket, isConnected } = useSocket();
 
@@ -143,7 +150,7 @@ const DriverDashboard: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("rideRequest", (rideRequest: RideRequestData) => {
+    socket.on("rideRequest", (rideRequest: DriverRideRequest) => {
       if (!rideRequest || !rideRequest.booking) {
         console.error("Invalid ride request data:", rideRequest);
         toast({
@@ -153,6 +160,7 @@ const DriverDashboard: React.FC = () => {
         });
         return;
       }
+      console.log("rideRequest==-", rideRequest);
 
       try {
         setActiveRide(rideRequest);
@@ -221,11 +229,10 @@ const DriverDashboard: React.FC = () => {
     if (!checked) {
       setShowRideRequest(false);
       setActiveRide(null);
-      setIsRideAccepted(false);
       if (socket && isConnected) {
         socket.emit("driverOffline", { driverId: socket.id });
       }
-    }
+     }
   }, [socket, isConnected]);
 
   const handleAcceptRide = useCallback(() => {
@@ -246,7 +253,9 @@ const DriverDashboard: React.FC = () => {
       });
 
       setShowRideRequest(false);
-      setIsRideAccepted(true);
+      console.log("jklhfdajk",activeRide);
+      dispatch(showRideMap(activeRide));
+      navigate("/driver/rideTracking");
 
       if (timeoutRef.current) {
         clearInterval(timeoutRef.current);
@@ -265,7 +274,7 @@ const DriverDashboard: React.FC = () => {
         variant: "destructive",
       });
     }
-  }, [socket, activeRide, isConnected, toast]);
+  }, [socket, activeRide, isConnected, dispatch, navigate, toast]);
 
   const handleDeclineRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
@@ -325,7 +334,8 @@ const DriverDashboard: React.FC = () => {
       });
 
       setActiveRide(null);
-      setIsRideAccepted(false);
+      dispatch(hideRideMap());
+      navigate("/driver/dashboard");
 
       toast({
         title: "Ride Cancelled",
@@ -333,7 +343,7 @@ const DriverDashboard: React.FC = () => {
         variant: "destructive",
       });
     }
-  }, [socket, activeRide, isConnected, toast]);
+  }, [socket, activeRide, isConnected, dispatch, navigate, toast]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -341,7 +351,7 @@ const DriverDashboard: React.FC = () => {
       <div className="flex-1 p-4 sm:p-6 md:p-8 ml-0 sm:ml-64">
         <div className="bg-white shadow rounded-lg mb-6">
           <div className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm concerts-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Driver Dashboard</h1>
                 <p className="mt-1 text-sm text-gray-500">Welcome back, Driver</p>
@@ -364,62 +374,62 @@ const DriverDashboard: React.FC = () => {
           </div>
         </div>
 
-        {!isRideAccepted && !activeRide && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Today's Earnings</p>
-                    <h3 className="text-xl sm:text-2xl font-bold mt-1">₹2,450</h3>
-                  </div>
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-emerald-50 rounded-full flex items-center justify-center">
-                    <CircleDollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
-                  </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Today's Earnings</p>
+                  <h3 className="text-xl sm:text-2xl font-bold mt-1">₹2,450</h3>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Completed Rides</p>
-                    <h3 className="text-xl sm:text-2xl font-bold mt-1">8</h3>
-                  </div>
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-wasabi-50 rounded-full flex items-center justify-center">
-                    <Navigation2 className="h-5 w-5 sm:h-6 sm:w-6 text-wasabi-500" />
-                  </div>
+                <div className="h-10 w-10 sm:h-12 sm:w-12 bg-emerald-50 rounded-full flex items-center justify-center">
+                  <CircleDollarSign className="h-5 w-5 sm:h-
+
+6 sm:w-6 text-emerald-500" />
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Online Hours</p>
-                    <h3 className="text-xl sm:text-2xl font-bold mt-1">6.5h</h3>
-                  </div>
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-egyptian-50 rounded-full flex items-center justify-center">
-                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-egyptian-500" />
-                  </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Completed Rides</p>
+                  <h3 className="text-xl sm:text-2xl font-bold mt-1">8</h3>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Rating</p>
-                    <h3 className="text-xl sm:text-2xl font-bold mt-1">4.8</h3>
-                  </div>
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-khaki-50 rounded-full flex items-center justify-center">
-                    <Star className="h-5 w-5 sm:h-6 sm:w-6 text-khaki-500" />
-                  </div>
+                <div className="h-10 w-10 sm:h-12 sm:w-12 bg-wasabi-50 rounded-full flex items-center justify-center">
+                  <Navigation2 className="h-5 w-5 sm:h-6 sm:w-6 text-wasabi-500" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Online Hours</p>
+                  <h3 className="text-xl sm:text-2xl font-bold mt-1">6.5h</h3>
+                </div>
+                <div className="h-10 w-10 sm:h-12 sm:w-12 bg-egyptian-50 rounded-full flex items-center justify-center">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-egyptian-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Rating</p>
+                  <h3 className="text-xl sm:text-2xl font-bold mt-1">4.8</h3>
+                </div>
+                <div className="h-10 w-10 sm:h-12 sm:w-12 bg-khaki-50 rounded-full flex items-center justify-center">
+                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-khaki-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {showRideRequest && activeRide && (
           <RideNotification
@@ -438,43 +448,7 @@ const DriverDashboard: React.FC = () => {
           />
         )}
 
-        {isRideAccepted && activeRide && driverLocation && (
-          <div className="h-[calc(100vh-220px)]">
-            <ActiveRideMap
-              booking={{
-                ride_id: activeRide.ride.rideId,
-                user_id: activeRide.booking.userId,
-                pickupCoordinates: {
-                  latitude: activeRide.pickup.latitude,
-                  longitude: activeRide.pickup.longitude,
-                },
-                dropoffCoordinates: {
-                  latitude: activeRide.dropoff.latitude,
-                  longitude: activeRide.dropoff.longitude,
-                },
-                pickupLocation: activeRide.pickup.address,
-                dropoffLocation: activeRide.dropoff.address,
-                distance: activeRide.ride.estimatedDistance,
-                vehicleModel: activeRide.ride.vehicleType,
-                price: activeRide.ride.fareAmount,
-                status: activeRide.booking.status,
-                pin: activeRide.ride.securityPin,
-                _id: activeRide.booking.bookingId,
-                date: activeRide.booking.createdAt,
-              }}
-              driverLocation={driverLocation}
-              customer={{
-                name: activeRide.customer.name,
-                avatar: activeRide.customer.profileImageUrl || '',
-                rating: 0,
-              }}
-              onArrived={handleArrived}
-              onCancelRide={handleCancelRide}
-            />
-          </div>
-        )}
-
-        {!activeRide && !showRideRequest && !isRideAccepted && isOnline && (
+        {!activeRide && !showRideRequest && isOnline && (
           <Card className="mb-6">
             <CardContent className="py-8 sm:py-12 text-center">
               <Badge variant="secondary" className="mb-4 bg-emerald-50 text-emerald-500">Online</Badge>
@@ -484,7 +458,7 @@ const DriverDashboard: React.FC = () => {
           </Card>
         )}
 
-        {!activeRide && !showRideRequest && !isRideAccepted && !isOnline && (
+        {!activeRide && !showRideRequest && !isOnline && (
           <Card className="mb-6">
             <CardContent className="py-8 sm:py-12 text-center">
               <Badge variant="secondary" className="mb-4">Offline</Badge>
