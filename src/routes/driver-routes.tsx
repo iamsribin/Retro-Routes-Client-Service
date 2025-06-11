@@ -11,6 +11,7 @@ import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/driver/dashboard/dashboard";
 import DriverProfile from "@/pages/driver/profile/DriverProfile";
 import BookingTransaction from "@/pages/driver/profile/BookingTransaction";
+import BookingDetails from "@/pages/driver/profile/BookingDetails";
 import ActiveRideMap from "@/components/driver/dashboard/ActiveRideMap";
 
 const ROLE = "Driver"; 
@@ -23,8 +24,9 @@ function DriverRoutes() {
       <Route path={AppRoutes.DRIVER_IDENTIFICATION} element={<ProtectedRoute allowedRole="Resubmission"><ResubmissionPage /></ProtectedRoute>} />
       <Route path={AppRoutes.DASHBOARD} element={<ProtectedRoute allowedRole={ROLE}><Dashboard/></ProtectedRoute>} />
       <Route path={AppRoutes.PROFILE} element={<ProtectedRoute allowedRole={ROLE}><DriverProfile/></ProtectedRoute>} />
-      <Route path="transationHistory" element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
       <Route path="rideTracking" element={<ProtectedRoute allowedRole={ROLE}><ActiveRideMap/></ProtectedRoute>} />
+      <Route path="bookings" element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
+      <Route path="bookings/:bookingId" element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Table, 
@@ -8,74 +9,20 @@ import {
   Th, 
   Td, 
   Button, 
-  Modal, 
-  ModalOverlay, 
-  ModalContent, 
-  ModalHeader, 
-  ModalCloseButton, 
-  ModalBody, 
-  ModalFooter, 
+  Select, 
+  Input, 
+  Flex, 
   Text, 
-  VStack, 
-  useDisclosure,
-  Spinner,
-  Alert,
-  AlertIcon
+  Spinner, 
+  Alert, 
+  AlertIcon,
+  HStack,
 } from '@chakra-ui/react';
-import axios from 'axios';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import driverAxios from "@/services/axios/driverAxios";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/services/redux/store";
-
-
-// Sample data for UI rendering
-// const sampleBookings = [
-//   {
-//     _id: '1',
-//     ride_id: 'RIDE001',
-//     user_id: 'USER001',
-//     userName: 'John Doe',
-//     pickupCoordinates: { latitude: 40.7128, longitude: -74.0060 },
-//     dropoffCoordinates: { latitude: 40.7589, longitude: -73.9851 },
-//     pickupLocation: '123 Main St, NYC',
-//     dropoffLocation: '456 Park Ave, NYC',
-//     driver_id: 'DRIVER001',
-//     driverCoordinates: { latitude: 40.7300, longitude: -73.9950 },
-//     distance: '5.2 km',
-//     duration: '15 min',
-//     vehicleModel: 'Toyota Camry',
-//     price: 25.50,
-//     date: new Date('2025-05-27T10:00:00Z'),
-//     status: 'Confirmed',
-//     pin: 1234,
-//     paymentMode: 'Credit Card',
-//     feedback: 'Great ride!',
-//     rating: 4.5
-//   },
-//   {
-//     _id: '2',
-//     ride_id: 'RIDE002',
-//     user_id: 'USER002',
-//     userName: 'Jane Smith',
-//     pickupCoordinates: { latitude: 40.7306, longitude: -73.9352 },
-//     dropoffCoordinates: { latitude: 40.7549, longitude: -73.9840 },
-//     pickupLocation: '789 Broadway, NYC',
-//     dropoffLocation: '101 Times Sq, NYC',
-//     driver_id: null,
-//     driverCoordinates: null,
-//     distance: '3.8 km',
-//     duration: '10 min',
-//     vehicleModel: 'Honda Accord',
-//     price: 18.75,
-//     date: new Date('2025-05-27T12:00:00Z'),
-//     status: 'Pending',
-//     pin: null,
-//     paymentMode: 'Cash',
-//     feedback: null,
-//     rating: null
-//   }
-// ];
+import { Calendar } from 'lucide-react';
 
 interface Booking {
   _id: string;
@@ -87,37 +34,39 @@ interface Booking {
   pickupLocation: string;
   dropoffLocation: string;
   driver_id?: string;
-  driverCoordinates?: { latitude: number; longitude: number };
   distance?: string;
-  duration?: string;
-  vehicleModel: string;
   price?: number;
   date: Date;
   status: 'Pending' | 'Accepted' | 'Confirmed' | 'Completed' | 'Cancelled';
-  pin?: number;
   paymentMode?: string;
-  feedback?: string;
-  rating?: number;
 }
 
 const BookingList: React.FC = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-    const dispatch = useDispatch<AppDispatch>();
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [startDate, setStartDate] = useState<string>(
+    format(subDays(new Date(), 30), 'yyyy-MM-dd')
+  );
+  const [endDate, setEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [currentPage, setCurrentPage] = useState(1);
+  const bookingsPerPage = 10;
 
+  const dispatch = useDispatch<AppDispatch>();
   const { driver } = useSelector((state: RootState) => ({
     driver: state.driver,
   }));
-  
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        const response = await driverAxios(dispatch).get(`/getBookingHistory/${driver.driverId}`);        
+        const response = await driverAxios(dispatch).get(`/getBookingHistory/${driver.driverId}`);
         setBookings(response.data.data);
+        setFilteredBookings(response.data.data);
         setError(null);
       } catch (err) {
         setError('Failed to fetch bookings');
@@ -126,24 +75,75 @@ const BookingList: React.FC = () => {
         setLoading(false);
       }
     };
-    fetchBookings(); 
-  }, []);
-  
+    fetchBookings();
+  }, [dispatch, driver.driverId]);
 
-  // Using sample data instead
-  // useEffect(() => {
-  //   setBookings(sampleBookings);
-  //   setLoading(false);
-  // }, []);
+  useEffect(() => {
+    let filtered = bookings;
+    
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(booking => booking.status === statusFilter);
+    }
 
-  const handleView = (booking: Booking) => {
-    setSelectedBooking(booking);
-    onOpen();
+    if (startDate && endDate) {
+      filtered = filtered.filter(booking => {
+        const bookingDate = new Date(booking.date);
+        return bookingDate >= new Date(startDate) && bookingDate <= new Date(endDate);
+      });
+    }
+
+    setFilteredBookings(filtered);
+    setCurrentPage(1);
+  }, [statusFilter, startDate, endDate, bookings]);
+
+  const indexOfLastBooking = currentPage * bookingsPerPage;
+  const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
+  const currentBookings = filteredBookings.slice(indexOfFirstBooking, indexOfLastBooking);
+  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleView = (bookingId: string) => {
+    navigate(`/driver/bookings/${bookingId}`);
   };
 
   return (
-    <Box p={6}>
-      <Text fontSize="2xl" mb={4} fontWeight="bold">Booking List</Text>
+    <Box p={6} maxW="container.xl" mx="auto">
+      <Text fontSize="2xl" mb={4} fontWeight="bold" display="flex" alignItems="center">
+        <Calendar className="mr-2" /> Booking List
+      </Text>
+
+      <Flex mb={6} wrap="wrap" gap={4}>
+        <Box flex="1" minW="200px">
+          <Text mb={2}>Filter by Status</Text>
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="All">All</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Pending">Pending</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Confirmed">Confirmed</option>
+          </Select>
+        </Box>
+        <Box flex="1" minW="200px">
+          <Text mb={2}>Start Date</Text>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </Box>
+        <Box flex="1" minW="200px">
+          <Text mb={2}>End Date</Text>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </Box>
+      </Flex>
 
       {loading && <Spinner size="xl" />}
       {error && (
@@ -154,94 +154,66 @@ const BookingList: React.FC = () => {
       )}
 
       {!loading && !error && (
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Ride ID</Th>
-              <Th>User</Th>
-              <Th>Pickup</Th>
-              <Th>Dropoff</Th>
-              <Th>Status</Th>
-              <Th>Date</Th>
-              <Th>Actions</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {bookings.map((booking) => (
-              <Tr key={booking._id}>
-                <Td>{booking.ride_id}</Td>
-                <Td>{booking.userName}</Td>
-                <Td>{booking.pickupLocation}</Td>
-                <Td>{booking.dropoffLocation}</Td>
-                <Td>{booking.status}</Td>
-                <Td>{format(new Date(booking.date), 'PPp')}</Td>
-                <Td>
-                  <Button size="sm" colorScheme="blue" onClick={() => handleView(booking)}>
-                    View
-                  </Button>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      )}
+        <>
+          <Box overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Pickup</Th>
+                  <Th>Dropoff</Th>
+                  <Th>Distance</Th>
+                  <Th>Price</Th>
+                  <Th>Date</Th>
+                  <Th>Status</Th>
+                  {/* <Th>Payment</Th> */}
+                  <Th>Actions</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {currentBookings.map((booking) => (
+                  <Tr key={booking._id}>
+                    <Td>{booking.pickupLocation}</Td>
+                    <Td>{booking.dropoffLocation}</Td>
+                    <Td>{booking.distance || 'N/A'}</Td>
+                    <Td>${booking.price?.toFixed(2) || 'N/A'}</Td>
+                    <Td>{format(new Date(booking.date), 'PPp')}</Td>
+                    <Td>{booking.status}</Td>
+                    {/* <Td>{booking.paymentMode || 'N/A'}</Td> */}
+                    <Td>
+                      <Button size="sm" colorScheme="blue" onClick={() => handleView(booking._id)}>
+                        View
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
 
-      {selectedBooking && (
-        <Modal isOpen={isOpen} onClose={onClose} size="xl">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Booking Details - {selectedBooking.ride_id}</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <VStack align="start" spacing={4}>
-                <Text><strong>User:</strong> {selectedBooking.userName} (ID: {selectedBooking.user_id})</Text>
-                <Text><strong>Pickup Location:</strong> {selectedBooking.pickupLocation}</Text>
-                <Text>
-                  <strong>Pickup Coordinates:</strong> 
-                  Lat: {selectedBooking.pickupCoordinates.latitude}, 
-                  Lon: {selectedBooking.pickupCoordinates.longitude}
-                </Text>
-                <Text><strong>Dropoff Location:</strong> {selectedBooking.dropoffLocation}</Text>
-                <Text>
-                  <strong>Dropoff Coordinates:</strong> 
-                  Lat: {selectedBooking.dropoffCoordinates.latitude}, 
-                  Lon: {selectedBooking.dropoffCoordinates.longitude}
-                </Text>
-                {selectedBooking.driver_id && (
-                  <Text><strong>Driver ID:</strong> {selectedBooking.driver_id}</Text>
-                )}
-                {selectedBooking.driverCoordinates && (
-                  <Text>
-                    <strong>Driver Coordinates:</strong> 
-                    Lat: {selectedBooking.driverCoordinates.latitude}, 
-                    Lon: {selectedBooking.driverCoordinates.longitude}
-                  </Text>
-                )}
-                <Text><strong>Distance:</strong> {selectedBooking.distance || 'N/A'}</Text>
-                <Text><strong>Duration:</strong> {selectedBooking.duration || 'N/A'}</Text>
-                <Text><strong>Vehicle Model:</strong> {selectedBooking.vehicleModel}</Text>
-                <Text><strong>Price:</strong> ${selectedBooking.price?.toFixed(2) || 'N/A'}</Text>
-                <Text><strong>Date:</strong> {format(new Date(selectedBooking.date), 'PPp')}</Text>
-                <Text><strong>Status:</strong> {selectedBooking.status}</Text>
-                {selectedBooking.pin && (
-                  <Text><strong>Pin:</strong> {selectedBooking.pin}</Text>
-                )}
-                <Text><strong>Payment Mode:</strong> {selectedBooking.paymentMode || 'N/A'}</Text>
-                {selectedBooking.feedback && (
-                  <Text><strong>Feedback:</strong> {selectedBooking.feedback}</Text>
-                )}
-                {selectedBooking.rating && (
-                  <Text><strong>Rating:</strong> {selectedBooking.rating}/5</Text>
-                )}
-              </VStack>
-            </ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" onClick={onClose}>
-                Close
+          <HStack mt={4} justify="center" spacing={2}>
+            <Button
+              onClick={() => handlePageChange(currentPage - 1)}
+              isDisabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                colorScheme={currentPage === page ? 'blue' : 'gray'}
+              >
+                {page}
               </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+            ))}
+            <Button
+              onClick={() => handlePageChange(currentPage + 1)}
+              isDisabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </HStack>
+        </>
       )}
     </Box>
   );

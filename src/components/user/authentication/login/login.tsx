@@ -10,7 +10,7 @@ import LoginHeader from "@/components/user/authentication/headers/LoginHeader";
 import { auth } from "@/services/firebase";
 import { toast } from "sonner";
 import { jwtDecode } from "jwt-decode";
-import axiosUser from "@/services/axios/userAxios";
+import { useUserApi, useUserApiRequest } from "@/hooks/apiHooks";
 import ApiEndpoints from "@/constants/api-end-points";
 
 interface UserData {
@@ -20,7 +20,7 @@ interface UserData {
   refreshToken: string;
   loggedIn: boolean;
   role: "User" | "Admin";
-  mobile:number| undefined;
+  mobile: number | undefined;
   profile: string;
 }
 
@@ -43,20 +43,28 @@ const Login = () => {
     loggedIn: false,
     role: "User",
     mobile: undefined,
-    profile:""
+    profile: ""
   });
   const [otpInput, setOtpInput] = useState(false);
   const [otp, setOtp] = useState<number>(0);
   const [counter, setCounter] = useState(40);
+
+  const api = useUserApi();
+  const { request, loading, error } = useUserApiRequest<any>();
 
   const handleGoogleLogin = async (data: CredentialResponse) => {
     try {
       const token = data.credential;
       if (!token) throw new Error("No credential provided");
       const decode = jwtDecode<DecodedToken>(token);
-      const { data: response } = await axiosUser(dispatch).post(ApiEndpoints.USER_CHECK_GOOGLE_LOGIN, {
-        email: decode.email,
-      });
+
+      const response = await request(() =>
+        api.post(ApiEndpoints.USER_CHECK_GOOGLE_LOGIN, { email: decode.email })
+      );
+
+      if (!response) {
+        throw new Error(error || "API request failed");
+      }
 
       if (response.message === "Success") {
         const role = response.role as "User" | "Admin";
@@ -66,13 +74,12 @@ const Login = () => {
           role === "Admin" ? "adminRefreshToken" : "refreshToken",
           response.refreshToken
         );
-        
+
         if (role === "Admin") {
-          
-          dispatch(adminLogin({ name: response.name, role, _id: response._id}));
+          dispatch(adminLogin({ name: response.name, role, _id: response._id }));
           navigate("/admin/dashboard");
         } else {
-          dispatch(userLogin({ user: response.name, user_id: response._id, role, mobile:response.mobile, profile: response.profile }));
+          dispatch(userLogin({ user: response.name, user_id: response._id, role, mobile: response.mobile, profile: response.profile }));
           navigate("/");
         }
         toast.success("Login Success");
@@ -81,9 +88,9 @@ const Login = () => {
       } else {
         toast.error("Not registered! Please register to continue.");
       }
-    } catch (error) {
-      console.error("Google login error:", error);
-      toast.error(error instanceof Error ? error.message : "An unknown error occurred");
+    } catch (err) {
+      console.error("Google login error:", err);
+      toast.error(err instanceof Error ? err.message : "An unknown error occurred");
     }
   };
 
@@ -104,6 +111,7 @@ const Login = () => {
           userData={userData}
           setUserData={setUserData}
           onGoogleLogin={handleGoogleLogin}
+          loading={loading} 
         />
       </div>
       <div id="recaptcha-container" />

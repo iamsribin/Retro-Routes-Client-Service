@@ -7,6 +7,7 @@ import ProtectedRoute from "@/routes/ProtectedRoute";
 import AppRoutes from '@/constants/app-routes';
 import NotFound from '@/pages/NotFound';
 import RideMap from '@/components/user/ride/RideMap';
+import UserProfile from '@/pages/user/profile/UserProfile';
 
 const ROLE = 'User';
 
@@ -16,7 +17,9 @@ function UserRoutes() {
       <Route path={AppRoutes.USER_HOME} element={<HomePage />} />
       <Route path={AppRoutes.LOGIN} element={<AuthRedirect role={ROLE}><LoginPage /></AuthRedirect>} />
       <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><SignupPage /></AuthRedirect>} />
+      <Route path="*" element={<NotFound />} />
       <Route path="ride-tracking" element={<RideMap/>}/>
+      <Route path="profile" element={<UserProfile/>}/>
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

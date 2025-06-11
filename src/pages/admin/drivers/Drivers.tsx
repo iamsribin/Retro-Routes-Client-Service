@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import UserList from '@/components/admin/users/UserList';
 import { axiosAdmin } from '@/services/axios/adminAxios';
@@ -12,34 +12,78 @@ const Drivers: React.FC = () => {
   const [verifiedDrivers, setverifiedDrivers] = useState<any[]>([]);
   const [blockedDrivers, setBlockedDrivers] = useState<any[]>([]);
   const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
+  
+  // Use useRef to store the current request's abort controller
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchActiveUsers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_VERIFIED_DRIVERS);
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_VERIFIED_DRIVERS, {
+        signal: abortControllerRef.current.signal
+      });
+      
       setverifiedDrivers(data);
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to fetch active users');
+    } catch (error: any) {
+      // Don't show error if request was cancelled
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        toast.error(error.message || 'Failed to fetch active drivers');
+      }
     }
   };
 
   const fetchPendingDrivers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_PENDING_DRIVERS);
-      console.log("pending drivers==", data);
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_PENDING_DRIVERS, {
+        signal: abortControllerRef.current.signal
+      });
+      
+      console.log("pending drivers==", data);
       setPendingDrivers(data);
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to fetch blocked users');
+    } catch (error: any) {
+      // Don't show error if request was cancelled
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        toast.error(error.message || 'Failed to fetch pending drivers');
+      }
     }
   }; 
   
   const fetchBlockedDrivers = async () => {
     try {
-      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_BLOCKED_DRIVERS);
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_BLOCKED_DRIVERS, {
+        signal: abortControllerRef.current.signal
+      });
+      
       setBlockedDrivers(data);
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to fetch blocked users');
+    } catch (error: any) {
+      // Don't show error if request was cancelled
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        toast.error(error.message || 'Failed to fetch blocked drivers');
+      }
     }
   };
 
@@ -48,10 +92,26 @@ const Drivers: React.FC = () => {
       fetchActiveUsers();
     } else if(activeTab === 'pending'){
       fetchPendingDrivers();
-    }else{
+    } else {
       fetchBlockedDrivers();
     }
+    
+    // Cleanup function to cancel request when tab changes
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [activeTab]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return (
     <AdminLayout>

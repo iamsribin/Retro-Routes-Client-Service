@@ -10,10 +10,9 @@ import { sendOtp } from "@/hooks/useAuth";
 import { userLogin } from "@/services/redux/slices/userAuthSlice";
 import { adminLogin } from "@/services/redux/slices/adminAuthSlice";
 import { loginValidation } from "@/utils/validation";
-import axiosUser from "@/services/axios/userAxios";
+import { useUserApi, useUserApiRequest } from "@/hooks/apiHooks";
 import { toast } from "sonner";
 import ApiEndpoints from "@/constants/api-end-points";
-import { profile } from "console";
 
 interface UserData {
   user: string;
@@ -45,6 +44,7 @@ interface LoginFormProps {
   userData: UserData;
   setUserData: (value: UserData) => void;
   onGoogleLogin: (data: CredentialResponse) => void;
+  loading: boolean;
 }
 
 const LoginForm = ({
@@ -60,9 +60,14 @@ const LoginForm = ({
   userData,
   setUserData,
   onGoogleLogin,
+  loading: parentLoading,
 }: LoginFormProps) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Initialize API hook and request state
+  const api = useUserApi();
+  const { request, loading, error } = useUserApiRequest<any>();
 
   useEffect(() => {
     if (otpInput && counter > 0) {
@@ -76,28 +81,36 @@ const LoginForm = ({
     validationSchema: loginValidation,
     onSubmit: async (values) => {
       try {
-        const { data } = await axiosUser(dispatch).post(ApiEndpoints.USER_CHECK_LOGIN, values);
-        if (data.message === "Success") {
+        // Use the custom API hook for the POST request
+        const response = await request(() =>
+          api.post(ApiEndpoints.USER_CHECK_LOGIN, values)
+        );
+
+        if (!response) {
+          throw new Error(error || "API request failed");
+        }
+
+        if (response.message === "Success") {
           sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
 
           setUserData({
-            user: data.name,
-            user_id: data._id,
-            userToken: data.token,
-            refreshToken: data.refreshToken,
+            user: response.name,
+            user_id: response._id,
+            userToken: response.token,
+            refreshToken: response.refreshToken,
             loggedIn: true,
-            role: data.role,
-            mobile: data.mobile,
-            profile: data.profile,
+            role: response.role,
+            mobile: response.mobile,
+            profile: response.profile,
           });
-        } else if (data.message === "Blocked") {
+        } else if (response.message === "Blocked") {
           toast.info("Your account is blocked");
         } else {
           toast.error("Not registered! Please register to continue.");
         }
-      } catch (error) {
-        console.error(error);
-        toast.error(error instanceof Error ? error.message : "An unknown error occurred");
+      } catch (err) {
+        console.error(err);
+        toast.error(err instanceof Error ? err.message : "An unknown error occurred");
       }
     },
   });
@@ -126,7 +139,7 @@ const LoginForm = ({
       } else {
         localStorage.setItem("userToken", userData.userToken);
         localStorage.setItem("refreshToken", userData.refreshToken);
-        dispatch(userLogin({ user: userData.user, user_id: userData.user_id, role: userData.role, mobile:userData.mobile, profile: userData.profile}));
+        dispatch(userLogin({ user: userData.user, user_id: userData.user_id, role: userData.role, mobile: userData.mobile, profile: userData.profile }));
         navigate("/");
       }
       toast.success("Login Success");
@@ -148,6 +161,7 @@ const LoginForm = ({
               onChange={formik.handleChange}
               value={formik.values.mobile}
               className="w-full p-2"
+              disabled={loading || parentLoading}
             />
           </div>
           {formik.touched.mobile && formik.errors.mobile && (
@@ -161,6 +175,7 @@ const LoginForm = ({
                     <PinInputField
                       key={index}
                       onChange={(e) => handleOtpChange(index, parseInt(e.target.value))}
+                      disabled={loading || parentLoading}
                     />
                   ))}
                 </PinInput>
@@ -172,8 +187,9 @@ const LoginForm = ({
               <button
                 onClick={handleOtpVerify}
                 className="block w-full text-white bg-blue-800 py-1.5 rounded-2xl font-semibold mb-2"
+                disabled={loading || parentLoading}
               >
-                Verify OTP
+                {loading || parentLoading ? "Verifying..." : "Verify OTP"}
               </button>
               <div className="text-center text-gray-500 mt-4">
                 {counter > 0 ? (
@@ -196,8 +212,9 @@ const LoginForm = ({
             <button
               type="submit"
               className="block w-full text-white bg-black py-1.5 rounded-2xl font-semibold mb-2"
+              disabled={loading || parentLoading}
             >
-              Send OTP
+              {loading || parentLoading ? "Sending..." : "Send OTP"}
             </button>
           )}
           <div className="flex flex-col w-full mt-8 border-opacity-50">

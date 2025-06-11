@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Wallet, MapPin, FileText, LogOut } from 'lucide-react';
+import { User, Wallet, MapPin, FileText, LogOut, Calendar } from 'lucide-react';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList, NavigationMenuLink } from "@/components/ui/navigation-menu";
 import { useDispatch } from "react-redux";
 import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
@@ -8,7 +8,8 @@ import logoutLocalStorage from "@/utils/localStorage";
 
 const DriverNavbar: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
+  
   const handleLogout = () => {
     dispatch(driverLogout());
     logoutLocalStorage("Driver");
@@ -35,6 +36,12 @@ const DriverNavbar: React.FC = () => {
             <Link to="/driver/trips" className="flex items-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors">
               <MapPin className="mr-0 sm:mr-3 h-5 w-5" />
               <span className="hidden sm:inline">My Trips</span>
+            </Link>
+          </NavigationMenuItem>
+          <NavigationMenuItem className="w-full">
+            <Link to="/driver/bookings" className="flex items-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors">
+              <Calendar className="mr-0 sm:mr-3 h-5 w-5" />
+              <span className="hidden sm:inline">View Bookings</span>
             </Link>
           </NavigationMenuItem>
           <NavigationMenuItem className="w-full">
