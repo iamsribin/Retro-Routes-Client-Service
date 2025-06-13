@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify"; 
 import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
 import logoutLocalStorage from "@/utils/localStorage";
+import DriverNavbar from "@/components/driver/dashboard/DriverNavbar";
 
 // Interfaces remain unchanged
 interface Transaction {
@@ -449,6 +450,7 @@ const handleSubmit = async (field: string) => {
       />
       {/* Header */}
       <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+            <DriverNavbar />
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <h1 className="text-3xl font-extrabold tracking-tight">Driver Dashboard</h1>
