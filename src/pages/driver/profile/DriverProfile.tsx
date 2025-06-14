@@ -21,24 +21,36 @@ import { useDispatch, useSelector } from "react-redux";
 import driverAxios from "@/services/axios/driverAxios";
 import { RootState } from "@/services/redux/store";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify"; 
+import { toast, ToastContainer } from "react-toastify";
 import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
 import logoutLocalStorage from "@/utils/localStorage";
 import DriverNavbar from "@/components/driver/dashboard/DriverNavbar";
+import { format as formatDate } from "date-fns";
 
-// Interfaces remain unchanged
+// Define DriverData interface
 interface Transaction {
-  date: string;
-  details: string;
-  amount: number;
   status: "Credited" | "Debited";
+  details: string;
+  date: string;
+  amount: number;
+}
+
+interface Wallet {
+  balance: number;
+  transactions: Transaction[];
+}
+
+interface RideDetails {
+  completedRides: number;
+  cancelledRides: number;
+  totalEarnings: number;
 }
 
 interface Feedback {
-  feedback: string;
   ride_id: string;
-  rating: number;
   date: string;
+  rating: number;
+  feedback: string;
 }
 
 interface Aadhar {
@@ -59,10 +71,10 @@ interface VehicleDetails {
   model: string;
   rcFrondImageUrl: string;
   rcBackImageUrl: string;
-  carFrondImageUrl: string;
-  carBackImageUrl: string;
   rcStartDate: string;
   rcExpiryDate: string;
+  carFrondImageUrl: string;
+  carBackImageUrl: string;
   insuranceImageUrl: string;
   insuranceStartDate: string;
   insuranceExpiryDate: string;
@@ -71,129 +83,88 @@ interface VehicleDetails {
   pollutionExpiryDate: string;
 }
 
-interface Wallet {
-  balance: number;
-  transactions: Transaction[];
-}
-
-interface RideDetails {
-  completedRides: number;
-  cancelledRides: number;
-  totalEarnings: number;
-}
-
 interface DriverData {
   name: string;
   email: string;
-  mobile: number;
+  mobile: string;
   driverImage: string;
   joiningDate: string;
+  account_status: "Good" | "Pending" | "Incomplete" | "Blocked";
+  isAvailable: boolean;
+  totalRatings: number;
+  wallet: Wallet;
+  RideDetails: RideDetails;
+  feedbacks: Feedback[];
   aadhar: Aadhar;
   license: License;
   vehicle_details: VehicleDetails;
-  account_status: "Good" | "Pending" | "Incomplete" | "Suspended";
-  wallet: Wallet;
-  RideDetails: RideDetails;
-  isAvailable: boolean;
-  totalRatings: number;
-  feedbacks: Feedback[];
 }
 
-const formatDate = (date: string | Date | null): string => {
-  if (!date) return "N/A";
-  const d = new Date(date);
-  return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}/${d.getFullYear()}`;
-};
+// Define DocumentStatus component
+interface DocumentStatusProps {
+  expiryDate: string;
+  title: string;
+}
 
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
-
-const calculateDaysRemaining = (expiryDate: string | null): number | null => {
-  if (!expiryDate) return null;
+const DocumentStatus: React.FC<DocumentStatusProps> = ({ expiryDate, title }) => {
   const today = new Date();
   const expiry = new Date(expiryDate);
-  const diffTime = expiry.getTime() - today.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
-
-// Document Status Component remains unchanged
-const DocumentStatus: React.FC<{ expiryDate: string | null; title: string }> = ({ expiryDate, title }) => {
-  const daysRemaining = calculateDaysRemaining(expiryDate);
-
-  if (!expiryDate) {
-    return (
-      <div className="flex items-center gap-2 text-red-500">
-        <AlertCircle size={16} />
-        <span className="text-sm">Missing</span>
-      </div>
-    );
-  }
-
-  if (daysRemaining !== null && daysRemaining < 0) {
-    return (
-      <div className="flex items-center gap-2 text-red-500">
-        <AlertCircle size={16} />
-        <span className="text-sm">Expired</span>
-      </div>
-    );
-  }
-
-  if (daysRemaining !== null && daysRemaining < 30) {
-    return (
-      <div className="flex items-center gap-2 text-amber-500">
-        <AlertCircle size={16} />
-        <span className="text-sm">{daysRemaining} days left</span>
-      </div>
-    );
-  }
+  const isExpired = expiry < today;
 
   return (
-    <div className="flex items-center gap-2 text-green-500">
-      <CheckCircle size={16} />
-      <span className="text-sm">Valid</span>
+    <div
+      className={`flex items-center gap-2 text-sm ${
+        isExpired ? "text-red-500" : "text-green-500"
+      }`}
+    >
+      {isExpired ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
+      <span>{isExpired ? `${title} Expired` : `${title} Valid`}</span>
     </div>
   );
 };
 
-// Zoomable Image Component remains unchanged
-const ZoomableImage: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
-  const [isZoomed, setIsZoomed] = useState(false);
+// Define ZoomableImage component
+interface ZoomableImageProps {
+  src: string;
+  alt: string;
+}
 
+const ZoomableImage: React.FC<ZoomableImageProps> = ({ src, alt }) => {
   return (
     <div className="relative group">
       <img
         src={src}
         alt={alt}
-        className="w-full h-48 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+        className="w-full h-32 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
       />
-      <button
-        onClick={() => setIsZoomed(true)}
-        className="absolute top-2 right-2 bg-blue-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <ZoomIn size={16} />
-      </button>
-      {isZoomed && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="relative">
-            <img src={src} alt={alt} className="max-w-[90vw] max-h-[90vh] object-contain" />
-            <button
-              onClick={() => setIsZoomed(false)}
-              className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <ZoomIn size={24} className="text-white" />
+      </div>
     </div>
   );
+};
+
+// Define formatCurrency utility
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+  }).format(amount);
+};
+
+// Utility function to safely format dates
+const safelyFormatDate = (dateString: string | undefined, formatString: string): string => {
+  if (!dateString) {
+    return "N/A"; // Fallback for undefined or empty strings
+  }
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    console.warn(`Invalid date string: ${dateString}`); // Log for debugging
+    return "Invalid Date"; // Fallback for invalid dates
+  }
+
+  return formatDate(date, formatString);
 };
 
 export default function DriverProfile() {
@@ -254,7 +225,7 @@ export default function DriverProfile() {
 
   const handleEdit = (field: string) => {
     setEditingField(field);
-    setFileData({}); // Reset file data
+    setFileData({});
     switch (field) {
       case "rc":
         setFormData({
@@ -320,18 +291,16 @@ export default function DriverProfile() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setFileData((prev) => ({ ...prev, [field]: file }));
-      // For preview, store the URL temporarily
       setFormData((prev: any) => ({ ...prev, [field]: URL.createObjectURL(file) }));
     }
   };
 
-const handleSubmit = async (field: string) => {
+  const handleSubmit = async (field: string) => {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("field", field);
       formDataToSend.append("data", JSON.stringify(formData));
 
-      // Append files based on the field
       if (field === "aadhar") {
         if (fileData.aadharFrontImageUrl) formDataToSend.append("aadharFrontImage", fileData.aadharFrontImageUrl);
         if (fileData.aadharBackImageUrl) formDataToSend.append("aadharBackImage", fileData.aadharBackImageUrl);
@@ -356,7 +325,6 @@ const handleSubmit = async (field: string) => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // Update driverData with the new data from the backend for instant UI update
       setDriverData((prev) => {
         if (!prev) return prev;
         if (field === "driverImage") {
@@ -376,7 +344,6 @@ const handleSubmit = async (field: string) => {
         };
       });
 
-      // Show success notification
       toast.success(
         "Your profile is updated! We'll verify the changes soon. For security, we're logging you out. Please sign back in after verification to start riding.",
         {
@@ -390,20 +357,16 @@ const handleSubmit = async (field: string) => {
         }
       );
 
-      // Clear editing state
       setEditingField(null);
       setFileData({});
 
-      // Log out the user after a short delay to allow notification to be seen
       setTimeout(() => {
         dispatch(driverLogout());
         logoutLocalStorage("Driver");
         navigate("/login");
       }, 3500);
-
     } catch (err: any) {
       console.error("Failed to update driver data:", err);
-      // Show error notification
       const errorMessage = err.response?.data?.message || "Failed to update profile. Please try again.";
       toast.error(errorMessage, {
         position: "top-right",
@@ -435,7 +398,7 @@ const handleSubmit = async (field: string) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
+    <div className="flex flex-col min-h-screen bg-gray-100 font-sans">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -448,1008 +411,1125 @@ const handleSubmit = async (field: string) => {
         pauseOnHover
         theme="light"
       />
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
-            <DriverNavbar />
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <h1 className="text-3xl font-extrabold tracking-tight">Driver Dashboard</h1>
-            <div className="flex items-center gap-4 mt-4 md:mt-0">
-              <div
-                className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-300 ${
-                  driverData.account_status === "Good"
-                    ? "bg-green-500"
-                    : driverData.account_status === "Pending"
-                    ? "bg-yellow-500"
-                    : driverData.account_status === "Incomplete"
-                    ? "bg-orange-500"
-                    : "bg-red-500"
-                }`}
-              >
-                <Shield size={16} />
-                <span>{driverData.account_status}</span>
+      {/* Main Layout with Navbar and Content */}
+      <div className="flex flex-col lg:flex-row">
+        {/* Navbar */}
+        <div className="lg:w-64 bg-white shadow-lg">
+          <DriverNavbar />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Header */}
+          <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+            <div className="container mx-auto px-4 py-6">
+              <div className="flex flex-col md:flex-row justify-between items-center">
+                <h1 className="text-3xl font-extrabold tracking-tight">Driver Dashboard</h1>
+                <div className="flex items-center gap-4 mt-4 md:mt-0">
+                  <div
+                    className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-300 ${
+                      driverData.account_status === "Good"
+                        ? "bg-green-500"
+                        : driverData.account_status === "Pending"
+                        ? "bg-yellow-500"
+                        : driverData.account_status === "Incomplete"
+                        ? "bg-orange-500"
+                        : "bg-red-500"
+                    }`}
+                  >
+                    <Shield size={16} />
+                    <span>{driverData.account_status}</span>
+                  </div>
+                  <button
+                    onClick={toggleAvailability}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
+                      isAvailable ? "bg-green-500" : "bg-gray-500"
+                    }`}
+                  >
+                    {isAvailable ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                    {isAvailable ? "Online" : "Offline"}
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={toggleAvailability}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
-                  isAvailable ? "bg-green-500" : "bg-gray-500"
-                }`}
-              >
-                {isAvailable ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                {isAvailable ? "Online" : "Offline"}
-              </button>
+            </div>
+          </header>
+
+          {/* Driver Summary */}
+          <div className="bg-white shadow-lg">
+            <div className="container mx-auto px-4 py-8">
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="relative group">
+                  <img
+                    src={formData.driverImageUrl || driverData.driverImage}
+                    alt={driverData.name}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <button
+                    onClick={() => handleEdit("driverImage")}
+                    className="absolute -bottom-2 -right-2 bg-blue-600 rounded-full p-2 shadow-md hover:bg-blue-700 transition-colors duration-300"
+                  >
+                    <Edit2 size={16} color="white" />
+                  </button>
+                </div>
+
+                <div className="flex-1 text-center md:text-left">
+                  <h2 className="text-2xl font-bold text-gray-800">{driverData.name}</h2>
+                  <div className="flex flex-col md:flex-row md:gap-8 text-gray-600 mt-2">
+                    <div className="flex items-center justify-center md:justify-start gap-2">
+                      <Mail size={16} />
+                      <span>{driverData.email}</span>
+                    </div>
+                    <div className="flex items-center justify-center md:justify-start gap-2">
+                      <Phone size={16} />
+                      <span>+91 {driverData.mobile}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
+                    <div className="flex items-center gap-2">
+                      <Star size={18} className="text-yellow-500 fill-yellow-500" />
+                      <span className="font-semibold text-gray-800">{driverData.totalRatings}</span>
+                    </div>
+                    <div className="border-l border-gray-300 pl-6">
+                      <span className="text-gray-600">
+                        Joined on {safelyFormatDate(driverData.joiningDate, "dd MMM yyyy")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-xl shadow-md w-full md:w-64 transition-all duration-300 hover:shadow-lg">
+                  <div className="text-blue-600 font-semibold text-center">Wallet Balance</div>
+                  <div className="text-3xl font-bold text-center text-gray-800">
+                    {formatCurrency(driverData.wallet.balance)}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* Driver Summary */}
-      <div className="bg-white shadow-lg">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row gap-8 items-center">
-            <div className="relative group">
-              <img
-                src={formData.driverImageUrl || driverData.driverImage}
-                alt={driverData.name}
-                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg transition-transform duration-300 group-hover:scale-110"
-              />
-              <button
-                onClick={() => handleEdit("driverImage")}
-                className="absolute -bottom-2 -right-2 bg-blue-600 rounded-full p-2 shadow-md hover:bg-blue-700 transition-colors duration-300"
-              >
-                <Edit2 size={16} color="white" />
-              </button>
-            </div>
-
-            <div className="flex-1 text-center md:text-left">
-              <h2 className="text-2xl font-bold text-gray-800">{driverData.name}</h2>
-              <div className="flex flex-col md:flex-row md:gap-8 text-gray-600 mt-2">
-                <div className="flex items-center justify-center md:justify-start gap-2">
-                  <Mail size={16} />
-                  <span>{driverData.email}</span>
-                </div>
-                <div className="flex items-center justify-center md:justify-start gap-2">
-                  <Phone size={16} />
-                  <span>+91 {driverData.mobile}</span>
-                </div>
+          {/* Tabs */}
+          <div className="bg-white border-b shadow-sm sticky top-0 z-10">
+            <div className="container mx-auto px-4">
+              <div className="flex overflow-x-auto">
+                {["profile", "documents", "earnings", "feedback"].map((tab) => (
+                  <button
+                    key={tab}
+                    className={`px-6 py-4 font-medium text-lg transition-all duration-300 ${
+                      activeTab === tab
+                        ? "text-blue-600 border-b-4 border-blue-600"
+                        : "text-gray-500 hover:text-blue-500"
+                    }`}
+                    onClick={() => setActiveTab(tab as "profile" | "documents" | "earnings" | "feedback")}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
               </div>
-
-              <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <Star size={18} className="text-yellow-500 fill-yellow-500" />
-                  <span className="font-semibold text-gray-800">{driverData.totalRatings}</span>
-                </div>
-                <div className="border-l border-gray-300 pl-6">
-                  <span className="text-gray-600">Joined on {formatDate(driverData.joiningDate)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-4 rounded-xl shadow-md w-full md:w-64 transition-all duration-300 hover:shadow-lg">
-              <div className="text-blue-600 font-semibold text-center">Wallet Balance</div>
-              <div className="text-3xl font-bold text-center text-gray-800">{formatCurrency(driverData.wallet.balance)}</div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="bg-white border-b shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4">
-          <div className="flex overflow-x-auto">
-            {["profile", "documents", "earnings", "feedback"].map((tab) => (
-              <button
-                key={tab}
-                className={`px-6 py-4 font-medium text-lg transition-all duration-300 ${
-                  activeTab === tab
-                    ? "text-blue-600 border-b-4 border-blue-600"
-                    : "text-gray-500 hover:text-blue-500"
-                }`}
-                onClick={() => setActiveTab(tab as "profile" | "documents" | "earnings" | "feedback")}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 py-8">
-        <div className="container mx-auto px-4">
-          {/* Profile Tab */}
-          {activeTab === "profile" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Personal Information */}
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Personal Information</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Name</span>
-                    <span className="font-medium text-gray-800">{driverData.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Email</span>
-                    <span className="font-medium text-gray-800">{driverData.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Mobile</span>
-                    <span className="font-medium text-gray-800">+91 {driverData.mobile}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Joining Date</span>
-                    <span className="font-medium text-gray-800">{formatDate(driverData.joiningDate)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Vehicle Details */}
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Vehicle Details</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Registration Number</span>
-                    {editingField === "registerationID" ? (
-                      <div className="flex gap-3 items-center">
-                        <input
-                          type="text"
-                          name="registerationID"
-                          value={formData.registerationID || ""}
-                          onChange={handleInputChange}
-                          className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button
-                          onClick={() => handleSubmit("registerationID")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
+          {/* Content */}
+          <div className="flex-1 py-8">
+            <div className="container mx-auto px-4">
+              {activeTab === "profile" && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Personal Information</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Name</span>
+                        <span className="font-medium text-gray-800">{driverData.name}</span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-gray-800">{driverData.vehicle_details.registerationID}</span>
-                        <button
-                          onClick={() => handleEdit("registerationID")}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Email</span>
+                        <span className="font-medium text-gray-800">{driverData.email}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Mobile</span>
+                        <span className="font-medium text-gray-800">+91 {driverData.mobile}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Joining Date</span>
+                        <span className="font-medium text-gray-800">
+                          {safelyFormatDate(driverData.joiningDate, "dd MMM yyyy")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Vehicle Details</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Registration Number</span>
+                        {editingField === "registerationID" ? (
+                          <div className="flex gap-3 items-center">
+                            <input
+                              type="text"
+                              name="registerationID"
+                              value={formData.registerationID || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                              onClick={() => handleSubmit("registerationID")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-gray-800">
+                              {driverData.vehicle_details.registerationID}
+                            </span>
+                            <button
+                              onClick={() => handleEdit("registerationID")}
+                              className="text-blue-600 hover:text-blue-800 transition-colors"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Vehicle Model</span>
+                        {editingField === "model" ? (
+                          <div className="flex gap-3 items-center">
+                            <input
+                              type="text"
+                              name="model"
+                              value={formData.model || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                              onClick={() => handleSubmit("model")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-gray-800">{driverData.vehicle_details.model}</span>
+                            <button
+                              onClick={() => handleEdit("model")}
+                              className="text-blue-600 hover:text-blue-800 transition-colors"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Performance Summary</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="text-blue-600 text-sm font-medium">Completed Rides</div>
+                        <div className="text-2xl font-bold text-gray-800">
+                          {driverData.RideDetails.completedRides}
+                        </div>
+                      </div>
+                      <div className="bg-red-50 p-4 rounded-lg">
+                        <div className="text-red-600 text-sm font-medium">Cancelled Rides</div>
+                        <div className="text-2xl font-bold text-gray-800">
+                          {driverData.RideDetails.cancelledRides}
+                        </div>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <div className="text-green-600 text-sm font-medium">Rating</div>
+                        <div className="text-2xl font-bold text-gray-800 flex items-center">
+                          {driverData.totalRatings}
+                          <Star size={20} className="ml-2 text-yellow-500 fill-yellow-500" />
+                        </div>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="text-purple-600 text-sm font-medium">Total Earnings</div>
+                        <div className="text-xl font-bold text-gray-800">
+                          {formatCurrency(driverData.RideDetails.totalEarnings)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Recent Transactions</h3>
+                      <button
+                        onClick={handleClick}
+                        className="text-blue-600 flex items-center gap-2 text-sm hover:underline"
+                      >
+                        <ChevronRight size={16} />
+                        View All
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {driverData.wallet.transactions.map((transaction: Transaction, index: number) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center border-b pb-4 last:border-0 transition-all duration-300 hover:bg-gray-50 p-2 rounded-lg"
                         >
-                          <Edit2 size={16} />
-                        </button>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`p-2 rounded-full ${
+                                transaction.status === "Credited" ? "bg-green-100" : "bg-red-100"
+                              }`}
+                            >
+                              {transaction.status === "Credited" ? (
+                                <CheckCircle size={16} className="text-green-600" />
+                              ) : (
+                                <AlertCircle size={16} className="text-red-600" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">{transaction.details}</div>
+                              <div className="text-sm text-gray-500">
+                                {safelyFormatDate(transaction.date, "dd MMM yyyy")}
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className={`font-semibold ${
+                              transaction.status === "Credited" ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {transaction.status === "Credited" ? "+" : "-"} {formatCurrency(transaction.amount)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "documents" && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Aadhar Card</h3>
+                      <div className="text-green-500 flex items-center gap-2">
+                        <CheckCircle size={16} />
+                        <span className="text-sm">Verified</span>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      {editingField === "aadhar" ? (
+                        <div className="flex flex-col gap-4">
+                          <input
+                            type="text"
+                            name="aadharId"
+                            value={formData.aadharId || ""}
+                            onChange={handleInputChange}
+                            placeholder="Aadhar Number"
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1">Front Image</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, "aadharFrontImageUrl")}
+                                className="text-sm"
+                              />
+                              {formData.aadharFrontImageUrl && (
+                                <img
+                                  src={formData.aadharFrontImageUrl}
+                                  alt="Aadhar Front Preview"
+                                  className="mt-2 w-full h-32 object-cover rounded-lg"
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1">Back Image</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, "aadharBackImageUrl")}
+                                className="text-sm"
+                              />
+                              {formData.aadharBackImageUrl && (
+                                <img
+                                  src={formData.aadharBackImageUrl}
+                                  alt="Aadhar Back Preview"
+                                  className="mt-2 w-full h-32 object-cover rounded-lg"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleSubmit("aadhar")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Aadhar Number</span>
+                            <span className="font-medium text-gray-800">{driverData.aadhar.aadharId}</span>
+                          </div>
+                          <button
+                            onClick={() => handleEdit("aadhar")}
+                            className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
+                          >
+                            <Edit2 size={16} />
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {!editingField && (
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Front View</div>
+                          <ZoomableImage
+                            src={driverData.aadhar.aadharFrontImageUrl}
+                            alt="Aadhar Front"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Back View</div>
+                          <ZoomableImage src={driverData.aadhar.aadharBackImageUrl} alt="Aadhar Back" />
+                        </div>
                       </div>
                     )}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Vehicle Model</span>
-                    {editingField === "model" ? (
-                      <div className="flex gap-3 items-center">
-                        <input
-                          type="text"
-                          name="model"
-                          value={formData.model || ""}
-                          onChange={handleInputChange}
-                          className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button
-                          onClick={() => handleSubmit("model")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Driving License</h3>
+                      <DocumentStatus
+                        expiryDate={driverData.license.licenseValidity}
+                        title="License"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      {editingField === "license" ? (
+                        <div className="flex flex-col gap-4">
+                          <input
+                            type="text"
+                            name="licenseId"
+                            value={formData.licenseId || ""}
+                            onChange={handleInputChange}
+                            placeholder="License Number"
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="date"
+                            name="licenseValidity"
+                            value={formData.licenseValidity?.split("T")[0] || ""}
+                            onChange={handleInputChange}
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1">Front Image</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, "licenseFrontImageUrl")}
+                                className="text-sm"
+                              />
+                              {formData.licenseFrontImageUrl && (
+                                <img
+                                  src={formData.licenseFrontImageUrl}
+                                  alt="License Front Preview"
+                                  className="mt-2 w-full h-32 object-cover rounded-lg"
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1">Back Image</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, "licenseBackImageUrl")}
+                                className="text-sm"
+                              />
+                              {formData.licenseBackImageUrl && (
+                                <img
+                                  src={formData.licenseBackImageUrl}
+                                  alt="License Back Preview"
+                                  className="mt-2 w-full h-32 object-cover rounded-lg"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleSubmit("license")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">License Number</span>
+                            <span className="font-medium text-gray-800">{driverData.license.licenseId}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Valid Till</span>
+                            <span className="font-medium text-gray-800">
+                              {safelyFormatDate(driverData.license.licenseValidity, "dd MMM yyyy")}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleEdit("license")}
+                            className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
+                          >
+                            <Edit2 size={16} />
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {!editingField && (
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Front View</div>
+                          <ZoomableImage
+                            src={driverData.license.licenseFrontImageUrl}
+                            alt="License Front"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Back View</div>
+                          <ZoomableImage
+                            src={driverData.license.licenseBackImageUrl}
+                            alt="License Back"
+                          />
+                        </div>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-gray-800">{driverData.vehicle_details.model}</span>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Vehicle Registration</h3>
+                      <DocumentStatus expiryDate={driverData.vehicle_details.rcExpiryDate} title="RC" />
+                    </div>
+                    <div className="space-y-4">
+                      {editingField === "rc" ? (
+                        <div className="flex flex-col gap-4">
+                          <input
+                            type="date"
+                            name="rcStartDate"
+                            value={formData.rcStartDate?.split("T")[0] || ""}
+                            onChange={handleInputChange}
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="date"
+                            name="rcExpiryDate"
+                            value={formData.rcExpiryDate?.split("T")[0] || ""}
+                            onChange={handleInputChange}
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1">Front Image</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, "rcFrondImageUrl")}
+                                className="text-sm"
+                              />
+                              {formData.rcFrondImageUrl && (
+                                <img
+                                  src={formData.rcFrondImageUrl}
+                                  alt="RC Front Preview"
+                                  className="mt-2 w-full h-32 object-cover rounded-lg"
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1">Back Image</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, "rcBackImageUrl")}
+                                className="text-sm"
+                              />
+                              {formData.rcBackImageUrl && (
+                                <img
+                                  src={formData.rcBackImageUrl}
+                                  alt="RC Back Preview"
+                                  className="mt-2 w-full h-32 object-cover rounded-lg"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleSubmit("rc")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Valid From</span>
+                            <span className="font-medium text-gray-800">
+                              {safelyFormatDate(driverData.vehicle_details.rcStartDate, "dd MMM yyyy")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Valid Till</span>
+                            <span className="font-medium text-gray-800">
+                              {safelyFormatDate(driverData.vehicle_details.rcExpiryDate, "dd MMM yyyy")}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleEdit("rc")}
+                            className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
+                          >
+                            <Edit2 size={16} />
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {!editingField && (
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Front View</div>
+                          <ZoomableImage
+                            src={driverData.vehicle_details.rcFrondImageUrl}
+                            alt="RC Front"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Back View</div>
+                          <ZoomableImage
+                            src={driverData.vehicle_details.rcBackImageUrl}
+                            alt="RC Back"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Vehicle Insurance</h3>
+                      <DocumentStatus
+                        expiryDate={driverData.vehicle_details.insuranceExpiryDate}
+                        title="Insurance"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      {editingField === "insurance" ? (
+                        <div className="flex flex-col gap-4">
+                          <input
+                            type="date"
+                            name="insuranceStartDate"
+                            value={formData.insuranceStartDate?.split("T")[0] || ""}
+                            onChange={handleInputChange}
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="date"
+                            name="insuranceExpiryDate"
+                            value={formData.insuranceExpiryDate?.split("T")[0] || ""}
+                            onChange={handleInputChange}
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div>
+                            <label className="text-sm text-gray-600 mb-1">Insurance Certificate</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileChange(e, "insuranceImageUrl")}
+                              className="text-sm"
+                            />
+                            {formData.insuranceImageUrl && (
+                              <img
+                                src={formData.insuranceImageUrl}
+                                alt="Insurance Preview"
+                                className="mt-2 w-full h-40 object-cover rounded-lg"
+                              />
+                            )}
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleSubmit("insurance")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Valid From</span>
+                            <span className="font-medium text-gray-800">
+                              {safelyFormatDate(driverData.vehicle_details.insuranceStartDate, "dd MMM yyyy")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Valid Till</span>
+                            <span className="font-medium text-gray-800">
+                              {safelyFormatDate(driverData.vehicle_details.insuranceExpiryDate, "dd MMM yyyy")}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleEdit("insurance")}
+                            className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
+                          >
+                            <Edit2 size={16} />
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {!editingField && (
+                      <div className="mt-4">
+                        <div className="text-sm text-gray-600 mb-1">Insurance Certificate</div>
+                        <ZoomableImage
+                          src={driverData.vehicle_details.insuranceImageUrl}
+                          alt="Insurance"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Pollution Certificate</h3>
+                      <DocumentStatus
+                        expiryDate={driverData.vehicle_details.pollutionExpiryDate}
+                        title="Pollution"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      {editingField === "pollution" ? (
+                        <div className="flex flex-col gap-4">
+                          <input
+                            type="date"
+                            name="pollutionStartDate"
+                            value={formData.pollutionStartDate?.split("T")[0] || ""}
+                            onChange={handleInputChange}
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="date"
+                            name="pollutionExpiryDate"
+                            value={formData.pollutionExpiryDate?.split("T")[0] || ""}
+                            onChange={handleInputChange}
+                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div>
+                            <label className="text-sm text-gray-600 mb-1">Pollution Certificate</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileChange(e, "pollutionImageUrl")}
+                              className="text-sm"
+                            />
+                            {formData.pollutionImageUrl && (
+                              <img
+                                src={formData.pollutionImageUrl}
+                                alt="Pollution Preview"
+                                className="mt-2 w-full h-40 object-cover rounded-lg"
+                              />
+                            )}
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleSubmit("pollution")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Valid From</span>
+                            <span className="font-medium text-gray-800">
+                              {safelyFormatDate(driverData.vehicle_details.pollutionStartDate, "dd MMM yyyy")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Valid Till</span>
+                            <span className="font-medium text-gray-800">
+                              {safelyFormatDate(driverData.vehicle_details.pollutionExpiryDate, "dd MMM yyyy")}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleEdit("pollution")}
+                            className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
+                          >
+                            <Edit2 size={16} />
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {!editingField && (
+                      <div className="mt-4">
+                        <div className="text-sm text-gray-600 mb-1">Pollution Certificate</div>
+                        <ZoomableImage
+                          src={driverData.vehicle_details.pollutionImageUrl}
+                          alt="Pollution"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Vehicle Images</h3>
+                      {editingField === "carImage" ? (
+                        <div className="flex gap-3">
+                          <div>
+                            <label className="text-sm text-gray-600 mb-1">Front Image</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileChange(e, "carFrondImageUrl")}
+                              className="text-sm"
+                            />
+                            {formData.carFrondImageUrl && (
+                              <img
+                                src={formData.carFrondImageUrl}
+                                alt="Car Front Preview"
+                                className="mt-2 w-full h-48 object-cover rounded-lg"
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600 mb-1">Back Image</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileChange(e, "carBackImageUrl")}
+                              className="text-sm"
+                            />
+                            {formData.carBackImageUrl && (
+                              <img
+                                src={formData.carBackImageUrl}
+                                alt="Car Back Preview"
+                                className="mt-2 w-full h-48 object-cover rounded-lg"
+                              />
+                            )}
+                          </div>
+                          <div className="flex gap-3 items-end">
+                            <button
+                              onClick={() => handleSubmit("carImage")}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingField(null)}
+                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                         <button
-                          onClick={() => handleEdit("model")}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                          onClick={() => handleEdit("carImage")}
+                          className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
                         >
                           <Edit2 size={16} />
+                          Edit
                         </button>
+                      )}
+                    </div>
+                    {!editingField && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Front View</div>
+                          <ZoomableImage
+                            src={driverData.vehicle_details.carFrondImageUrl}
+                            alt="Car Front"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Back View</div>
+                          <ZoomableImage
+                            src={driverData.vehicle_details.carBackImageUrl}
+                            alt="Car Back"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Performance Summary */}
-              <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Performance Summary</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="text-blue-600 text-sm font-medium">Completed Rides</div>
-                    <div className="text-2xl font-bold text-gray-800">{driverData.RideDetails.completedRides}</div>
-                  </div>
-                  <div className="bg-red-50 p-4 rounded-lg">
-                    <div className="text-red-600 text-sm font-medium">Cancelled Rides</div>
-                    <div className="text-2xl font-bold text-gray-800">{driverData.RideDetails.cancelledRides}</div>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <div className="text-green-600 text-sm font-medium">Rating</div>
-                    <div className="text-2xl font-bold text-gray-800 flex items-center">
-                      {driverData.totalRatings}
-                      <Star size={20} className="ml-2 text-yellow-500 fill-yellow-500" />
+              {activeTab === "earnings" && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                      <h3 className="text-base text-gray-500 mb-1">Total Earnings</h3>
+                      <div className="text-3xl font-bold text-gray-800">
+                        {formatCurrency(driverData.RideDetails.totalEarnings)}
+                      </div>
+                      <div className="flex items-center mt-2 text-green-500 text-sm">
+                        <span>+5.2%</span>
+                        <span className="ml-1 text-xs text-gray-500">vs last month</span>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                      <h3 className="text-base text-gray-500 mb-1">Total Rides</h3>
+                      <div className="text-3xl font-bold text-gray-800">
+                        {driverData.RideDetails.completedRides}
+                      </div>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="text-green-500 text-sm">
+                          Completion Rate:{" "}
+                          {(
+                            (driverData.RideDetails.completedRides /
+                              (driverData.RideDetails.completedRides +
+                                driverData.RideDetails.cancelledRides)) *
+                            100
+                          ).toFixed(1)}
+                          %
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                      <h3 className="text-base text-gray-500 mb-1">Average Rating</h3>
+                      <div className="text-3xl font-bold text-gray-800 flex items-center">
+                        {driverData.totalRatings}
+                        <Star size={24} className="ml-2 text-yellow-500 fill-yellow-500" />
+                      </div>
+                      <div className="text-sm text-gray-500 mt-2">
+                        Based on {driverData.feedbacks.length} reviews
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <div className="text-purple-600 text-sm font-medium">Total Earnings</div>
-                    <div className="text-xl font-bold text-gray-800">{formatCurrency(driverData.RideDetails.totalEarnings)}</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Recent Transactions */}
-              <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Recent Transactions</h3>
-                  <button onClick={handleClick} className="text-blue-600 flex items-center gap-2 text-sm hover:underline">
-                    <ChevronRight size={16} />
-                    View All
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {driverData.wallet.transactions.map((transaction, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center border-b pb-4 last:border-0 transition-all duration-300 hover:bg-gray-50 p-2 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
+                  <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Transaction History</h3>
+                      <button
+                        onClick={handleClick}
+                        className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800"
+                      >
+                        <ChevronRight size={16} />
+                        View All
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {driverData.wallet.transactions.map((transaction: Transaction, index: number) => (
                         <div
-                          className={`p-2 rounded-full ${
-                            transaction.status === "Credited" ? "bg-green-100" : "bg-red-100"
-                          }`}
+                          key={index}
+                          className="flex justify-between items-center border-b pb-4 last:border-0 transition-all duration-300 hover:bg-gray-50 p-2 rounded-lg"
                         >
-                          {transaction.status === "Credited" ? (
-                            <CheckCircle size={16} className="text-green-600" />
-                          ) : (
-                            <AlertCircle size={16} className="text-red-600" />
-                          )}
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`p-2 rounded-full ${
+                                transaction.status === "Credited" ? "bg-green-100" : "bg-red-100"
+                              }`}
+                            >
+                              {transaction.status === "Credited" ? (
+                                <CheckCircle size={16} className="text-green-600" />
+                              ) : (
+                                <AlertCircle size={16} className="text-red-600" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">{transaction.details}</div>
+                              <div className="text-sm text-gray-500">
+                                {safelyFormatDate(transaction.date, "dd MMM yyyy")}
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className={`font-semibold ${
+                              transaction.status === "Credited" ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {transaction.status === "Credited" ? "+" : "-"} {formatCurrency(transaction.amount)}
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-800">{transaction.details}</div>
-                          <div className="text-sm text-gray-500">{formatDate(transaction.date)}</div>
-                        </div>
-                      </div>
-                      <div
-                        className={`font-semibold ${
-                          transaction.status === "Credited" ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {transaction.status === "Credited" ? "+" : "-"} {formatCurrency(transaction.amount)}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Documents Tab */}
-          {activeTab === "documents" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Aadhar Card */}
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Aadhar Card</h3>
-                  <div className="text-green-500 flex items-center gap-2">
-                    <CheckCircle size={16} />
-                    <span className="text-sm">Verified</span>
                   </div>
-                </div>
-                <div className="space-y-4">
-                  {editingField === "aadhar" ? (
-                    <div className="flex flex-col gap-4">
-                      <input
-                        type="text"
-                        name="aadharId"
-                        value={formData.aadharId || ""}
-                        onChange={handleInputChange}
-                        placeholder="Aadhar Number"
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-gray-600 mb-1">Front Image</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, "aadharFrontImageUrl")}
-                            className="text-sm"
-                          />
-                          {formData.aadharFrontImageUrl && (
-                            <img
-                              src={formData.aadharFrontImageUrl}
-                              alt="Aadhar Front Preview"
-                              className="mt-2 w-full h-32 object-cover rounded-lg"
-                            />
-                          )}
+
+                  <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Ride Statistics</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-gray-600 text-sm font-medium">Completed Rides</div>
+                        <div className="text-2xl font-bold text-gray-800">
+                          {driverData.RideDetails.completedRides}
                         </div>
-                        <div>
-                          <label className="text-sm text-gray-600 mb-1">Back Image</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, "aadharBackImageUrl")}
-                            className="text-sm"
-                          />
-                          {formData.aadharBackImageUrl && (
-                            <img
-                              src={formData.aadharBackImageUrl}
-                              alt="Aadhar Back Preview"
-                              className="mt-2 w-full h-32 object-cover rounded-lg"
-                            />
-                          )}
+                        <div className="text-sm text-gray-500 mt-1">
+                          Across {Math.round(driverData.RideDetails.completedRides / 30)} months
                         </div>
                       </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleSubmit("aadhar")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Aadhar Number</span>
-                        <span className="font-medium text-gray-800">{driverData.aadhar.aadharId}</span>
-                      </div>
-                      <button
-                        onClick={() => handleEdit("aadhar")}
-                        className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
-                      >
-                        <Edit2 size={16} />
-                        Edit
-                      </button>
-                    </>
-                  )}
-                </div>
-                {!editingField && (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Front View</div>
-                      <ZoomableImage src={driverData.aadhar.aadharFrontImageUrl} alt="Aadhar Front" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Back View</div>
-                      <ZoomableImage src={driverData.aadhar.aadharBackImageUrl} alt="Aadhar Back" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Driving License */}
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Driving License</h3>
-                  <DocumentStatus expiryDate={driverData.license.licenseValidity} title="License" />
-                </div>
-                <div className="space-y-4">
-                  {editingField === "license" ? (
-                    <div className="flex flex-col gap-4">
-                      <input
-                        type="text"
-                        name="licenseId"
-                        value={formData.licenseId || ""}
-                        onChange={handleInputChange}
-                        placeholder="License Number"
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="date"
-                        name="licenseValidity"
-                        value={formData.licenseValidity?.split("T")[0] || ""}
-                        onChange={handleInputChange}
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-gray-600 mb-1">Front Image</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, "licenseFrontImageUrl")}
-                            className="text-sm"
-                          />
-                          {formData.licenseFrontImageUrl && (
-                            <img
-                              src={formData.licenseFrontImageUrl}
-                              alt="License Front Preview"
-                              className="mt-2 w-full h-32 object-cover rounded-lg"
-                            />
-                          )}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-gray-600 text-sm font-medium">Cancelled Rides</div>
+                        <div className="text-2xl font-bold text-gray-800">
+                          {driverData.RideDetails.cancelledRides}
                         </div>
-                        <div>
-                          <label className="text-sm text-gray-600 mb-1">Back Image</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, "licenseBackImageUrl")}
-                            className="text-sm"
-                          />
-                          {formData.licenseBackImageUrl && (
-                            <img
-                              src={formData.licenseBackImageUrl}
-                              alt="License Back Preview"
-                              className="mt-2 w-full h-32 object-cover rounded-lg"
-                            />
-                          )}
+                        <div className="text-sm text-gray-500 mt-1">
+                          {(
+                            (driverData.RideDetails.cancelledRides /
+                              (driverData.RideDetails.completedRides +
+                                driverData.RideDetails.cancelledRides)) *
+                            100
+                          ).toFixed(1)}
+                          % of total
                         </div>
                       </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleSubmit("license")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">License Number</span>
-                        <span className="font-medium text-gray-800">{driverData.license.licenseId}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Valid Till</span>
-                        <span className="font-medium text-gray-800">{formatDate(driverData.license.licenseValidity)}</span>
-                      </div>
-                      <button
-                        onClick={() => handleEdit("license")}
-                        className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
-                      >
-                        <Edit2 size={16} />
-                        Edit
-                      </button>
-                    </>
-                  )}
-                </div>
-                {!editingField && (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Front View</div>
-                      <ZoomableImage src={driverData.license.licenseFrontImageUrl} alt="License Front" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Back View</div>
-                      <ZoomableImage src={driverData.license.licenseBackImageUrl} alt="License Back" />
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Vehicle Registration */}
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Vehicle Registration</h3>
-                  <DocumentStatus expiryDate={driverData.vehicle_details.rcExpiryDate} title="RC" />
-                </div>
-                <div className="space-y-4">
-                  {editingField === "rc" ? (
-                    <div className="flex flex-col gap-4">
-                      <input
-                        type="date"
-                        name="rcStartDate"
-                        value={formData.rcStartDate?.split("T")[0] || ""}
-                        onChange={handleInputChange}
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="date"
-                        name="rcExpiryDate"
-                        value={formData.rcExpiryDate?.split("T")[0] || ""}
-                        onChange={handleInputChange}
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-gray-600 mb-1">Front Image</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, "rcFrondImageUrl")}
-                            className="text-sm"
-                          />
-                          {formData.rcFrondImageUrl && (
-                            <img
-                              src={formData.rcFrondImageUrl}
-                              alt="RC Front Preview"
-                              className="mt-2 w-full h-32 object-cover rounded-lg"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-600 mb-1">Back Image</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(e, "rcBackImageUrl")}
-                            className="text-sm"
-                          />
-                          {formData.rcBackImageUrl && (
-                            <img
-                              src={formData.rcBackImageUrl}
-                              alt="RC Back Preview"
-                              className="mt-2 w-full h-32 object-cover rounded-lg"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleSubmit("rc")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
+              {activeTab === "feedback" && (
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Customer Feedback</h3>
+                      <div className="text-gray-500 text-sm">
+                        Average Rating: {driverData.totalRatings}{" "}
+                        <Star size={16} className="inline text-yellow-500 fill-yellow-500" />
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Valid From</span>
-                        <span className="font-medium text-gray-800">{formatDate(driverData.vehicle_details.rcStartDate)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Valid Till</span>
-                        <span className="font-medium text-gray-800">{formatDate(driverData.vehicle_details.rcExpiryDate)}</span>
-                      </div>
-                      <button
-                        onClick={() => handleEdit("rc")}
-                        className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
-                      >
-                        <Edit2 size={16} />
-                        Edit
-                      </button>
-                    </>
-                  )}
-                </div>
-                {!editingField && (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Front View</div>
-                      <ZoomableImage src={driverData.vehicle_details.rcFrondImageUrl} alt="RC Front" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Back View</div>
-                      <ZoomableImage src={driverData.vehicle_details.rcBackImageUrl} alt="RC Back" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Vehicle Insurance */}
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Vehicle Insurance</h3>
-                  <DocumentStatus expiryDate={driverData.vehicle_details.insuranceExpiryDate} title="Insurance" />
-                </div>
-                <div className="space-y-4">
-                  {editingField === "insurance" ? (
-                    <div className="flex flex-col gap-4">
-                      <input
-                        type="date"
-                        name="insuranceStartDate"
-                        value={formData.insuranceStartDate?.split("T")[0] || ""}
-                        onChange={handleInputChange}
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="date"
-                        name="insuranceExpiryDate"
-                        value={formData.insuranceExpiryDate?.split("T")[0] || ""}
-                        onChange={handleInputChange}
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div>
-                        <label className="text-sm text-gray-600 mb-1">Insurance Certificate</label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileChange(e, "insuranceImageUrl")}
-                          className="text-sm"
-                        />
-                        {formData.insuranceImageUrl && (
-                          <img
-                            src={formData.insuranceImageUrl}
-                            alt="Insurance Preview"
-                            className="mt-2 w-full h-40 object-cover rounded-lg"
-                          />
-                        )}
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleSubmit("insurance")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Valid From</span>
-                        <span className="font-medium text-gray-800">{formatDate(driverData.vehicle_details.insuranceStartDate)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Valid Till</span>
-                        <span className="font-medium text-gray-800">{formatDate(driverData.vehicle_details.insuranceExpiryDate)}</span>
-                      </div>
-                      <button
-                        onClick={() => handleEdit("insurance")}
-                        className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
-                      >
-                        <Edit2 size={16} />
-                        Edit
-                      </button>
-                    </>
-                  )}
-                </div>
-                {!editingField && (
-                  <div className="mt-4">
-                    <div className="text-sm text-gray-600 mb-1">Insurance Certificate</div>
-                    <ZoomableImage src={driverData.vehicle_details.insuranceImageUrl} alt="Insurance" />
-                  </div>
-                )}
-              </div>
-
-              {/* Pollution Certificate */}
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Pollution Certificate</h3>
-                  <DocumentStatus expiryDate={driverData.vehicle_details.pollutionExpiryDate} title="Pollution" />
-                </div>
-                <div className="space-y-4">
-                  {editingField === "pollution" ? (
-                    <div className="flex flex-col gap-4">
-                      <input
-                        type="date"
-                        name="pollutionStartDate"
-                        value={formData.pollutionStartDate?.split("T")[0] || ""}
-                        onChange={handleInputChange}
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="date"
-                        name="pollutionExpiryDate"
-                        value={formData.pollutionExpiryDate?.split("T")[0] || ""}
-                        onChange={handleInputChange}
-                        className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div>
-                        <label className="text-sm text-gray-600 mb-1">Pollution Certificate</label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileChange(e, "pollutionImageUrl")}
-                          className="text-sm"
-                        />
-                       匆
-                        {formData.pollutionImageUrl && (
-                          <img
-                            src={formData.pollutionImageUrl}
-                            alt="Pollution Preview"
-                            className="mt-2 w-full h-40 object-cover rounded-lg"
-                          />
-                        )}
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleSubmit("pollution")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Valid From</span>
-                        <span className="font-medium text-gray-800">{formatDate(driverData.vehicle_details.pollutionStartDate)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Valid Till</span>
-                        <span className="font-medium text-gray-800">{formatDate(driverData.vehicle_details.pollutionExpiryDate)}</span>
-                      </div>
-                      <button
-                        onClick={() => handleEdit("pollution")}
-                        className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
-                      >
-                        <Edit2 size={16} />
-                        Edit
-                      </button>
-                    </>
-                  )}
-                </div>
-                {!editingField && (
-                  <div className="mt-4">
-                    <div className="text-sm text-gray-600 mb-1">Pollution Certificate</div>
-                    <ZoomableImage src={driverData.vehicle_details.pollutionImageUrl} alt="Pollution" />
-                  </div>
-                )}
-              </div>
-
-              {/* Vehicle Images */}
-              <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Vehicle Images</h3>
-                  {editingField === "carImage" ? (
-                    <div className="flex gap-3">
-                      <div>
-                        <label className="text-sm text-gray-600 mb-1">Front Image</label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileChange(e, "carFrondImageUrl")}
-                          className="text-sm"
-                        />
-                        {formData.carFrondImageUrl && (
-                          <img
-                            src={formData.carFrondImageUrl}
-                            alt="Car Front Preview"
-                            className="mt-2 w-full h-48 object-cover rounded-lg"
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-600 mb-1">Back Image</label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileChange(e, "carBackImageUrl")}
-                          className="text-sm"
-                        />
-                        {formData.carBackImageUrl && (
-                          <img
-                            src={formData.carBackImageUrl}
-                            alt="Car Back Preview"
-                            className="mt-2 w-full h-48 object-cover rounded-lg"
-                          />
-                        )}
-                      </div>
-                      <div className="flex gap-3 items-end">
-                        <button
-                          onClick={() => handleSubmit("carImage")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingField(null)}
-                          className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleEdit("carImage")}
-                      className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800 transition-colors"
-                    >
-                      <Edit2 size={16} />
-                      Edit
-                    </button>
-                  )}
-                </div>
-                {!editingField && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Front View</div>
-                      <ZoomableImage src={driverData.vehicle_details.carFrondImageUrl} alt="Car Front" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Back View</div>
-                      <ZoomableImage src={driverData.vehicle_details.carBackImageUrl} alt="Car Back" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Earnings & Rides Tab */}
-          {activeTab === "earnings" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Earnings Summary */}
-              <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                  <h3 className="text-base text-gray-500 mb-1">Total Earnings</h3>
-                  <div className="text-3xl font-bold text-gray-800">{formatCurrency(driverData.RideDetails.totalEarnings)}</div>
-                  <div className="flex items-center mt-2 text-green-500 text-sm">
-                    <span>+5.2%</span>
-                    <span className="ml-1 text-xs text-gray-500">vs last month</span>
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                  <h3 className="text-base text-gray-500 mb-1">Total Rides</h3>
-                  <div className="text-3xl font-bold text-gray-800">{driverData.RideDetails.completedRides}</div>
-                  <div className="flex items-center gap-4 mt-2">
-                    <div className="text-green-500 text-sm">
-                      Completion Rate:{" "}
-                      {(
-                        (driverData.RideDetails.completedRides /
-                          (driverData.RideDetails.completedRides + driverData.RideDetails.cancelledRides)) *
-                        100
-                      ).toFixed(1)}
-                      %
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                  <h3 className="text-base text-gray-500 mb-1">Average Rating</h3>
-                  <div className="text-3xl font-bold text-gray-800 flex items-center">
-                    {driverData.totalRatings}
-                    <Star size={24} className="ml-2 text-yellow-500 fill-yellow-500" />
-                  </div>
-                  <div className="text-sm text-gray-500 mt-2">Based on {driverData.feedbacks.length} reviews</div>
-                </div>
-              </div>
-
-              {/* Transaction History */}
-              <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Transaction History</h3>
-                  <button onClick={handleClick} className="text-blue-600 flex items-center gap-2 text-sm hover:text-blue-800">
-                    <ChevronRight size={16} />
-                    View All
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {driverData.wallet.transactions.map((transaction, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center border-b pb-4 last:border-0 transition-all duration-300 hover:bg-gray-50 p-2 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
+                    <div className="space-y-6">
+                      {driverData.feedbacks.map((feedback: Feedback, index: number) => (
                         <div
-                          className={`p-2 rounded-full ${
-                            transaction.status === "Credited" ? "bg-green-100" : "bg-red-100"
-                          }`}
+                          key={index}
+                          className="border-b pb-4 last:border-0 transition-all duration-300 hover:bg-gray-50 p-2 rounded-lg"
                         >
-                          {transaction.status === "Credited" ? (
-                            <CheckCircle size={16} className="text-green-600" />
-                          ) : (
-                            <AlertCircle size={16} className="text-red-600" />
-                          )}
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium text-gray-800">Ride #{feedback.ride_id}</div>
+                              <div className="text-sm text-gray-500">
+                                {safelyFormatDate(feedback.date, "dd MMM yyyy")}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  size={16}
+                                  className={
+                                    i < feedback.rating
+                                      ? "text-yellow-500 fill-yellow-500"
+                                      : "text-gray-300"
+                                  }
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="mt-2 text-gray-600">{feedback.feedback}</p>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-800">{transaction.details}</div>
-                          <div className="text-sm text-gray-500">{formatDate(transaction.date)}</div>
-                        </div>
-                      </div>
-                      <div
-                        className={`font-semibold ${
-                          transaction.status === "Credited" ? "text-green-600" : "text-red-600"
-                        }`}
+                      ))}
+                    </div>
+                    <div className="mt-6 flex justify-center gap-3">
+                      <button
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        disabled
                       >
-                        {transaction.status === "Credited" ? "+" : "-"} {formatCurrency(transaction.amount)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Ride Statistics */}
-              <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Ride Statistics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="text-gray-600 text-sm font-medium">Completed Rides</div>
-                    <div className="text-2xl font-bold text-gray-800">{driverData.RideDetails.completedRides}</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Across {Math.round(driverData.RideDetails.completedRides / 30)} months
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="text-gray-600 text-sm font-medium">Cancelled Rides</div>
-                    <div className="text-2xl font-bold text-gray-800">{driverData.RideDetails.cancelledRides}</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {(
-                        (driverData.RideDetails.cancelledRides /
-                          (driverData.RideDetails.completedRides + driverData.RideDetails.cancelledRides)) *
-                        100
-                      ).toFixed(1)}
-                      % of total
+                        Previous
+                      </button>
+                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300">
+                        Next
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
 
-          {/* Feedback Tab */}
-          {activeTab === "feedback" && (
-            <div className="grid grid-cols-1 gap-6">
-              <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Customer Feedback</h3>
-                  <div className="text-gray-500 text-sm">
-                    Average Rating: {driverData.totalRatings}{" "}
-                    <Star size={16} className="inline text-yellow-500 fill-yellow-500" />
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  {driverData.feedbacks.map((feedback, index) => (
-                    <div
-                      key={index}
-                      className="border-b pb-4 last:border-0 transition-all duration-300 hover:bg-gray-50 p-2 rounded-lg"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium text-gray-800">Ride #{feedback.ride_id}</div>
-                          <div className="text-sm text-gray-500">{formatDate(feedback.date)}</div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={16}
-                              className={i < feedback.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="mt-2 text-gray-600">{feedback.feedback}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex justify-center gap-3">
+          {editingField === "driverImage" && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Update Driver Image</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileChange(e, "driverImageUrl")}
+                  className="mb-4 text-sm"
+                />
+                {formData.driverImageUrl && (
+                  <img
+                    src={formData.driverImageUrl}
+                    alt="Driver Preview"
+                    className="w-32 h-32 object-cover rounded-full mb-4 mx-auto"
+                  />
+                )}
+                <div className="flex gap-3 justify-center">
                   <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    disabled
+                    onClick={() => handleSubmit("driverImage")}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                   >
-                    Previous
+                    Save
                   </button>
                   <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300"
+                    onClick={() => setEditingField(null)}
+                    className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
                   >
-                    Next
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -1457,42 +1537,6 @@ const handleSubmit = async (field: string) => {
           )}
         </div>
       </div>
-
-      {/* Driver Image Edit Modal */}
-      {editingField === "driverImage" && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Update Driver Image</h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFileChange(e, "driverImageUrl")}
-              className="mb-4 text-sm"
-            />
-            {formData.driverImageUrl && (
-              <img
-                src={formData.driverImageUrl}
-                alt="Driver Preview"
-                className="w-32 h-32 object-cover rounded-full mb-4 mx-auto"
-              />
-            )}
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => handleSubmit("driverImage")}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setEditingField(null)}
-                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
