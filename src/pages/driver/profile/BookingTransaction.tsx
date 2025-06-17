@@ -64,7 +64,9 @@ const BookingList: React.FC = () => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        const response = await driverAxios(dispatch).get(`/getBookingHistory/${driver.driverId}`);
+        const response = await driverAxios(dispatch).get(`/getBookingHistory`);
+        console.log("909009",response.data);
+        
         setBookings(response.data.data);
         setFilteredBookings(response.data.data);
         setError(null);

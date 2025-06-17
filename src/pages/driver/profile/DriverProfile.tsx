@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
 import {
   ChevronRight,
   Star,
@@ -21,13 +21,14 @@ import { useDispatch, useSelector } from "react-redux";
 import driverAxios from "@/services/axios/driverAxios";
 import { RootState } from "@/services/redux/store";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
 import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
 import logoutLocalStorage from "@/utils/localStorage";
 import DriverNavbar from "@/components/driver/dashboard/DriverNavbar";
 import { format as formatDate } from "date-fns";
+import * as yup from "yup";
+import { ResubmissionValidation } from "@/utils/validation";
 
-// Define DriverData interface
+// Define interfaces
 interface Transaction {
   status: "Credited" | "Debited";
   details: string;
@@ -100,7 +101,33 @@ interface DriverData {
   vehicle_details: VehicleDetails;
 }
 
-// Define DocumentStatus component
+// Popup Notification Component
+interface PopupNotificationProps {
+  message: string;
+  type: "success" | "error";
+  onClose: () => void;
+}
+
+const PopupNotification: React.FC<PopupNotificationProps> = ({ message, type, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className={`bg-white rounded-xl p-6 w-full max-w-md shadow-lg border-2 ${type === "success" ? "border-green-500" : "border-red-500"}`}>
+        <h3 className={`text-xl font-semibold mb-4 ${type === "success" ? "text-green-600" : "text-red-600"}`}>
+          {type === "success" ? "Success" : "Error"}
+        </h3>
+        <p className="text-gray-700 mb-6">{message}</p>
+        <button
+          onClick={onClose}
+          className={`w-full py-2 rounded-lg text-white ${type === "success" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Document Status Component
 interface DocumentStatusProps {
   expiryDate: string;
   title: string;
@@ -113,9 +140,7 @@ const DocumentStatus: React.FC<DocumentStatusProps> = ({ expiryDate, title }) =>
 
   return (
     <div
-      className={`flex items-center gap-2 text-sm ${
-        isExpired ? "text-red-500" : "text-green-500"
-      }`}
+      className={`flex items-center gap-2 text-sm ${isExpired ? "text-red-500" : "text-green-500"}`}
     >
       {isExpired ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
       <span>{isExpired ? `${title} Expired` : `${title} Valid`}</span>
@@ -123,7 +148,7 @@ const DocumentStatus: React.FC<DocumentStatusProps> = ({ expiryDate, title }) =>
   );
 };
 
-// Define ZoomableImage component
+// Zoomable Image Component
 interface ZoomableImageProps {
   src: string;
   alt: string;
@@ -144,7 +169,7 @@ const ZoomableImage: React.FC<ZoomableImageProps> = ({ src, alt }) => {
   );
 };
 
-// Define formatCurrency utility
+// Utility function to format currency
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -155,17 +180,34 @@ const formatCurrency = (amount: number): string => {
 // Utility function to safely format dates
 const safelyFormatDate = (dateString: string | undefined, formatString: string): string => {
   if (!dateString) {
-    return "N/A"; // Fallback for undefined or empty strings
+    return "N/A";
   }
 
   const date = new Date(dateString);
   if (isNaN(date.getTime())) {
-    console.warn(`Invalid date string: ${dateString}`); // Log for debugging
-    return "Invalid Date"; // Fallback for invalid dates
+    console.warn(`Invalid date string: ${dateString}`);
+    return "Invalid Date";
   }
 
   return formatDate(date, formatString);
 };
+
+// Type for form data (dynamic based on field)
+interface FormData {
+  [key: string]: string | undefined;
+}
+
+// Type for file data
+interface FileData {
+  [key: string]: File | null;
+}
+
+// Type for popup state
+interface PopupState {
+  message: string;
+  type: "success" | "error";
+  onClose?: () => void;
+}
 
 export default function DriverProfile() {
   const [activeTab, setActiveTab] = useState<"profile" | "documents" | "earnings" | "feedback">("profile");
@@ -174,8 +216,10 @@ export default function DriverProfile() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [formData, setFormData] = useState<any>({});
-  const [fileData, setFileData] = useState<{ [key: string]: File | null }>({});
+  const [formData, setFormData] = useState<FormData>({});
+  const [fileData, setFileData] = useState<FileData>({});
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
+  const [popup, setPopup] = useState<PopupState | null>(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const driverId = useSelector((state: RootState) => state.driver.driverId);
@@ -194,11 +238,11 @@ export default function DriverProfile() {
 
       try {
         setLoading(true);
-        const { data } = await driverAxios(dispatch).get<DriverData>(`/getDriverDetails/${driverId}`);
+        const { data } = await driverAxios(dispatch).get<DriverData>(`/getDriverDetails`);
         setDriverData(data);
         setIsAvailable(data.isAvailable);
         setError(null);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Failed to fetch driver data:", err);
         setError("Unable to load driver profile. Please try again later.");
       } finally {
@@ -217,85 +261,142 @@ export default function DriverProfile() {
         data: { isAvailable: newAvailability },
       });
       setIsAvailable(newAvailability);
-    } catch (err) {
+      setPopup({
+        message: `You are now ${newAvailability ? "Online" : "Offline"}.`,
+        type: "success",
+      });
+    } catch (err: unknown) {
       console.error("Failed to update availability:", err);
-      setError("Failed to update availability status.");
+      setPopup({
+        message: "Failed to update availability status.",
+        type: "error",
+      });
     }
   };
 
   const handleEdit = (field: string) => {
     setEditingField(field);
     setFileData({});
+    setValidationErrors({});
+    if (!driverData) return;
+
     switch (field) {
       case "rc":
         setFormData({
-          rcFrondImageUrl: driverData?.vehicle_details.rcFrondImageUrl,
-          rcBackImageUrl: driverData?.vehicle_details.rcBackImageUrl,
-          rcStartDate: driverData?.vehicle_details.rcStartDate,
-          rcExpiryDate: driverData?.vehicle_details.rcExpiryDate,
+          rcFrondImageUrl: driverData.vehicle_details.rcFrondImageUrl,
+          rcBackImageUrl: driverData.vehicle_details.rcBackImageUrl,
+          rcStartDate: driverData.vehicle_details.rcStartDate,
+          rcExpiryDate: driverData.vehicle_details.rcExpiryDate,
         });
         break;
       case "model":
-        setFormData({ model: driverData?.vehicle_details.model });
+        setFormData({ model: driverData.vehicle_details.model });
         break;
       case "registerationID":
-        setFormData({ registerationID: driverData?.vehicle_details.registerationID });
+        setFormData({ registerationID: driverData.vehicle_details.registerationID });
         break;
       case "carImage":
         setFormData({
-          carFrondImageUrl: driverData?.vehicle_details.carFrondImageUrl,
-          carBackImageUrl: driverData?.vehicle_details.carBackImageUrl,
+          carFrondImageUrl: driverData.vehicle_details.carFrondImageUrl,
+          carBackImageUrl: driverData.vehicle_details.carBackImageUrl,
         });
         break;
       case "insurance":
         setFormData({
-          insuranceImageUrl: driverData?.vehicle_details.insuranceImageUrl,
-          insuranceStartDate: driverData?.vehicle_details.insuranceStartDate,
-          insuranceExpiryDate: driverData?.vehicle_details.insuranceExpiryDate,
+          insuranceImageUrl: driverData.vehicle_details.insuranceImageUrl,
+          insuranceStartDate: driverData.vehicle_details.insuranceStartDate,
+          insuranceExpiryDate: driverData.vehicle_details.insuranceExpiryDate,
         });
         break;
       case "pollution":
         setFormData({
-          pollutionImageUrl: driverData?.vehicle_details.pollutionImageUrl,
-          pollutionStartDate: driverData?.vehicle_details.pollutionStartDate,
-          pollutionExpiryDate: driverData?.vehicle_details.pollutionExpiryDate,
+          pollutionImageUrl: driverData.vehicle_details.pollutionImageUrl,
+          pollutionStartDate: driverData.vehicle_details.pollutionStartDate,
+          pollutionExpiryDate: driverData.vehicle_details.pollutionExpiryDate,
         });
         break;
       case "license":
         setFormData({
-          licenseId: driverData?.license.licenseId,
-          licenseFrontImageUrl: driverData?.license.licenseFrontImageUrl,
-          licenseBackImageUrl: driverData?.license.licenseBackImageUrl,
-          licenseValidity: driverData?.license.licenseValidity,
+          licenseId: driverData.license.licenseId,
+          licenseFrontImageUrl: driverData.license.licenseFrontImageUrl,
+          licenseBackImageUrl: driverData.license.licenseBackImageUrl,
+          licenseValidity: driverData.license.licenseValidity,
         });
         break;
       case "aadhar":
         setFormData({
-          aadharId: driverData?.aadhar.aadharId,
-          aadharFrontImageUrl: driverData?.aadhar.aadharFrontImageUrl,
-          aadharBackImageUrl: driverData?.aadhar.aadharBackImageUrl,
+          aadharId: driverData.aadhar.aadharId,
+          aadharFrontImageUrl: driverData.aadhar.aadharFrontImageUrl,
+          aadharBackImageUrl: driverData.aadhar.aadharBackImageUrl,
         });
         break;
       case "driverImage":
-        setFormData({ driverImageUrl: driverData?.driverImage });
+        setFormData({ driverImageUrl: driverData.driverImage });
         break;
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev: any) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setValidationErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, field: string) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setFileData((prev) => ({ ...prev, [field]: file }));
-      setFormData((prev: any) => ({ ...prev, [field]: URL.createObjectURL(file) }));
+      setFormData((prev) => ({ ...prev, [field]: URL.createObjectURL(file) }));
+      setValidationErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const validateForm = async (): Promise<boolean> => {
+    if (!editingField) return false;
+
+    try {
+      const schema = ResubmissionValidation([editingField]);
+      const dataToValidate: Record<string, unknown> = {
+        ...formData,
+        aadharFrontImage: fileData.aadharFrontImageUrl || formData.aadharFrontImageUrl,
+        aadharBackImage: fileData.aadharBackImageUrl || formData.aadharBackImageUrl,
+        licenseFrontImage: fileData.licenseFrontImageUrl || formData.licenseFrontImageUrl,
+        licenseBackImage: fileData.licenseBackImageUrl || formData.licenseBackImageUrl,
+        rcFrontImage: fileData.rcFrondImageUrl || formData.rcFrondImageUrl,
+        rcBackImage: fileData.rcBackImageUrl || formData.rcBackImageUrl,
+        carFrontImage: fileData.carFrondImageUrl || formData.carFrondImageUrl,
+        carBackImage: fileData.carBackImageUrl || formData.carBackImageUrl,
+        insuranceImage: fileData.insuranceImageUrl || formData.insuranceImageUrl,
+        pollutionImage: fileData.pollutionImageUrl || formData.pollutionImageUrl,
+        driverImage: fileData.driverImageUrl || formData.driverImageUrl,
+      };
+      await schema.validate(dataToValidate, { abortEarly: false });
+      setValidationErrors({});
+      return true;
+    } catch (err: unknown) {
+      if (err instanceof yup.ValidationError) {
+        const errors: { [key: string]: string } = {};
+        err.inner.forEach((error) => {
+          if (error.path) {
+            errors[error.path] = error.message;
+          }
+        });
+        setValidationErrors(errors);
+      }
+      return false;
     }
   };
 
   const handleSubmit = async (field: string) => {
+    const isValid = await validateForm();
+    if (!isValid) {
+      setPopup({
+        message: "Please fix the errors in the form.",
+        type: "error",
+      });
+      return;
+    }
+
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("field", field);
@@ -321,63 +422,53 @@ export default function DriverProfile() {
         if (fileData.driverImageUrl) formDataToSend.append("driverImage", fileData.driverImageUrl);
       }
 
-      const { data } = await driverAxios(dispatch).post(`/updateDriverDetails/${driverId}`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await driverAxios(dispatch).post<{ data: Partial<DriverData> }>(
+        `/updateDriverDetails/${driverId}`,
+        formDataToSend,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
       setDriverData((prev) => {
         if (!prev) return prev;
         if (field === "driverImage") {
-          return { ...prev, driverImage: data.data?.driverImageUrl || prev.driverImage };
-        } else if (field === "model" || field === "registerationID") {
+          return { ...prev, driverImage: data.data.driverImage || prev.driverImage };
+        } else if (["model", "registerationID", "rc", "carImage", "insurance", "pollution"].includes(field)) {
           return {
             ...prev,
             vehicle_details: {
               ...prev.vehicle_details,
-              ...data.data,
+              ...(data.data.vehicle_details || {}),
             },
           };
+        } else {
+          return {
+            ...prev,
+            [field]: { ...prev[field as keyof DriverData], ...(data.data[field as keyof DriverData] || {}) },
+          };
         }
-        return {
-          ...prev,
-          [field]: { ...prev[field as keyof DriverData], ...data.data },
-        };
       });
 
-      toast.success(
-        "Your profile is updated! We'll verify the changes soon. For security, we're logging you out. Please sign back in after verification to start riding.",
-        {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "light",
-        }
-      );
+      setPopup({
+        message: "Your profile has been updated! We'll verify the changes soon. For security, please sign back in after verification to start riding.",
+        type: "success",
+        onClose: () => {
+          dispatch(driverLogout());
+          logoutLocalStorage("Driver");
+          navigate("/login");
+        },
+      });
 
       setEditingField(null);
       setFileData({});
-
-      setTimeout(() => {
-        dispatch(driverLogout());
-        logoutLocalStorage("Driver");
-        navigate("/login");
-      }, 3500);
     } catch (err: any) {
       console.error("Failed to update driver data:", err);
       const errorMessage = err.response?.data?.message || "Failed to update profile. Please try again.";
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: "light",
+      setPopup({
+        message: errorMessage,
+        type: "error",
       });
-      setError(errorMessage);
     }
   };
 
@@ -399,28 +490,21 @@ export default function DriverProfile() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 font-sans">
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
-      {/* Main Layout with Navbar and Content */}
+      {popup && (
+        <PopupNotification
+          message={popup.message}
+          type={popup.type}
+          onClose={() => {
+            setPopup(null);
+            if (popup.onClose) popup.onClose();
+          }}
+        />
+      )}
       <div className="flex flex-col lg:flex-row">
-        {/* Navbar */}
         <div className="lg:w-64 bg-white shadow-lg">
           <DriverNavbar />
         </div>
-
-        {/* Main Content */}
         <div className="flex-1">
-          {/* Header */}
           <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
             <div className="container mx-auto px-4 py-6">
               <div className="flex flex-col md:flex-row justify-between items-center">
@@ -453,8 +537,6 @@ export default function DriverProfile() {
               </div>
             </div>
           </header>
-
-          {/* Driver Summary */}
           <div className="bg-white shadow-lg">
             <div className="container mx-auto px-4 py-8">
               <div className="flex flex-col md:flex-row gap-8 items-center">
@@ -471,7 +553,6 @@ export default function DriverProfile() {
                     <Edit2 size={16} color="white" />
                   </button>
                 </div>
-
                 <div className="flex-1 text-center md:text-left">
                   <h2 className="text-2xl font-bold text-gray-800">{driverData.name}</h2>
                   <div className="flex flex-col md:flex-row md:gap-8 text-gray-600 mt-2">
@@ -484,7 +565,6 @@ export default function DriverProfile() {
                       <span>+91 {driverData.mobile}</span>
                     </div>
                   </div>
-
                   <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
                     <div className="flex items-center gap-2">
                       <Star size={18} className="text-yellow-500 fill-yellow-500" />
@@ -497,7 +577,6 @@ export default function DriverProfile() {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-blue-50 p-4 rounded-xl shadow-md w-full md:w-64 transition-all duration-300 hover:shadow-lg">
                   <div className="text-blue-600 font-semibold text-center">Wallet Balance</div>
                   <div className="text-3xl font-bold text-center text-gray-800">
@@ -507,8 +586,6 @@ export default function DriverProfile() {
               </div>
             </div>
           </div>
-
-          {/* Tabs */}
           <div className="bg-white border-b shadow-sm sticky top-0 z-10">
             <div className="container mx-auto px-4">
               <div className="flex overflow-x-auto">
@@ -528,8 +605,6 @@ export default function DriverProfile() {
               </div>
             </div>
           </div>
-
-          {/* Content */}
           <div className="flex-1 py-8">
             <div className="container mx-auto px-4">
               {activeTab === "profile" && (
@@ -557,14 +632,13 @@ export default function DriverProfile() {
                       </div>
                     </div>
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
                     <h3 className="text-xl font-semibold text-gray-800 mb-4">Vehicle Details</h3>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Registration Number</span>
                         {editingField === "registerationID" ? (
-                          <div className="flex gap-3 items-center">
+                          <div className="flex flex-col gap-1">
                             <input
                               type="text"
                               name="registerationID"
@@ -572,18 +646,23 @@ export default function DriverProfile() {
                               onChange={handleInputChange}
                               className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
-                            <button
-                              onClick={() => handleSubmit("registerationID")}
-                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingField(null)}
-                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                            >
-                              Cancel
-                            </button>
+                            {validationErrors.registerationID && (
+                              <span className="text-red-500 text-xs">{validationErrors.registerationID}</span>
+                            )}
+                            <div className="flex gap-3 mt-2">
+                              <button
+                                onClick={() => handleSubmit("registerationID")}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingField(null)}
+                                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex items-center gap-3">
@@ -602,7 +681,7 @@ export default function DriverProfile() {
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Vehicle Model</span>
                         {editingField === "model" ? (
-                          <div className="flex gap-3 items-center">
+                          <div className="flex flex-col gap-1">
                             <input
                               type="text"
                               name="model"
@@ -610,18 +689,23 @@ export default function DriverProfile() {
                               onChange={handleInputChange}
                               className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
-                            <button
-                              onClick={() => handleSubmit("model")}
-                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingField(null)}
-                              className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
-                            >
-                              Cancel
-                            </button>
+                            {validationErrors.model && (
+                              <span className="text-red-500 text-xs">{validationErrors.model}</span>
+                            )}
+                            <div className="flex gap-3 mt-2">
+                              <button
+                                onClick={() => handleSubmit("model")}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingField(null)}
+                                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex items-center gap-3">
@@ -637,7 +721,6 @@ export default function DriverProfile() {
                       </div>
                     </div>
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
                     <h3 className="text-xl font-semibold text-gray-800 mb-4">Performance Summary</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -668,7 +751,6 @@ export default function DriverProfile() {
                       </div>
                     </div>
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">Recent Transactions</h3>
@@ -718,7 +800,6 @@ export default function DriverProfile() {
                   </div>
                 </div>
               )}
-
               {activeTab === "documents" && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
@@ -732,14 +813,19 @@ export default function DriverProfile() {
                     <div className="space-y-4">
                       {editingField === "aadhar" ? (
                         <div className="flex flex-col gap-4">
-                          <input
-                            type="text"
-                            name="aadharId"
-                            value={formData.aadharId || ""}
-                            onChange={handleInputChange}
-                            placeholder="Aadhar Number"
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                          <div>
+                            <input
+                              type="text"
+                              name="aadharId"
+                              value={formData.aadharId || ""}
+                              onChange={handleInputChange}
+                              placeholder="Aadhar Number"
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.aadharId && (
+                              <span className="text-red-500 text-xs">{validationErrors.aadharId}</span>
+                            )}
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="text-sm text-gray-600 mb-1">Front Image</label>
@@ -749,6 +835,9 @@ export default function DriverProfile() {
                                 onChange={(e) => handleFileChange(e, "aadharFrontImageUrl")}
                                 className="text-sm"
                               />
+                              {validationErrors.aadharFrontImage && (
+                                <span className="text-red-500 text-xs">{validationErrors.aadharFrontImage}</span>
+                              )}
                               {formData.aadharFrontImageUrl && (
                                 <img
                                   src={formData.aadharFrontImageUrl}
@@ -765,6 +854,9 @@ export default function DriverProfile() {
                                 onChange={(e) => handleFileChange(e, "aadharBackImageUrl")}
                                 className="text-sm"
                               />
+                              {validationErrors.aadharBackImage && (
+                                <span className="text-red-500 text-xs">{validationErrors.aadharBackImage}</span>
+                              )}
                               {formData.aadharBackImageUrl && (
                                 <img
                                   src={formData.aadharBackImageUrl}
@@ -809,10 +901,7 @@ export default function DriverProfile() {
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Front View</div>
-                          <ZoomableImage
-                            src={driverData.aadhar.aadharFrontImageUrl}
-                            alt="Aadhar Front"
-                          />
+                          <ZoomableImage src={driverData.aadhar.aadharFrontImageUrl} alt="Aadhar Front" />
                         </div>
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Back View</div>
@@ -821,33 +910,39 @@ export default function DriverProfile() {
                       </div>
                     )}
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">Driving License</h3>
-                      <DocumentStatus
-                        expiryDate={driverData.license.licenseValidity}
-                        title="License"
-                      />
+                      <DocumentStatus expiryDate={driverData.license.licenseValidity} title="License" />
                     </div>
                     <div className="space-y-4">
                       {editingField === "license" ? (
                         <div className="flex flex-col gap-4">
-                          <input
-                            type="text"
-                            name="licenseId"
-                            value={formData.licenseId || ""}
-                            onChange={handleInputChange}
-                            placeholder="License Number"
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <input
-                            type="date"
-                            name="licenseValidity"
-                            value={formData.licenseValidity?.split("T")[0] || ""}
-                            onChange={handleInputChange}
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                          <div>
+                            <input
+                              type="text"
+                              name="licenseId"
+                              value={formData.licenseId || ""}
+                              onChange={handleInputChange}
+                              placeholder="License Number"
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.licenseId && (
+                              <span className="text-red-500 text-xs">{validationErrors.licenseId}</span>
+                            )}
+                          </div>
+                          <div>
+                            <input
+                              type="date"
+                              name="licenseValidity"
+                              value={formData.licenseValidity?.split("T")[0] || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.licenseValidity && (
+                              <span className="text-red-500 text-xs">{validationErrors.licenseValidity}</span>
+                            )}
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="text-sm text-gray-600 mb-1">Front Image</label>
@@ -857,6 +952,9 @@ export default function DriverProfile() {
                                 onChange={(e) => handleFileChange(e, "licenseFrontImageUrl")}
                                 className="text-sm"
                               />
+                              {validationErrors.licenseFrontImage && (
+                                <span className="text-red-500 text-xs">{validationErrors.licenseFrontImage}</span>
+                              )}
                               {formData.licenseFrontImageUrl && (
                                 <img
                                   src={formData.licenseFrontImageUrl}
@@ -873,6 +971,9 @@ export default function DriverProfile() {
                                 onChange={(e) => handleFileChange(e, "licenseBackImageUrl")}
                                 className="text-sm"
                               />
+                              {validationErrors.licenseBackImage && (
+                                <span className="text-red-500 text-xs">{validationErrors.licenseBackImage}</span>
+                              )}
                               {formData.licenseBackImageUrl && (
                                 <img
                                   src={formData.licenseBackImageUrl}
@@ -923,22 +1024,15 @@ export default function DriverProfile() {
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Front View</div>
-                          <ZoomableImage
-                            src={driverData.license.licenseFrontImageUrl}
-                            alt="License Front"
-                          />
+                          <ZoomableImage src={driverData.license.licenseFrontImageUrl} alt="License Front" />
                         </div>
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Back View</div>
-                          <ZoomableImage
-                            src={driverData.license.licenseBackImageUrl}
-                            alt="License Back"
-                          />
+                          <ZoomableImage src={driverData.license.licenseBackImageUrl} alt="License Back" />
                         </div>
                       </div>
                     )}
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">Vehicle Registration</h3>
@@ -947,20 +1041,30 @@ export default function DriverProfile() {
                     <div className="space-y-4">
                       {editingField === "rc" ? (
                         <div className="flex flex-col gap-4">
-                          <input
-                            type="date"
-                            name="rcStartDate"
-                            value={formData.rcStartDate?.split("T")[0] || ""}
-                            onChange={handleInputChange}
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <input
-                            type="date"
-                            name="rcExpiryDate"
-                            value={formData.rcExpiryDate?.split("T")[0] || ""}
-                            onChange={handleInputChange}
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                          <div>
+                            <input
+                              type="date"
+                              name="rcStartDate"
+                              value={formData.rcStartDate?.split("T")[0] || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.rcStartDate && (
+                              <span className="text-red-500 text-xs">{validationErrors.rcStartDate}</span>
+                            )}
+                          </div>
+                          <div>
+                            <input
+                              type="date"
+                              name="rcExpiryDate"
+                              value={formData.rcExpiryDate?.split("T")[0] || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.rcExpiryDate && (
+                              <span className="text-red-500 text-xs">{validationErrors.rcExpiryDate}</span>
+                            )}
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="text-sm text-gray-600 mb-1">Front Image</label>
@@ -970,6 +1074,9 @@ export default function DriverProfile() {
                                 onChange={(e) => handleFileChange(e, "rcFrondImageUrl")}
                                 className="text-sm"
                               />
+                              {validationErrors.rcFrontImage && (
+                                <span className="text-red-500 text-xs">{validationErrors.rcFrontImage}</span>
+                              )}
                               {formData.rcFrondImageUrl && (
                                 <img
                                   src={formData.rcFrondImageUrl}
@@ -986,6 +1093,9 @@ export default function DriverProfile() {
                                 onChange={(e) => handleFileChange(e, "rcBackImageUrl")}
                                 className="text-sm"
                               />
+                              {validationErrors.rcBackImage && (
+                                <span className="text-red-500 text-xs">{validationErrors.rcBackImage}</span>
+                              )}
                               {formData.rcBackImageUrl && (
                                 <img
                                   src={formData.rcBackImageUrl}
@@ -1038,47 +1148,47 @@ export default function DriverProfile() {
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Front View</div>
-                          <ZoomableImage
-                            src={driverData.vehicle_details.rcFrondImageUrl}
-                            alt="RC Front"
-                          />
+                          <ZoomableImage src={driverData.vehicle_details.rcFrondImageUrl} alt="RC Front" />
                         </div>
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Back View</div>
-                          <ZoomableImage
-                            src={driverData.vehicle_details.rcBackImageUrl}
-                            alt="RC Back"
-                          />
+                          <ZoomableImage src={driverData.vehicle_details.rcBackImageUrl} alt="RC Back" />
                         </div>
                       </div>
                     )}
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">Vehicle Insurance</h3>
-                      <DocumentStatus
-                        expiryDate={driverData.vehicle_details.insuranceExpiryDate}
-                        title="Insurance"
-                      />
+                      <DocumentStatus expiryDate={driverData.vehicle_details.insuranceExpiryDate} title="Insurance" />
                     </div>
                     <div className="space-y-4">
                       {editingField === "insurance" ? (
                         <div className="flex flex-col gap-4">
-                          <input
-                            type="date"
-                            name="insuranceStartDate"
-                            value={formData.insuranceStartDate?.split("T")[0] || ""}
-                            onChange={handleInputChange}
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <input
-                            type="date"
-                            name="insuranceExpiryDate"
-                            value={formData.insuranceExpiryDate?.split("T")[0] || ""}
-                            onChange={handleInputChange}
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                          <div>
+                            <input
+                              type="date"
+                              name="insuranceStartDate"
+                              value={formData.insuranceStartDate?.split("T")[0] || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.insuranceStartDate && (
+                              <span className="text-red-500 text-xs">{validationErrors.insuranceStartDate}</span>
+                            )}
+                          </div>
+                          <div>
+                            <input
+                              type="date"
+                              name="insuranceExpiryDate"
+                              value={formData.insuranceExpiryDate?.split("T")[0] || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.insuranceExpiryDate && (
+                              <span className="text-red-500 text-xs">{validationErrors.insuranceExpiryDate}</span>
+                            )}
+                          </div>
                           <div>
                             <label className="text-sm text-gray-600 mb-1">Insurance Certificate</label>
                             <input
@@ -1087,6 +1197,9 @@ export default function DriverProfile() {
                               onChange={(e) => handleFileChange(e, "insuranceImageUrl")}
                               className="text-sm"
                             />
+                            {validationErrors.insuranceImage && (
+                              <span className="text-red-500 text-xs">{validationErrors.insuranceImage}</span>
+                            )}
                             {formData.insuranceImageUrl && (
                               <img
                                 src={formData.insuranceImageUrl}
@@ -1137,39 +1250,42 @@ export default function DriverProfile() {
                     {!editingField && (
                       <div className="mt-4">
                         <div className="text-sm text-gray-600 mb-1">Insurance Certificate</div>
-                        <ZoomableImage
-                          src={driverData.vehicle_details.insuranceImageUrl}
-                          alt="Insurance"
-                        />
+                        <ZoomableImage src={driverData.vehicle_details.insuranceImageUrl} alt="Insurance" />
                       </div>
                     )}
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">Pollution Certificate</h3>
-                      <DocumentStatus
-                        expiryDate={driverData.vehicle_details.pollutionExpiryDate}
-                        title="Pollution"
-                      />
+                      <DocumentStatus expiryDate={driverData.vehicle_details.pollutionExpiryDate} title="Pollution" />
                     </div>
                     <div className="space-y-4">
                       {editingField === "pollution" ? (
                         <div className="flex flex-col gap-4">
-                          <input
-                            type="date"
-                            name="pollutionStartDate"
-                            value={formData.pollutionStartDate?.split("T")[0] || ""}
-                            onChange={handleInputChange}
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <input
-                            type="date"
-                            name="pollutionExpiryDate"
-                            value={formData.pollutionExpiryDate?.split("T")[0] || ""}
-                            onChange={handleInputChange}
-                            className="border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                          <div>
+                            <input
+                              type="date"
+                              name="pollutionStartDate"
+                              value={formData.pollutionStartDate?.split("T")[0] || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.pollutionStartDate && (
+                              <span className="text-red-500 text-xs">{validationErrors.pollutionStartDate}</span>
+                            )}
+                          </div>
+                          <div>
+                            <input
+                              type="date"
+                              name="pollutionExpiryDate"
+                              value={formData.pollutionExpiryDate?.split("T")[0] || ""}
+                              onChange={handleInputChange}
+                              className="border rounded-lg p-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {validationErrors.pollutionExpiryDate && (
+                              <span className="text-red-500 text-xs">{validationErrors.pollutionExpiryDate}</span>
+                            )}
+                          </div>
                           <div>
                             <label className="text-sm text-gray-600 mb-1">Pollution Certificate</label>
                             <input
@@ -1178,6 +1294,9 @@ export default function DriverProfile() {
                               onChange={(e) => handleFileChange(e, "pollutionImageUrl")}
                               className="text-sm"
                             />
+                            {validationErrors.pollutionImage && (
+                              <span className="text-red-500 text-xs">{validationErrors.pollutionImage}</span>
+                            )}
                             {formData.pollutionImageUrl && (
                               <img
                                 src={formData.pollutionImageUrl}
@@ -1228,14 +1347,10 @@ export default function DriverProfile() {
                     {!editingField && (
                       <div className="mt-4">
                         <div className="text-sm text-gray-600 mb-1">Pollution Certificate</div>
-                        <ZoomableImage
-                          src={driverData.vehicle_details.pollutionImageUrl}
-                          alt="Pollution"
-                        />
+                        <ZoomableImage src={driverData.vehicle_details.pollutionImageUrl} alt="Pollution" />
                       </div>
                     )}
                   </div>
-
                   <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2 transition-all duration-300 hover:shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">Vehicle Images</h3>
@@ -1249,6 +1364,9 @@ export default function DriverProfile() {
                               onChange={(e) => handleFileChange(e, "carFrondImageUrl")}
                               className="text-sm"
                             />
+                            {validationErrors.carFrontImage && (
+                              <span className="text-red-500 text-xs">{validationErrors.carFrontImage}</span>
+                            )}
                             {formData.carFrondImageUrl && (
                               <img
                                 src={formData.carFrondImageUrl}
@@ -1265,6 +1383,9 @@ export default function DriverProfile() {
                               onChange={(e) => handleFileChange(e, "carBackImageUrl")}
                               className="text-sm"
                             />
+                            {validationErrors.carBackImage && (
+                              <span className="text-red-500 text-xs">{validationErrors.carBackImage}</span>
+                            )}
                             {formData.carBackImageUrl && (
                               <img
                                 src={formData.carBackImageUrl}
@@ -1302,24 +1423,17 @@ export default function DriverProfile() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Front View</div>
-                          <ZoomableImage
-                            src={driverData.vehicle_details.carFrondImageUrl}
-                            alt="Car Front"
-                          />
+                          <ZoomableImage src={driverData.vehicle_details.carFrondImageUrl} alt="Car Front" />
                         </div>
                         <div>
                           <div className="text-sm text-gray-600 mb-1">Back View</div>
-                          <ZoomableImage
-                            src={driverData.vehicle_details.carBackImageUrl}
-                            alt="Car Back"
-                          />
+                          <ZoomableImage src={driverData.vehicle_details.carBackImageUrl} alt="Car Back" />
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
               )}
-
               {activeTab === "earnings" && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1343,8 +1457,7 @@ export default function DriverProfile() {
                           Completion Rate:{" "}
                           {(
                             (driverData.RideDetails.completedRides /
-                              (driverData.RideDetails.completedRides +
-                                driverData.RideDetails.cancelledRides)) *
+                              (driverData.RideDetails.completedRides + driverData.RideDetails.cancelledRides)) *
                             100
                           ).toFixed(1)}
                           %
@@ -1362,7 +1475,6 @@ export default function DriverProfile() {
                       </div>
                     </div>
                   </div>
-
                   <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">Transaction History</h3>
@@ -1410,7 +1522,6 @@ export default function DriverProfile() {
                       ))}
                     </div>
                   </div>
-
                   <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
                     <h3 className="text-xl font-semibold text-gray-800 mb-4">Ride Statistics</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1431,8 +1542,7 @@ export default function DriverProfile() {
                         <div className="text-sm text-gray-500 mt-1">
                           {(
                             (driverData.RideDetails.cancelledRides /
-                              (driverData.RideDetails.completedRides +
-                                driverData.RideDetails.cancelledRides)) *
+                              (driverData.RideDetails.completedRides + driverData.RideDetails.cancelledRides)) *
                             100
                           ).toFixed(1)}
                           % of total
@@ -1442,7 +1552,6 @@ export default function DriverProfile() {
                   </div>
                 </div>
               )}
-
               {activeTab === "feedback" && (
                 <div className="grid grid-cols-1 gap-6">
                   <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
@@ -1471,11 +1580,7 @@ export default function DriverProfile() {
                                 <Star
                                   key={i}
                                   size={16}
-                                  className={
-                                    i < feedback.rating
-                                      ? "text-yellow-500 fill-yellow-500"
-                                      : "text-gray-300"
-                                  }
+                                  className={i < feedback.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}
                                 />
                               ))}
                             </div>
@@ -1500,17 +1605,21 @@ export default function DriverProfile() {
               )}
             </div>
           </div>
-
           {editingField === "driverImage" && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Update Driver Image</h3>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange(e, "driverImageUrl")}
-                  className="mb-4 text-sm"
-                />
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, "driverImageUrl")}
+                    className="mb-4 text-sm"
+                  />
+                  {validationErrors.driverImage && (
+                    <span className="text-red-500 text-xs">{validationErrors.driverImage}</span>
+                  )}
+                </div>
                 {formData.driverImageUrl && (
                   <img
                     src={formData.driverImageUrl}
