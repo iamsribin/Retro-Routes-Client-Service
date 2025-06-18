@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Wallet, MapPin, FileText, LogOut, Calendar } from 'lucide-react';
+import { User, Wallet, MapPin, FileText, LogOut, LayoutDashboard } from 'lucide-react';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList, NavigationMenuLink } from "@/components/ui/navigation-menu";
 import { useDispatch } from "react-redux";
 import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
@@ -21,6 +21,12 @@ const DriverNavbar: React.FC = () => {
       <NavigationMenu orientation="vertical" className="w-full">
         <NavigationMenuList className="flex flex-row sm:flex-col justify-around sm:justify-start sm:space-y-2 w-full">
           <NavigationMenuItem className="w-full">
+            <Link to="/driver/dashboard" className="flex items-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors">
+              <LayoutDashboard className="mr-0 sm:mr-3 h-5 w-5" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+          </NavigationMenuItem>
+          <NavigationMenuItem className="w-full">
             <Link to="/driver/profile" className="flex items-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors">
               <User className="mr-0 sm:mr-3 h-5 w-5" />
               <span className="hidden sm:inline">Profile</span>
@@ -36,12 +42,6 @@ const DriverNavbar: React.FC = () => {
             <Link to="/driver/trips" className="flex items-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors">
               <MapPin className="mr-0 sm:mr-3 h-5 w-5" />
               <span className="hidden sm:inline">My Trips</span>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem className="w-full">
-            <Link to="/driver/bookings" className="flex items-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors">
-              <Calendar className="mr-0 sm:mr-3 h-5 w-5" />
-              <span className="hidden sm:inline">View Bookings</span>
             </Link>
           </NavigationMenuItem>
           <NavigationMenuItem className="w-full">

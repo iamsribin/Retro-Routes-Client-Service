@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PhoneCall, MessageSquare, Navigation, Car, MapPin, Clock } from 'lucide-react';
+import { PhoneCall, MessageSquare, Navigation, Car, MapPin, Clock, Send } from 'lucide-react';
 import { Feature, LineString, GeoJSON } from 'geojson';
 import { hideRideMap } from '@/services/redux/slices/driverRideSlice';
 import { RootState } from "@/services/redux/store";
@@ -16,13 +15,20 @@ import { useSocket } from '@/context/SocketContext';
 
 mapboxgl.accessToken = 'pk.eyJ1Ijoic3JpYmluIiwiYSI6ImNtOW56MnEzNDB0a3gycXNhdGppZGVjY2kifQ.e5Wf0msIvOjm7tXjFXP0dA';
 
+interface Message {
+  sender: 'driver' | 'user';
+  content: string;
+  timestamp: string;
+}
+
 const ActiveRideMap: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const pickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const [eta, setEta] = useState<string>('Calculating...');
   const [routeDistance, setRouteDistance] = useState<string>('');
   const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -31,7 +37,10 @@ const ActiveRideMap: React.FC = () => {
   const [rideStarted, setRideStarted] = useState<boolean>(false);
   const [driverBearing, setDriverBearing] = useState<number>(0);
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
-  
+  const [activeTab, setActiveTab] = useState<'details' | 'chat'>('details');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState<string>('');
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { socket, isConnected } = useSocket();
@@ -47,7 +56,7 @@ const ActiveRideMap: React.FC = () => {
 
   useEffect(() => {
     let watchId: number;
-    
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -65,11 +74,11 @@ const ActiveRideMap: React.FC = () => {
         (position) => {
           const { latitude, longitude, heading } = position.coords;
           const newLocation = { latitude, longitude };
-          
+
           if (heading !== null && !isNaN(heading)) {
             setDriverBearing(heading);
           }
-          
+
           setDriverLocation(newLocation);
         },
         (error) => {
@@ -87,6 +96,33 @@ const ActiveRideMap: React.FC = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!socket || !isConnected || !rideData) return;
+
+    const handleReceiveMessage = (data: { sender: 'driver' | 'user'; message: string; timestamp: string }) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: data.sender,
+          content: data.message,
+          timestamp: data.timestamp,
+        },
+      ]);
+    };
+
+    socket.on('receiveMessage', handleReceiveMessage);
+
+    return () => {
+      socket.off('receiveMessage', handleReceiveMessage);
+    };
+  }, [socket, isConnected, rideData]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const createCarIcon = (bearing: number = 0): HTMLElement => {
     const el = document.createElement('div');
@@ -113,7 +149,6 @@ const ActiveRideMap: React.FC = () => {
     return el;
   };
 
-  // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || !driverLocation || !rideData || mapRef.current) return;
 
@@ -132,8 +167,7 @@ const ActiveRideMap: React.FC = () => {
 
       map.on('load', () => {
         setMapLoaded(true);
-        
-        // Add driver marker with car icon
+
         if (driverMarkerRef.current) {
           driverMarkerRef.current.remove();
         }
@@ -144,12 +178,11 @@ const ActiveRideMap: React.FC = () => {
           .setLngLat([driverLocation.longitude, driverLocation.latitude])
           .addTo(map);
 
-        // Add pickup marker only if ride hasn't started
         if (!rideStarted) {
           if (pickupMarkerRef.current) {
             pickupMarkerRef.current.remove();
           }
-          pickupMarkerRef.current = new mapboxgl.Marker({ 
+          pickupMarkerRef.current = new mapboxgl.Marker({
             color: '#ef4444',
             scale: 0.8
           })
@@ -157,12 +190,11 @@ const ActiveRideMap: React.FC = () => {
             .addTo(map);
         }
 
-        // Add dropoff marker
         if (rideData.dropoff && dropoffMarkerRef.current) {
           dropoffMarkerRef.current.remove();
         }
         if (rideData.dropoff) {
-          dropoffMarkerRef.current = new mapboxgl.Marker({ 
+          dropoffMarkerRef.current = new mapboxgl.Marker({
             color: '#3b82f6',
             scale: 0.8
           })
@@ -170,10 +202,8 @@ const ActiveRideMap: React.FC = () => {
             .addTo(map);
         }
 
-        // Fit bounds to show all markers
         fitMapBounds(map);
-        
-        // Update route
+
         updateRoute(map);
       });
 
@@ -194,17 +224,16 @@ const ActiveRideMap: React.FC = () => {
     };
   }, [driverLocation, rideData, rideStarted]);
 
-  // Update driver marker position and rotation
   useEffect(() => {
     if (driverMarkerRef.current && driverLocation && mapRef.current && mapLoaded) {
       driverMarkerRef.current.setLngLat([driverLocation.longitude, driverLocation.latitude]);
-      
+
       const element = driverMarkerRef.current.getElement();
       const carIcon = element.querySelector('div') as HTMLElement;
       if (carIcon) {
         carIcon.style.transform = `rotate(${driverBearing}deg)`;
       }
-      
+
       updateRoute(mapRef.current);
     }
   }, [driverLocation, driverBearing, mapLoaded]);
@@ -223,7 +252,7 @@ const ActiveRideMap: React.FC = () => {
       bounds.extend([rideData.dropoff.longitude, rideData.dropoff.latitude]);
     }
 
-    map.fitBounds(bounds, { 
+    map.fitBounds(bounds, {
       padding: { top: 50, bottom: 300, left: 50, right: 50 },
       maxZoom: 15
     });
@@ -234,7 +263,7 @@ const ActiveRideMap: React.FC = () => {
 
     try {
       let destinationCoords;
-      
+
       if (!rideStarted) {
         destinationCoords = `${rideData.pickup.longitude},${rideData.pickup.latitude}`;
       } else if (rideStarted && rideData.dropoff) {
@@ -296,14 +325,13 @@ const ActiveRideMap: React.FC = () => {
 
   const handlePinSubmit = () => {
     if (!rideData) return;
-    
+
     const correctPin = rideData.ride.securityPin.toString();
-    
+
     if (enteredPin === correctPin) {
       setPinError('');
       setRideStarted(true);
-      
-      // Remove pickup marker when ride starts
+
       if (pickupMarkerRef.current) {
         pickupMarkerRef.current.remove();
         pickupMarkerRef.current = null;
@@ -313,7 +341,7 @@ const ActiveRideMap: React.FC = () => {
         socket.emit("rideStarted", {
           bookingId: rideData.booking.bookingId,
           userId: rideData.customer.id,
-          driverLocation:driverLocation,
+          driverLocation: driverLocation,
         });
       }
 
@@ -327,6 +355,28 @@ const ActiveRideMap: React.FC = () => {
     } else {
       setPinError('Invalid PIN. Please try again.');
     }
+  };
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !socket || !isConnected || !rideData) return;
+
+    const timestamp = new Date().toISOString();
+    const message: Message = {
+      sender: 'driver',
+      content: newMessage.trim(),
+      timestamp,
+    };
+
+    socket.emit('sendMessage', {
+      bookingId: rideData.booking.bookingId,
+      userId: rideData.customer.id,
+      sender: 'driver',
+      message: newMessage.trim(),
+      timestamp,
+    });
+
+    setMessages((prev) => [...prev, message]);
+    setNewMessage('');
   };
 
   const handleCompleteRide = () => {
@@ -356,11 +406,9 @@ const ActiveRideMap: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Map Container */}
       <div className="relative flex-1 min-h-0">
         <div ref={mapContainerRef} className="w-full h-full" />
-        
-        {/* Loading indicator */}
+
         {!mapLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="text-center">
@@ -371,7 +419,6 @@ const ActiveRideMap: React.FC = () => {
         )}
       </div>
 
-      {/* Bottom Card */}
       <div className="flex-shrink-0 bg-white shadow-lg max-h-[50vh] overflow-y-auto">
         <Card className="border-0 rounded-t-xl shadow-none">
           <CardHeader className="pb-3 px-4 pt-4">
@@ -391,114 +438,190 @@ const ActiveRideMap: React.FC = () => {
                 </Button>
               </div>
             </CardTitle>
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`flex-1 py-2 text-sm font-medium ${
+                  activeTab === 'details'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Ride Details
+              </button>
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`flex-1 py-2 text-sm font-medium ${
+                  activeTab === 'chat'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Chat
+              </button>
+            </div>
           </CardHeader>
 
           <CardContent className="px-4 pb-4 space-y-4">
-            {/* Customer Info */}
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
-                <AvatarImage src={rideData.customer.profileImageUrl || ''} alt={rideData.customer.name} />
-                <AvatarFallback className="text-sm">{rideData.customer.name[0]}</AvatarFallback>
-              </Avatar>
+            {activeTab === 'details' && (
+              <>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
+                    <AvatarImage src={rideData.customer.profileImageUrl || ''} alt={rideData.customer.name} />
+                    <AvatarFallback className="text-sm">{rideData.customer.name[0]}</AvatarFallback>
+                  </Avatar>
 
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm sm:text-base truncate">{rideData.customer.name}</p>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  Vehicle: {rideData.ride.vehicleType}
-                </p>
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm sm:text-base truncate">{rideData.customer.name}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Vehicle: {rideData.ride.vehicleType}
+                    </p>
+                  </div>
 
-              <div className="flex gap-2 flex-shrink-0">
-                <Button size="icon" variant="outline" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
-                  <MessageSquare className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="outline" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
-                  <PhoneCall className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* PIN Verification Section */}
-            {!rideStarted && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="font-medium text-sm mb-3">Enter 6-digit PIN to start ride:</h3>
-                <div className="flex gap-2 mb-3 items-center">
-                  <Input
-                    type="text"
-                    placeholder="Enter PIN"
-                    value={enteredPin}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setEnteredPin(value);
-                      setPinError('');
-                    }}
-                    className="w-32 text-center text-lg font-mono"
-                    maxLength={6}
-                  />
-                  <Button 
-                    onClick={handlePinSubmit}
-                    className="bg-emerald-500 hover:bg-emerald-600 h-10 px-4"
-                    disabled={enteredPin.length !== 6}
-                  >
-                    Start Ride
-                  </Button>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="rounded-full h-8 w-8 sm:h-10 sm:w-10"
+                      onClick={() => setActiveTab('chat')}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="outline" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
+                      <PhoneCall className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                {pinError && (
-                  <p className="text-red-500 text-sm">{pinError}</p>
+
+                {!rideStarted && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-medium text-sm mb-3">Enter 6-digit PIN to start ride:</h3>
+                    <div className="flex gap-2 mb-3 items-center">
+                      <Input
+                        type="text"
+                        placeholder="Enter PIN"
+                        value={enteredPin}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          setEnteredPin(value);
+                          setPinError('');
+                        }}
+                        className="w-32 text-center text-lg font-mono"
+                        maxLength={6}
+                      />
+                      <Button
+                        onClick={handlePinSubmit}
+                        className="bg-green-600 h-10 px-4"
+                        disabled={enteredPin.length !== 6}
+                      >
+                        Start Ride
+                      </Button>
+                    </div>
+                    {pinError && (
+                      <p className="text-red-500 text-sm">{pinError}</p>
+                    )}
+                  </div>
                 )}
-              </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Distance:</span>
+                    <span className="font-medium">{rideData.ride.estimatedDistance}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Duration:</span>
+                    <span className="font-medium">{rideData.ride.estimatedDuration}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Fare:</span>
+                    <span className="font-medium">₹{rideData.ride.fareAmount}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 font-medium">PICKUP</p>
+                      <p className="text-sm font-medium leading-tight">{rideData.pickup.address}</p>
+                    </div>
+                  </div>
+
+                  {rideData.dropoff && (
+                    <div className="flex gap-3 items-start">
+                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500 font-medium">DROP-OFF</p>
+                        <p className="text-sm font-medium leading-tight">{rideData.dropoff.address}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {rideStarted && (
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={handleCompleteRide}
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 h-12"
+                    >
+                      Complete Ride
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Trip Details */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Distance:</span>
-                <span className="font-medium">{rideData.ride.estimatedDistance}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Duration:</span>
-                <span className="font-medium">{rideData.ride.estimatedDuration}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Fare:</span>
-                <span className="font-medium">₹{rideData.ride.fareAmount}</span>
-              </div>
-            </div>
-
-            {/* Location Details */}
-            <div className="space-y-3">
-              <div className="flex gap-3 items-start">
-                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            {activeTab === 'chat' && (
+              <div className="space-y-4">
+                <div className="h-40 sm:h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3">
+                  {messages.length === 0 && (
+                    <p className="text-center text-gray-500 text-sm">No messages yet.</p>
+                  )}
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.sender === 'driver' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[70%] p-3 rounded-lg text-sm ${
+                          message.sender === 'driver'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-200 text-gray-800'
+                        }`}
+                      >
+                        <p>{message.content}</p>
+                        <p className={`text-xs mt-1 ${message.sender === 'driver' ? 'text-blue-100' : 'text-gray-500'}`}>
+                          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500 font-medium">PICKUP</p>
-                  <p className="text-sm font-medium leading-tight">{rideData.pickup.address}</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 h-10"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newMessage.trim()) {
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    className="h-10 bg-green-600 hover:bg-green-700"
+                    disabled={!newMessage.trim() || !isConnected}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
-
-              {rideData.dropoff && (
-                <div className="flex gap-3 items-start">
-                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 font-medium">DROP-OFF</p>
-                    <p className="text-sm font-medium leading-tight">{rideData.dropoff.address}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            {rideStarted && (
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={handleCompleteRide}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 h-12"
-                >
-                  Complete Ride
-                </Button>
               </div>
             )}
           </CardContent>

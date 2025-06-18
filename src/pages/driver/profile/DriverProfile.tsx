@@ -389,13 +389,13 @@ export default function DriverProfile() {
 
   const handleSubmit = async (field: string) => {
     const isValid = await validateForm();
-    if (!isValid) {
-      setPopup({
-        message: "Please fix the errors in the form.",
-        type: "error",
-      });
-      return;
-    }
+    // if (!isValid) {
+    //   setPopup({
+    //     message: "Please fix the errors in the form.",
+    //     type: "error",
+    //   });
+    //   return;
+    // }
 
     try {
       const formDataToSend = new FormData();

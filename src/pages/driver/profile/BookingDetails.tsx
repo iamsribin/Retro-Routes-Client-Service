@@ -122,7 +122,7 @@ const BookingDetail: React.FC = () => {
     const path = `path=${pickupCoordinates.latitude},${pickupCoordinates.longitude}|${dropoffCoordinates.latitude},${dropoffCoordinates.longitude}`;
     const url = `https://maps.googleapis.com/maps/api/staticmap?size=400x300&${path}&markers=color:red|${pickupCoordinates.latitude},${pickupCoordinates.longitude}&markers=color:blue|${dropoffCoordinates.latitude},${dropoffCoordinates.longitude}&key=${apiKey}`;
 
-    console.log("Generated Map URL:", url); // Debug map URL
+    console.log("Generated Map URL:", url); 
     return url;
   };
 
@@ -131,7 +131,7 @@ const BookingDetail: React.FC = () => {
       <Button
         mb={4}
         leftIcon={<ArrowLeft />}
-        onClick={() => navigate("/driver/bookings")}
+        onClick={() => navigate("/driver/trips")}
         colorScheme="blue"
         variant="outline"
       >
@@ -180,7 +180,7 @@ const BookingDetail: React.FC = () => {
                   Booking Information
                 </Text>
                 <Text>Status: {booking.status}</Text>
-                <Text>Price: ${booking.price?.toFixed(2) || "N/A"}</Text>
+                <Text>Price: ₹ {booking.price?.toFixed(2) || "N/A"}</Text>
                 <Text>Date: {format(new Date(booking.date), "PPp")}</Text>
                 <Text>Payment Mode: {booking.paymentMode || "N/A"}</Text>
                 {booking.pin && <Text>Pin: {booking.pin}</Text>}
