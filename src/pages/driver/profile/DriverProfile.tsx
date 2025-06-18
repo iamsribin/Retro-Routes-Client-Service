@@ -432,22 +432,45 @@ export default function DriverProfile() {
 
       setDriverData((prev) => {
         if (!prev) return prev;
-        if (field === "driverImage") {
-          return { ...prev, driverImage: data.data.driverImage || prev.driverImage };
-        } else if (["model", "registerationID", "rc", "carImage", "insurance", "pollution"].includes(field)) {
+
+        if (["model", "registerationID", "rc", "carImage", "insurance", "pollution"].includes(field)) {
           return {
             ...prev,
             vehicle_details: {
               ...prev.vehicle_details,
-              ...(data.data.vehicle_details || {}),
+              ...(data.data.vehicle_details ?? {}),
             },
           };
-        } else {
+        }
+
+        if (field === "driverImage") {
           return {
             ...prev,
-            [field]: { ...prev[field as keyof DriverData], ...(data.data[field as keyof DriverData] || {}) },
+            driverImage: data.data.driverImage ?? prev.driverImage,
           };
         }
+
+        if (field === "aadhar") {
+          return {
+            ...prev,
+            aadhar: {
+              ...prev.aadhar,
+              ...(data.data.aadhar ?? {}),
+            },
+          };
+        }
+
+        if (field === "license") {
+          return {
+            ...prev,
+            license: {
+              ...prev.license,
+              ...(data.data.license ?? {}),
+            },
+          };
+        }
+
+        return prev;
       });
 
       setPopup({

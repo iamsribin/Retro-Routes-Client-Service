@@ -69,7 +69,9 @@ const BookingList: React.FC = () => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        const response = await driverAxios(dispatch).get(`/getBookingHistory`);
+        const response = await driverAxios(dispatch).get(`/getMyTrips`);
+        console.log("getBookingHistory",response.data);
+        
         setBookings(response.data.data);
         setFilteredBookings(response.data.data);
         setError(null);
@@ -111,7 +113,9 @@ const BookingList: React.FC = () => {
   };
 
   const handleView = (bookingId: string) => {
-    navigate(`/driver/bookings/${bookingId}`);
+    console.log("bookingId",bookingId);
+    
+    navigate(`/driver/getMyTripDetails/${bookingId}`);
   };
 
   return (

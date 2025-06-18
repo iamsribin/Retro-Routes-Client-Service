@@ -25,8 +25,8 @@ function DriverRoutes() {
       <Route path={AppRoutes.DASHBOARD} element={<ProtectedRoute allowedRole={ROLE}><Dashboard/></ProtectedRoute>} />
       <Route path={AppRoutes.PROFILE} element={<ProtectedRoute allowedRole={ROLE}><DriverProfile/></ProtectedRoute>} />
       <Route path="rideTracking" element={<ProtectedRoute allowedRole={ROLE}><ActiveRideMap/></ProtectedRoute>} />
-      <Route path="bookings" element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
-      <Route path="bookings/:bookingId" element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
+      <Route path="trips" element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
+      <Route path="getMyTripDetails/:bookingId" element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
   );

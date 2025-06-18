@@ -69,7 +69,7 @@ const BookingDetail: React.FC = () => {
         setLoading(true);
         console.log("Fetching booking with ID:", bookingId);
         const response = await driverAxios(dispatch).get(
-          `/getBooking/${bookingId}`
+          `/getMyTripDetails/${bookingId}`
         );
         setBooking(response.data.data);
         setError(null);
@@ -149,7 +149,7 @@ const BookingDetail: React.FC = () => {
       {booking && !loading && !error && (
         <>
           <Heading size="lg" mb={6}>
-            Booking Details - {booking.ride_id}
+            Booking Details
           </Heading>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
             <VStack align="start" spacing={4}>
@@ -158,7 +158,7 @@ const BookingDetail: React.FC = () => {
                   User Information
                 </Text>
                 <Text>Name: {booking.user.userName}</Text>
-                <Text>ID: {booking.user.user_id}</Text>
+                {/* <Text>ID: {booking.user.user_id}</Text> */}
                 {booking.user.userNumber && (
                   <Text>Contact: {booking.user.userNumber}</Text>
                 )}
@@ -170,7 +170,7 @@ const BookingDetail: React.FC = () => {
                     Driver Information
                   </Text>
                   <Text>Name: {booking.driver.driverName}</Text>
-                  <Text>ID: {booking.driver.driver_id}</Text>
+                  {/* <Text>ID: {booking.driver.driver_id}</Text> */}
                   <Text>Contact: {booking.driver.driverNumber}</Text>
                 </Box>
               )}
