@@ -1,22 +1,31 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PhoneCall, MessageSquare, Navigation, Car, MapPin, Clock, Send } from 'lucide-react';
-import { Feature, LineString, GeoJSON } from 'geojson';
-import { hideRideMap } from '@/services/redux/slices/driverRideSlice';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  PhoneCall,
+  MessageSquare,
+  Navigation,
+  Car,
+  MapPin,
+  Clock,
+  Send,
+} from "lucide-react";
+import { Feature, LineString, GeoJSON } from "geojson";
+import { hideRideMap } from "@/services/redux/slices/driverRideSlice";
 import { RootState } from "@/services/redux/store";
-import { useSocket } from '@/context/SocketContext';
+import { useSocket } from "@/context/SocketContext";
 
-mapboxgl.accessToken = 'pk.eyJ1Ijoic3JpYmluIiwiYSI6ImNtOW56MnEzNDB0a3gycXNhdGppZGVjY2kifQ.e5Wf0msIvOjm7tXjFXP0dA';
+const NOTIFICATION_SOUND = "/message_tune.mp3";
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOCKEN;
 
 interface Message {
-  sender: 'driver' | 'user';
+  sender: "driver" | "user";
   content: string;
   timestamp: string;
 }
@@ -28,29 +37,34 @@ const ActiveRideMap: React.FC = () => {
   const pickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const [eta, setEta] = useState<string>('Calculating...');
-  const [routeDistance, setRouteDistance] = useState<string>('');
-  const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [enteredPin, setEnteredPin] = useState<string>('');
-  const [pinError, setPinError] = useState<string>('');
+  const [eta, setEta] = useState<string>("Calculating...");
+  const [routeDistance, setRouteDistance] = useState<string>("");
+  const [driverLocation, setDriverLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [enteredPin, setEnteredPin] = useState<string>("");
+  const [pinError, setPinError] = useState<string>("");
   const [rideStarted, setRideStarted] = useState<boolean>(false);
   const [driverBearing, setDriverBearing] = useState<number>(0);
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'chat'>('details');
+  const [activeTab, setActiveTab] = useState<"details" | "chat">("details");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState<string>('');
+  const [newMessage, setNewMessage] = useState<string>("");
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { socket, isConnected } = useSocket();
-  const { isOpen, rideData } = useSelector((state: RootState) => state.driverRideMap);
-
-  console.log("active ride===", { isOpen, rideData });
+  const { isOpen, rideData } = useSelector(
+    (state: RootState) => state.driverRideMap
+  );
 
   useEffect(() => {
     if (!isOpen) {
-      navigate('/driver/dashboard');
+      navigate("/driver/dashboard");
     }
   }, [isOpen, navigate]);
 
@@ -98,9 +112,37 @@ const ActiveRideMap: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const audio = new Audio(NOTIFICATION_SOUND);
+    audioRef.current = audio;
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    if (!soundEnabled) return;
+
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch((error) => {
+        console.error("Audio playback failed:", error);
+        setSoundEnabled(false);
+      });
+    }
+  }, [soundEnabled]);
+
+  useEffect(() => {
     if (!socket || !isConnected || !rideData) return;
 
-    const handleReceiveMessage = (data: { sender: 'driver' | 'user'; message: string; timestamp: string }) => {
+    const handleReceiveMessage = (data: {
+      sender: "driver" | "user";
+      message: string;
+      timestamp: string;
+    }) => {
       setMessages((prev) => [
         ...prev,
         {
@@ -109,24 +151,25 @@ const ActiveRideMap: React.FC = () => {
           timestamp: data.timestamp,
         },
       ]);
+      playNotificationSound();
     };
 
-    socket.on('receiveMessage', handleReceiveMessage);
+    socket.on("receiveMessage", handleReceiveMessage);
 
     return () => {
-      socket.off('receiveMessage', handleReceiveMessage);
+      socket.off("receiveMessage", handleReceiveMessage);
     };
-  }, [socket, isConnected, rideData]);
+  }, [socket, isConnected, playNotificationSound, rideData]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
   const createCarIcon = (bearing: number = 0): HTMLElement => {
-    const el = document.createElement('div');
-    el.className = 'car-marker';
+    const el = document.createElement("div");
+    el.className = "car-marker";
     el.innerHTML = `
       <div style="
         width: 32px;
@@ -150,22 +193,28 @@ const ActiveRideMap: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!mapContainerRef.current || !driverLocation || !rideData || mapRef.current) return;
+    if (
+      !mapContainerRef.current ||
+      !driverLocation ||
+      !rideData ||
+      mapRef.current
+    )
+      return;
 
     try {
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/navigation-day-v1',
+        style: "mapbox://styles/mapbox/navigation-day-v1",
         center: [driverLocation.longitude, driverLocation.latitude],
         zoom: 12,
-        attributionControl: false
+        attributionControl: false,
       });
 
       mapRef.current = map;
 
-      map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+      map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
 
-      map.on('load', () => {
+      map.on("load", () => {
         setMapLoaded(true);
 
         if (driverMarkerRef.current) {
@@ -173,7 +222,7 @@ const ActiveRideMap: React.FC = () => {
         }
         driverMarkerRef.current = new mapboxgl.Marker({
           element: createCarIcon(driverBearing),
-          anchor: 'center'
+          anchor: "center",
         })
           .setLngLat([driverLocation.longitude, driverLocation.latitude])
           .addTo(map);
@@ -183,8 +232,8 @@ const ActiveRideMap: React.FC = () => {
             pickupMarkerRef.current.remove();
           }
           pickupMarkerRef.current = new mapboxgl.Marker({
-            color: '#ef4444',
-            scale: 0.8
+            color: "#ef4444",
+            scale: 0.8,
           })
             .setLngLat([rideData.pickup.longitude, rideData.pickup.latitude])
             .addTo(map);
@@ -195,8 +244,8 @@ const ActiveRideMap: React.FC = () => {
         }
         if (rideData.dropoff) {
           dropoffMarkerRef.current = new mapboxgl.Marker({
-            color: '#3b82f6',
-            scale: 0.8
+            color: "#3b82f6",
+            scale: 0.8,
           })
             .setLngLat([rideData.dropoff.longitude, rideData.dropoff.latitude])
             .addTo(map);
@@ -207,12 +256,11 @@ const ActiveRideMap: React.FC = () => {
         updateRoute(map);
       });
 
-      map.on('error', (e) => {
-        console.error('Mapbox error:', e);
+      map.on("error", (e) => {
+        console.error("Mapbox error:", e);
       });
-
     } catch (error) {
-      console.error('Error initializing map:', error);
+      console.error("Error initializing map:", error);
     }
 
     return () => {
@@ -225,11 +273,19 @@ const ActiveRideMap: React.FC = () => {
   }, [driverLocation, rideData, rideStarted]);
 
   useEffect(() => {
-    if (driverMarkerRef.current && driverLocation && mapRef.current && mapLoaded) {
-      driverMarkerRef.current.setLngLat([driverLocation.longitude, driverLocation.latitude]);
+    if (
+      driverMarkerRef.current &&
+      driverLocation &&
+      mapRef.current &&
+      mapLoaded
+    ) {
+      driverMarkerRef.current.setLngLat([
+        driverLocation.longitude,
+        driverLocation.latitude,
+      ]);
 
       const element = driverMarkerRef.current.getElement();
-      const carIcon = element.querySelector('div') as HTMLElement;
+      const carIcon = element.querySelector("div") as HTMLElement;
       if (carIcon) {
         carIcon.style.transform = `rotate(${driverBearing}deg)`;
       }
@@ -241,8 +297,10 @@ const ActiveRideMap: React.FC = () => {
   const fitMapBounds = (map: mapboxgl.Map) => {
     if (!driverLocation || !rideData) return;
 
-    const bounds = new mapboxgl.LngLatBounds()
-      .extend([driverLocation.longitude, driverLocation.latitude]);
+    const bounds = new mapboxgl.LngLatBounds().extend([
+      driverLocation.longitude,
+      driverLocation.latitude,
+    ]);
 
     if (!rideStarted && rideData.pickup) {
       bounds.extend([rideData.pickup.longitude, rideData.pickup.latitude]);
@@ -254,7 +312,7 @@ const ActiveRideMap: React.FC = () => {
 
     map.fitBounds(bounds, {
       padding: { top: 50, bottom: 300, left: 50, right: 50 },
-      maxZoom: 15
+      maxZoom: 15,
     });
   };
 
@@ -282,14 +340,14 @@ const ActiveRideMap: React.FC = () => {
         const route = data.routes[0];
 
         const durationMinutes = Math.round(route.duration / 60);
-        setEta(durationMinutes <= 1 ? '1 min' : `${durationMinutes} mins`);
+        setEta(durationMinutes <= 1 ? "1 min" : `${durationMinutes} mins`);
 
         const distanceKm = (route.distance / 1000).toFixed(1);
         setRouteDistance(`${distanceKm} km`);
 
-        const routeSource = map.getSource('route');
+        const routeSource = map.getSource("route");
         const routeData: Feature<LineString> = {
-          type: 'Feature',
+          type: "Feature",
           properties: {},
           geometry: route.geometry as LineString,
         };
@@ -297,29 +355,29 @@ const ActiveRideMap: React.FC = () => {
         if (routeSource) {
           (routeSource as mapboxgl.GeoJSONSource).setData(routeData);
         } else {
-          map.addSource('route', {
-            type: 'geojson',
+          map.addSource("route", {
+            type: "geojson",
             data: routeData as GeoJSON,
           });
 
           map.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
+            id: "route",
+            type: "line",
+            source: "route",
             layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
+              "line-join": "round",
+              "line-cap": "round",
             },
             paint: {
-              'line-color': rideStarted ? '#3b82f6' : '#10b981',
-              'line-width': 5,
-              'line-opacity': 0.8,
+              "line-color": rideStarted ? "#3b82f6" : "#10b981",
+              "line-width": 5,
+              "line-opacity": 0.8,
             },
           });
         }
       }
     } catch (error) {
-      console.error('Error fetching route:', error);
+      console.error("Error fetching route:", error);
     }
   };
 
@@ -329,7 +387,7 @@ const ActiveRideMap: React.FC = () => {
     const correctPin = rideData.ride.securityPin.toString();
 
     if (enteredPin === correctPin) {
-      setPinError('');
+      setPinError("");
       setRideStarted(true);
 
       if (pickupMarkerRef.current) {
@@ -351,9 +409,8 @@ const ActiveRideMap: React.FC = () => {
           updateRoute(mapRef.current!);
         }, 500);
       }
-
     } else {
-      setPinError('Invalid PIN. Please try again.');
+      setPinError("Invalid PIN. Please try again.");
     }
   };
 
@@ -361,22 +418,26 @@ const ActiveRideMap: React.FC = () => {
     if (!newMessage.trim() || !socket || !isConnected || !rideData) return;
 
     const timestamp = new Date().toISOString();
-    const message: Message = {
-      sender: 'driver',
-      content: newMessage.trim(),
-      timestamp,
-    };
 
-    socket.emit('sendMessage', {
-      bookingId: rideData.booking.bookingId,
-      userId: rideData.customer.id,
-      sender: 'driver',
+    socket.emit("sendMessage", {
+      rideId: rideData.ride.rideId,
+      sender: "driver",
       message: newMessage.trim(),
       timestamp,
+      userId: rideData.customer.id, // Include userId
     });
 
-    setMessages((prev) => [...prev, message]);
-    setNewMessage('');
+    // Add to local state
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "driver",
+        content: newMessage.trim(),
+        timestamp,
+      },
+    ]);
+
+    setNewMessage("");
   };
 
   const handleCompleteRide = () => {
@@ -386,7 +447,7 @@ const ActiveRideMap: React.FC = () => {
       });
     }
     dispatch(hideRideMap());
-    navigate('/driver/dashboard');
+    navigate("/driver/dashboard");
   };
 
   if (!rideData) {
@@ -433,28 +494,41 @@ const ActiveRideMap: React.FC = () => {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <span>{routeDistance}</span>
-                <Button size="sm" variant="ghost" className="text-emerald-500 p-1 h-8">
+
+                {!soundEnabled && (
+                  <Button
+                    onClick={() => setSoundEnabled(true)}
+                    className="fixed top-4 right-4 bg-blue-500 hover:bg-blue-600"
+                  >
+                    Enable Notification Sounds
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-emerald-500 p-1 h-8"
+                >
                   <Navigation className="h-4 w-4" />
                 </Button>
               </div>
             </CardTitle>
             <div className="flex border-b border-gray-200">
               <button
-                onClick={() => setActiveTab('details')}
+                onClick={() => setActiveTab("details")}
                 className={`flex-1 py-2 text-sm font-medium ${
-                  activeTab === 'details'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                  activeTab === "details"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 Ride Details
               </button>
               <button
-                onClick={() => setActiveTab('chat')}
+                onClick={() => setActiveTab("chat")}
                 className={`flex-1 py-2 text-sm font-medium ${
-                  activeTab === 'chat'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                  activeTab === "chat"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 Chat
@@ -463,16 +537,23 @@ const ActiveRideMap: React.FC = () => {
           </CardHeader>
 
           <CardContent className="px-4 pb-4 space-y-4">
-            {activeTab === 'details' && (
+            {activeTab === "details" && (
               <>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
-                    <AvatarImage src={rideData.customer.profileImageUrl || ''} alt={rideData.customer.name} />
-                    <AvatarFallback className="text-sm">{rideData.customer.name[0]}</AvatarFallback>
+                    <AvatarImage
+                      src={rideData.customer.profileImageUrl || ""}
+                      alt={rideData.customer.name}
+                    />
+                    <AvatarFallback className="text-sm">
+                      {rideData.customer.name[0]}
+                    </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm sm:text-base truncate">{rideData.customer.name}</p>
+                    <p className="font-medium text-sm sm:text-base truncate">
+                      {rideData.customer.name}
+                    </p>
                     <p className="text-xs sm:text-sm text-gray-500">
                       Vehicle: {rideData.ride.vehicleType}
                     </p>
@@ -483,11 +564,15 @@ const ActiveRideMap: React.FC = () => {
                       size="icon"
                       variant="outline"
                       className="rounded-full h-8 w-8 sm:h-10 sm:w-10"
-                      onClick={() => setActiveTab('chat')}
+                      onClick={() => setActiveTab("chat")}
                     >
                       <MessageSquare className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="outline" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="rounded-full h-8 w-8 sm:h-10 sm:w-10"
+                    >
                       <PhoneCall className="h-4 w-4" />
                     </Button>
                   </div>
@@ -495,16 +580,20 @@ const ActiveRideMap: React.FC = () => {
 
                 {!rideStarted && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 className="font-medium text-sm mb-3">Enter 6-digit PIN to start ride:</h3>
+                    <h3 className="font-medium text-sm mb-3">
+                      Enter 6-digit PIN to start ride:
+                    </h3>
                     <div className="flex gap-2 mb-3 items-center">
                       <Input
                         type="text"
                         placeholder="Enter PIN"
                         value={enteredPin}
                         onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          const value = e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 6);
                           setEnteredPin(value);
-                          setPinError('');
+                          setPinError("");
                         }}
                         className="w-32 text-center text-lg font-mono"
                         maxLength={6}
@@ -526,15 +615,21 @@ const ActiveRideMap: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Distance:</span>
-                    <span className="font-medium">{rideData.ride.estimatedDistance}</span>
+                    <span className="font-medium">
+                      {rideData.ride.estimatedDistance}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Duration:</span>
-                    <span className="font-medium">{rideData.ride.estimatedDuration}</span>
+                    <span className="font-medium">
+                      {rideData.ride.estimatedDuration}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Fare:</span>
-                    <span className="font-medium">₹{rideData.ride.fareAmount}</span>
+                    <span className="font-medium">
+                      ₹{rideData.ride.fareAmount}
+                    </span>
                   </div>
                 </div>
 
@@ -544,8 +639,12 @@ const ActiveRideMap: React.FC = () => {
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 font-medium">PICKUP</p>
-                      <p className="text-sm font-medium leading-tight">{rideData.pickup.address}</p>
+                      <p className="text-xs text-gray-500 font-medium">
+                        PICKUP
+                      </p>
+                      <p className="text-sm font-medium leading-tight">
+                        {rideData.pickup.address}
+                      </p>
                     </div>
                   </div>
 
@@ -555,8 +654,12 @@ const ActiveRideMap: React.FC = () => {
                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500 font-medium">DROP-OFF</p>
-                        <p className="text-sm font-medium leading-tight">{rideData.dropoff.address}</p>
+                        <p className="text-xs text-gray-500 font-medium">
+                          DROP-OFF
+                        </p>
+                        <p className="text-sm font-medium leading-tight">
+                          {rideData.dropoff.address}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -575,27 +678,42 @@ const ActiveRideMap: React.FC = () => {
               </>
             )}
 
-            {activeTab === 'chat' && (
+            {activeTab === "chat" && (
               <div className="space-y-4">
                 <div className="h-40 sm:h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3">
                   {messages.length === 0 && (
-                    <p className="text-center text-gray-500 text-sm">No messages yet.</p>
+                    <p className="text-center text-gray-500 text-sm">
+                      No messages yet.
+                    </p>
                   )}
                   {messages.map((message, index) => (
                     <div
                       key={index}
-                      className={`flex ${message.sender === 'driver' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${
+                        message.sender === "driver"
+                          ? "justify-end"
+                          : "justify-start"
+                      }`}
                     >
                       <div
                         className={`max-w-[70%] p-3 rounded-lg text-sm ${
-                          message.sender === 'driver'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-200 text-gray-800'
+                          message.sender === "driver"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 text-gray-800"
                         }`}
                       >
                         <p>{message.content}</p>
-                        <p className={`text-xs mt-1 ${message.sender === 'driver' ? 'text-blue-100' : 'text-gray-500'}`}>
-                          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <p
+                          className={`text-xs mt-1 ${
+                            message.sender === "driver"
+                              ? "text-blue-100"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {new Date(message.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       </div>
                     </div>
@@ -609,7 +727,7 @@ const ActiveRideMap: React.FC = () => {
                     placeholder="Type a message..."
                     className="flex-1 h-10"
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter' && newMessage.trim()) {
+                      if (e.key === "Enter" && newMessage.trim()) {
                         handleSendMessage();
                       }
                     }}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
@@ -13,7 +13,8 @@ import { hideRideMap } from '@/services/redux/slices/rideSlice';
 import { RootState } from '@/services/redux/store';
 import { useSocket } from '@/context/SocketContext';
 
-mapboxgl.accessToken = 'pk.eyJ1Ijoic3JpYmluIiwiYSI6ImNtOW56MnEzNDB0a3gycXNhdGppZGVjY2kifQ.e5Wf0msIvOjm7tXjFXP0dA';
+const NOTIFICATION_SOUND = "/message_tune.mp3"
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOCKEN;
 
 interface Coordinates {
   latitude: number;
@@ -85,6 +86,7 @@ const RideTrackingPage: React.FC = () => {
   const userPickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const userDropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [arrivalTime, setArrivalTime] = useState<string>('Calculating...');
   const [tripDistance, setTripDistance] = useState<string>('');
@@ -95,6 +97,8 @@ const RideTrackingPage: React.FC = () => {
   const [messageInput, setMessageInput] = useState<string>('');
   const [canCancelTrip, setCanCancelTrip] = useState<boolean>(true);
   const [cancelTimeLeft, setCancelTimeLeft] = useState<number>(30);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -165,6 +169,30 @@ const RideTrackingPage: React.FC = () => {
     }
   }, [isOpen, navigate]);
 
+    useEffect(() => {
+    const audio = new Audio(NOTIFICATION_SOUND);
+    audioRef.current = audio;
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [])
+
+const playNotificationSound = useCallback(() => {
+  if (!soundEnabled) return;
+  
+  if (audioRef.current) {
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch(error => {
+      console.error("Audio playback failed:", error);
+      setSoundEnabled(false); 
+    });
+  }
+}, [soundEnabled]);
+
   useEffect(() => {
     if (!socket || !isConnected || !rideData) return;
 
@@ -185,23 +213,25 @@ const RideTrackingPage: React.FC = () => {
       localStorage.removeItem('cancelTimerStart');
     });
 
-    socket.on('receiveMessage', (data: { sender: 'driver' | 'user'; message: string; timestamp: string }) => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          sender: data.sender,
-          content: data.message,
-          timestamp: data.timestamp,
-        },
-      ]);
-    });
+
+socket.on('receiveMessage', (data: { sender: 'driver' | 'user'; message: string; timestamp: string }) => {
+  setChatMessages((prev) => [
+    ...prev,
+    {
+      sender: data.sender,
+      content: data.message,
+      timestamp: data.timestamp,
+    },
+  ]);
+  playNotificationSound();
+});
 
     return () => {
       socket.off('rideStatus');
       socket.off('driverStartRide');
       socket.off('receiveMessage');
     };
-  }, [socket, isConnected, dispatch, rideData]);
+  }, [socket,playNotificationSound, isConnected, dispatch, rideData]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -253,7 +283,7 @@ const RideTrackingPage: React.FC = () => {
         center: [rideData.driverCoordinates.longitude, rideData.driverCoordinates.latitude],
         zoom: 12,
         attributionControl: false,
-        interactive: false, // Disable map scrolling and interaction
+        interactive: false,
       });
 
       mapInstanceRef.current = map;
@@ -439,27 +469,30 @@ const RideTrackingPage: React.FC = () => {
     }
   };
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !socket || !isConnected || !rideData) return;
+// Message sending handler
+const handleSendMessage = () => {
+  if (!messageInput.trim() || !socket || !isConnected || !rideData) return;
 
-    const timestamp = new Date().toISOString();
-    const message: Message = {
-      sender: 'user',
-      content: messageInput.trim(),
-      timestamp,
-    };
+  const timestamp = new Date().toISOString();
+  
+  socket.emit('sendMessage', {
+    rideId: rideData.ride_id,
+    sender: 'user',
+    message: messageInput.trim(),
+    timestamp,
+    driverId: rideData.booking?.driver.driver_id // Make sure to include driverId
+  });
 
-    socket.emit('sendMessage', {
-      rideId: rideData.ride_id,
-      driverId: rideData.booking?.driver.driver_id,
-      sender: 'user',
-      message: messageInput.trim(),
-      timestamp,
-    });
+  // Add to local state
+  setChatMessages((prev) => [...prev, {
+    sender: 'user',
+    content: messageInput.trim(),
+    timestamp
+  }]);
+  
+  setMessageInput('');
+};
 
-    setChatMessages((prev) => [...prev, message]);
-    setMessageInput('');
-  };
 
   if (!rideData) {
     return (
@@ -502,6 +535,14 @@ const RideTrackingPage: React.FC = () => {
                 )}
                 <span className="truncate">{getTripTitle()}</span>
               </div>
+                              {!soundEnabled && (
+                      <Button 
+                  onClick={() => setSoundEnabled(true)}
+                  className="fixed top-4 right-4 bg-blue-500 hover:bg-blue-600"
+                >
+                  Enable Notification Sounds
+                </Button>
+              )}
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <span>{tripDistance}</span>
                 <Button size="sm" variant="ghost" className="text-emerald-500 p-1 h-8">
