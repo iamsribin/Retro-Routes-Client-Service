@@ -15,10 +15,13 @@ import {
   MapPin,
   Clock,
   Send,
+  Image,
+  Mic,
 } from "lucide-react";
 import { Feature, LineString, GeoJSON } from "geojson";
 import { hideRideMap } from "@/services/redux/slices/driverRideSlice";
 import { RootState } from "@/services/redux/store";
+import  driverAxios from "@/services/axios/driverAxios";
 import { useSocket } from "@/context/SocketContext";
 
 const NOTIFICATION_SOUND = "/message_tune.mp3";
@@ -28,6 +31,8 @@ interface Message {
   sender: "driver" | "user";
   content: string;
   timestamp: string;
+  type: "text" | "image" | "voice";
+  fileUrl?: string;
 }
 
 const ActiveRideMap: React.FC = () => {
@@ -38,6 +43,8 @@ const ActiveRideMap: React.FC = () => {
   const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const [eta, setEta] = useState<string>("Calculating...");
   const [routeDistance, setRouteDistance] = useState<string>("");
@@ -54,6 +61,8 @@ const ActiveRideMap: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState<string>("");
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -138,28 +147,31 @@ const ActiveRideMap: React.FC = () => {
   useEffect(() => {
     if (!socket || !isConnected || !rideData) return;
 
-    const handleReceiveMessage = (data: {
-      sender: "driver" | "user";
-      message: string;
-      timestamp: string;
-    }) => {
+    const handleReceiveMessage = (data: { sender: 'driver' | 'user'; message: string; timestamp: string; type: 'text' | 'image' | 'voice'; fileUrl?: string }) => {
       setMessages((prev) => [
         ...prev,
         {
           sender: data.sender,
           content: data.message,
           timestamp: data.timestamp,
+          type: data.type,
+          fileUrl: data.fileUrl,
         },
       ]);
+      
+      if (activeTab !== 'chat') {
+        setUnreadCount(prev => prev + 1);
+      }
+      
       playNotificationSound();
     };
 
-    socket.on("receiveMessage", handleReceiveMessage);
+    socket.on('receiveMessage', handleReceiveMessage);
 
     return () => {
-      socket.off("receiveMessage", handleReceiveMessage);
+      socket.off('receiveMessage', handleReceiveMessage);
     };
-  }, [socket, isConnected, playNotificationSound, rideData]);
+  }, [socket, isConnected, playNotificationSound, activeTab, rideData]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -424,20 +436,133 @@ const ActiveRideMap: React.FC = () => {
       sender: "driver",
       message: newMessage.trim(),
       timestamp,
-      userId: rideData.customer.id, // Include userId
+      userId: rideData.customer.id,
+      type: "text",
     });
 
-    // Add to local state
     setMessages((prev) => [
       ...prev,
       {
         sender: "driver",
         content: newMessage.trim(),
         timestamp,
+        type: "text",
       },
     ]);
 
     setNewMessage("");
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || !socket || !isConnected || !rideData) return;
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const data = await driverAxios(dispatch).post(
+        "/uploadChatFile",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      if (data.data.fileUrl) {
+        const timestamp = new Date().toISOString();
+        socket.emit('sendMessage', {
+          rideId: rideData.ride.rideId,
+          sender: 'driver',
+          message: '',
+          timestamp,
+          userId: rideData.customer.id,
+          type: 'image',
+          fileUrl: data.data.fileUrl,
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'driver',
+            content: '',
+            timestamp,
+            type: 'image',
+            fileUrl: data.data.fileUrl,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
+  const handleVoiceRecording = async () => {
+    if (!socket || !isConnected || !rideData) return;
+
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          audioChunksRef.current.push(event.data);
+        };
+
+        mediaRecorderRef.current.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('file', audioBlob, `voice_${Date.now()}.webm`);
+
+          try {
+        const data = await driverAxios(dispatch).post(
+        "/uploadChatFile",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+            if (data.data.fileUrl) {
+              const timestamp = new Date().toISOString();
+              socket.emit('sendMessage', {
+                rideId: rideData.ride.rideId,
+                sender: 'driver',
+                message: '',
+                timestamp,
+                userId: rideData.customer.id,
+                type: 'voice',
+                fileUrl: data.data.fileUrl,
+              });
+
+              setMessages((prev) => [
+                ...prev,
+                {
+                  sender: 'driver',
+                  content: '',
+                  timestamp,
+                  type: 'voice',
+                  fileUrl: data.data.fileUrl,
+                },
+              ]);
+            }
+          } catch (error) {
+            console.error('Error uploading voice message:', error);
+          }
+        };
+
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error('Error starting voice recording:', error);
+      }
+    } else {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    }
   };
 
   const handleCompleteRide = () => {
@@ -449,6 +574,7 @@ const ActiveRideMap: React.FC = () => {
     dispatch(hideRideMap());
     navigate("/driver/dashboard");
   };
+console.log("mwaaFW",messages);
 
   if (!rideData) {
     return (
@@ -524,7 +650,10 @@ const ActiveRideMap: React.FC = () => {
                 Ride Details
               </button>
               <button
-                onClick={() => setActiveTab("chat")}
+                onClick={() => {
+                  setActiveTab("chat");
+                  setUnreadCount(0);
+                }}
                 className={`flex-1 py-2 text-sm font-medium ${
                   activeTab === "chat"
                     ? "text-blue-600 border-b-2 border-blue-600"
@@ -532,6 +661,11 @@ const ActiveRideMap: React.FC = () => {
                 }`}
               >
                 Chat
+                {unreadCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </button>
             </div>
           </CardHeader>
@@ -563,10 +697,19 @@ const ActiveRideMap: React.FC = () => {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="rounded-full h-8 w-8 sm:h-10 sm:w-10"
-                      onClick={() => setActiveTab("chat")}
+                      className="rounded-full h-8 w-8 sm:h-10 sm:w-10 relative"
+                      onClick={() => {
+                        setActiveTab("chat");
+                        setUnreadCount(0);
+                      }}
+                      aria-label={`Chat with ${unreadCount} unread messages`}
                     >
                       <MessageSquare className="h-4 w-4" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
                     </Button>
                     <Button
                       size="icon"
@@ -687,6 +830,8 @@ const ActiveRideMap: React.FC = () => {
                     </p>
                   )}
                   {messages.map((message, index) => (
+                   
+                    
                     <div
                       key={index}
                       className={`flex ${
@@ -702,7 +847,13 @@ const ActiveRideMap: React.FC = () => {
                             : "bg-gray-200 text-gray-800"
                         }`}
                       >
-                        <p>{message.content}</p>
+                        {message.type === 'text' && <p>{message.content}</p>}
+                        {message.type === 'image' && message.fileUrl && (
+                          <img src={message.fileUrl} alt="Shared image" className="max-w-full h-auto rounded-lg" />
+                        )}
+                        {message.type === 'voice' && message.fileUrl && (
+                          <audio controls src={message.fileUrl} className="w-full" />
+                        )}
                         <p
                           className={`text-xs mt-1 ${
                             message.sender === "driver"
@@ -739,6 +890,27 @@ const ActiveRideMap: React.FC = () => {
                   >
                     <Send className="h-4 w-4" />
                   </Button>
+                  <Button
+                    // as="label"
+                    // htmlFor="image-upload-driver"
+                    className="h-10 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Image className="h-4 w-4" />
+                    <input
+                      id="image-upload-driver"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </Button>
+                  <Button
+                    onClick={handleVoiceRecording}
+                    className={`h-10 ${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  >
+                    <Mic className="h-4 w-4" />
+                    {isRecording ? ' Stop' : ' Record'}
+                  </Button>
                 </div>
               </div>
             )}
@@ -748,5 +920,4 @@ const ActiveRideMap: React.FC = () => {
     </div>
   );
 };
-
 export default ActiveRideMap;
