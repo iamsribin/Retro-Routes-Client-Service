@@ -20,7 +20,7 @@ import {
   Camera,
 } from "lucide-react";
 import { Feature, LineString } from "geojson";
-import { hideRideMap } from "@/services/redux/slices/rideSlice";
+import { hideRideMap, updateRideStatus, addChatMessage } from "@/services/redux/slices/rideSlice";
 import { RootState } from "@/services/redux/store";
 import { useSocket } from "@/context/SocketContext";
 import axiosUser from "@/services/axios/userAxios";
@@ -88,12 +88,19 @@ interface DriverDetails {
 
 interface RideStatusData {
   ride_id: string;
-  status: "searching" | "Accepted" | "Failed" | "cancelled" | "Started";
+  status: "searching" | "Accepted" | "DriverComingToPickup" | "RideStarted" | "RideFinished" | "Failed" | "cancelled";
   message?: string;
   driverId?: string;
   booking?: Booking;
   driverCoordinates?: Coordinates;
   driverDetails?: DriverDetails;
+  chatMessages: {
+    sender: "driver" | "user";
+    content: string;
+    timestamp: string;
+    type: "text" | "image";
+    fileUrl?: string;
+  }[];
 }
 
 interface Message {
@@ -116,10 +123,8 @@ const RideTrackingPage: React.FC = () => {
 
   const [arrivalTime, setArrivalTime] = useState<string>("Calculating...");
   const [tripDistance, setTripDistance] = useState<string>("");
-  const [isTripStarted, setIsTripStarted] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<"info" | "messages">("info");
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState<string>("");
   const [canCancelTrip, setCanCancelTrip] = useState<boolean>(true);
   const [cancelTimeLeft, setCancelTimeLeft] = useState<number>(30);
@@ -160,6 +165,14 @@ const RideTrackingPage: React.FC = () => {
 
         if (data.data.fileUrl) {
           const timestamp = new Date().toISOString();
+          const message: Message = {
+            sender: "user",
+            content: "",
+            timestamp,
+            type: "image",
+            fileUrl: data.data.fileUrl,
+          };
+
           socket.emit("sendMessage", {
             rideId: rideData.ride_id,
             sender: "user",
@@ -170,16 +183,7 @@ const RideTrackingPage: React.FC = () => {
             fileUrl: data.data.fileUrl,
           });
 
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              sender: "user",
-              content: "",
-              timestamp,
-              type: "image",
-              fileUrl: data.data.fileUrl,
-            },
-          ]);
+          dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
 
           toast.success("Image sent successfully");
           resetForm();
@@ -194,7 +198,7 @@ const RideTrackingPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!isOpen || rideData?.status !== "Accepted") {
+    if (!isOpen || !rideData || rideData.status !== "Accepted") {
       setCanCancelTrip(false);
       localStorage.removeItem("cancelTimerStart");
       return;
@@ -261,18 +265,28 @@ const RideTrackingPage: React.FC = () => {
     if (!socket || !isConnected || !rideData) return;
 
     socket.on("rideStatus", (data: RideStatusData) => {
-      if (data.status === "cancelled" || data.status === "Failed") {
+      if (data.status === "cancelled" || data.status === "Failed" || data.status === "RideFinished") {
         dispatch(hideRideMap());
         localStorage.removeItem("cancelTimerStart");
-      } else if (data.status === "Started") {
-        setIsTripStarted(true);
-        setCanCancelTrip(false);
-        localStorage.removeItem("cancelTimerStart");
+      } else {
+        dispatch(updateRideStatus({
+          ride_id: data.ride_id,
+          status: data.status,
+          driverCoordinates: data.driverCoordinates,
+        }));
+        if (data.status === "DriverComingToPickup" || data.status === "RideStarted") {
+          setCanCancelTrip(false);
+          localStorage.removeItem("cancelTimerStart");
+        }
       }
     });
 
     socket.on("driverStartRide", (driverLocation: Coordinates) => {
-      setIsTripStarted(true);
+      dispatch(updateRideStatus({
+        ride_id: rideData.ride_id,
+        status: "RideStarted",
+        driverCoordinates: driverLocation,
+      }));
       setCanCancelTrip(false);
       localStorage.removeItem("cancelTimerStart");
     });
@@ -286,34 +300,41 @@ const RideTrackingPage: React.FC = () => {
         type: "text" | "image";
         fileUrl?: string;
       }) => {
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            sender: data.sender,
-            content: data.message,
-            timestamp: data.timestamp,
-            type: data.type,
-            fileUrl: data.fileUrl,
-          },
-        ]);
+        const message: Message = {
+          sender: data.sender,
+          content: data.message,
+          timestamp: data.timestamp,
+          type: data.type,
+          fileUrl: data.fileUrl,
+        };
+        dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
         if (activeSection !== "messages") {
           setUnreadCount((prev) => prev + 1);
         }
       }
     );
 
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+      // Avoid updating state if component is unmounting
+      if (rideData) {
+        toast.error("Lost connection to server. Please check your network.");
+      }
+    });
+
     return () => {
       socket.off("rideStatus");
       socket.off("driverStartRide");
       socket.off("receiveMessage");
+      socket.off("disconnect");
     };
   }, [socket, isConnected, activeSection, dispatch, rideData]);
 
   useEffect(() => {
-    if (chatEndRef.current) {
+    if (rideData?.chatMessages && chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [chatMessages]);
+  }, [rideData?.chatMessages]);
 
   const parseCoords = (coords: Coordinates | undefined): [number, number] | null => {
     if (!coords) return null;
@@ -358,9 +379,17 @@ const RideTrackingPage: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || !rideData || mapInstanceRef.current) return;
 
+    // Validate access token
+    if (!import.meta.env.VITE_MAPBOX_ACCESSTOKEN) {
+      console.error("Mapbox access token is missing");
+      toast.error("Mapbox access token is missing. Please check your environment variables.");
+      return;
+    }
+
     const driverCoords = parseCoords(rideData.driverCoordinates);
     if (!driverCoords) {
       console.error("Invalid driver coordinates");
+      toast.error("Invalid driver coordinates");
       return;
     }
 
@@ -388,7 +417,7 @@ const RideTrackingPage: React.FC = () => {
           .addTo(map);
 
         // Add pickup marker if trip hasn't started
-        if (!isTripStarted) {
+        if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
           const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
           if (pickupCoords) {
             pickupMarkerRef.current = new mapboxgl.Marker({
@@ -431,7 +460,7 @@ const RideTrackingPage: React.FC = () => {
       console.error("Error initializing map:", error);
       toast.error("Error initializing map");
     }
-  }, [rideData, isTripStarted]);
+  }, [rideData]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !mapReady || !rideData) return;
@@ -442,10 +471,12 @@ const RideTrackingPage: React.FC = () => {
     }
 
     // Update pickup marker visibility based on trip status
-    if (isTripStarted && pickupMarkerRef.current) {
-      pickupMarkerRef.current.remove();
-      pickupMarkerRef.current = null;
-    } else if (!isTripStarted && !pickupMarkerRef.current) {
+    if (rideData.status === "RideStarted" || rideData.status === "RideFinished") {
+      if (pickupMarkerRef.current) {
+        pickupMarkerRef.current.remove();
+        pickupMarkerRef.current = null;
+      }
+    } else if ((rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") && !pickupMarkerRef.current) {
       const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
       if (pickupCoords && mapInstanceRef.current) {
         pickupMarkerRef.current = new mapboxgl.Marker({
@@ -459,7 +490,7 @@ const RideTrackingPage: React.FC = () => {
 
     adjustMapBounds(mapInstanceRef.current);
     fetchTripRoute(mapInstanceRef.current);
-  }, [rideData?.driverCoordinates, isTripStarted, mapReady]);
+  }, [rideData?.driverCoordinates, rideData?.status, mapReady]);
 
   const adjustMapBounds = (map: mapboxgl.Map) => {
     if (!rideData) return;
@@ -469,7 +500,7 @@ const RideTrackingPage: React.FC = () => {
 
     const bounds = new mapboxgl.LngLatBounds(driverCoords, driverCoords);
 
-    if (!isTripStarted) {
+    if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
       const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
       if (pickupCoords) {
         bounds.extend(pickupCoords);
@@ -502,9 +533,9 @@ const RideTrackingPage: React.FC = () => {
     }
 
     let destinationCoords: [number, number] | null = null;
-    if (!isTripStarted && rideData.booking?.pickupCoordinates) {
+    if ((rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") && rideData.booking?.pickupCoordinates) {
       destinationCoords = parseCoords(rideData.booking.pickupCoordinates);
-    } else if (isTripStarted && rideData.booking?.dropoffCoordinates) {
+    } else if ((rideData.status === "RideStarted" || rideData.status === "RideFinished") && rideData.booking?.dropoffCoordinates) {
       destinationCoords = parseCoords(rideData.booking.dropoffCoordinates);
     }
 
@@ -559,7 +590,7 @@ const RideTrackingPage: React.FC = () => {
               "line-cap": "round",
             },
             paint: {
-              "line-color": isTripStarted ? "#3b82f6" : "#10b981",
+              "line-color": rideData.status === "RideStarted" || rideData.status === "RideFinished" ? "#3b82f6" : "#10b981",
               "line-width": 5,
               "line-opacity": 0.8,
             },
@@ -596,6 +627,12 @@ const RideTrackingPage: React.FC = () => {
     if (!messageInput.trim() || !socket || !isConnected || !rideData) return;
 
     const timestamp = new Date().toISOString();
+    const message: Message = {
+      sender: "user",
+      content: messageInput.trim(),
+      timestamp,
+      type: "text",
+    };
 
     socket.emit("sendMessage", {
       rideId: rideData.ride_id,
@@ -606,15 +643,7 @@ const RideTrackingPage: React.FC = () => {
       type: "text",
     });
 
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        sender: "user",
-        content: messageInput.trim(),
-        timestamp,
-        type: "text",
-      },
-    ]);
+    dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
 
     setMessageInput("");
   };
@@ -665,7 +694,7 @@ const RideTrackingPage: React.FC = () => {
     }
   };
 
-  if (!rideData) {
+  if (!rideData || !isOpen) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -677,7 +706,17 @@ const RideTrackingPage: React.FC = () => {
   }
 
   const getTripTitle = () => {
-    return isTripStarted ? `Drop-off: ${arrivalTime}` : `Pickup: ${arrivalTime}`;
+    switch (rideData.status) {
+      case "Accepted":
+      case "DriverComingToPickup":
+        return `Pickup: ${arrivalTime}`;
+      case "RideStarted":
+        return `Drop-off: ${arrivalTime}`;
+      case "RideFinished":
+        return "Ride Completed";
+      default:
+        return "Ride Status";
+    }
   };
 
   return (
@@ -687,8 +726,14 @@ const RideTrackingPage: React.FC = () => {
         {!mapReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading map...</p>
+              {import.meta.env.VITE_MAPBOX_ACCESSTOKEN ? (
+                <>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading map...</p>
+                </>
+              ) : (
+                <p className="text-red-600">Map cannot load: Missing Mapbox access token.</p>
+              )}
             </div>
           </div>
         )}
@@ -699,7 +744,7 @@ const RideTrackingPage: React.FC = () => {
           <CardHeader className="pb-3 px-4 pt-4">
             <CardTitle className="text-base sm:text-lg flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {isTripStarted ? (
+                {rideData.status === "RideStarted" || rideData.status === "RideFinished" ? (
                   <Car className="h-4 w-4 text-blue-500" />
                 ) : (
                   <Clock className="h-4 w-4 text-emerald-500" />
@@ -759,18 +804,19 @@ const RideTrackingPage: React.FC = () => {
                       alt={rideData.booking?.driver.driverName}
                     />
                     <AvatarFallback className="text-sm">
-                      {rideData.booking?.driver.driverName[0]}
+                      {rideData.booking?.driver.driverName?.[0] ?? "D"}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">
-                      {rideData.booking?.driver.driverName}
+                      {rideData.booking?.driver.driverName ?? "Driver"}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-500">
                       Vehicle:{" "}
                       {rideData.booking?.vehicleModel ||
-                        rideData.driverDetails?.vehicleModel}
+                        rideData.driverDetails?.vehicleModel ||
+                        "N/A"}
                     </p>
                   </div>
 
@@ -803,11 +849,11 @@ const RideTrackingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {!isTripStarted && (
+                {(rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h3 className="font-medium text-sm mb-3">Your Ride PIN:</h3>
                     <div className="text-2xl font-bold text-blue-700 tracking-wider mb-2 font-mono">
-                      {rideData.booking?.pin}
+                      {rideData.booking?.pin ?? "N/A"}
                     </div>
                     <p className="text-xs text-gray-600">
                       Share this PIN with your driver to start the ride
@@ -831,7 +877,7 @@ const RideTrackingPage: React.FC = () => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Fare:</span>
                     <span className="font-medium">
-                      ₹{rideData.booking?.price}
+                      ₹{rideData.booking?.price ?? "N/A"}
                     </span>
                   </div>
                 </div>
@@ -866,7 +912,7 @@ const RideTrackingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {canCancelTrip && rideData?.status === "Accepted" && (
+                {canCancelTrip && rideData.status === "Accepted" && (
                   <div className="flex gap-3 pt-2">
                     <Button
                       onClick={handleCancelTrip}
@@ -980,12 +1026,12 @@ const RideTrackingPage: React.FC = () => {
                 )}
 
                 <div className="h-40 sm:h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3">
-                  {chatMessages.length === 0 && (
+                  {(!rideData.chatMessages || rideData.chatMessages.length === 0) && (
                     <p className="text-center text-gray-500 text-sm">
                       No messages yet.
                     </p>
                   )}
-                  {chatMessages.map((message, index) => (
+                  {rideData.chatMessages?.map((message, index) => (
                     <div
                       key={index}
                       className={`flex ${

@@ -20,7 +20,7 @@ import {
   Camera,
 } from "lucide-react";
 import { Feature, LineString } from "geojson";
-import { hideRideMap } from "@/services/redux/slices/driverRideSlice";
+import { hideRideMap, updateRideStatus, addChatMessage } from "@/services/redux/slices/driverRideSlice";
 import { RootState } from "@/services/redux/store";
 import { useSocket } from "@/context/SocketContext";
 import driverAxios from "@/services/axios/driverAxios";
@@ -38,17 +38,19 @@ const videoConstraints = {
 interface Coordinates {
   latitude: number;
   longitude: number;
+  address?: string;
 }
 
 interface Customer {
   id: string;
   name: string;
-  profileImageUrl: string;
+  profileImageUrl?: string;
+  number?: string;
 }
 
 interface Ride {
   rideId: string;
-  securityPin: string;
+  securityPin: number;
   estimatedDistance: string;
   estimatedDuration: string;
   fareAmount: number;
@@ -57,14 +59,7 @@ interface Ride {
 
 interface Booking {
   bookingId: string;
-}
-
-interface RideData {
-  customer: Customer;
-  ride: Ride;
-  booking: Booking;
-  pickup: Coordinates;
-  dropoff: Coordinates;
+  userId: string;
 }
 
 interface Message {
@@ -90,7 +85,6 @@ const ActiveRideMap: React.FC = () => {
   const [isTripStarted, setIsTripStarted] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<"info" | "messages">("info");
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
@@ -132,6 +126,14 @@ const ActiveRideMap: React.FC = () => {
 
         if (data.data.fileUrl) {
           const timestamp = new Date().toISOString();
+          const message: Message = {
+            sender: "driver",
+            content: "",
+            timestamp,
+            type: "image",
+            fileUrl: data.data.fileUrl,
+          };
+
           socket.emit("sendMessage", {
             rideId: rideData.ride.rideId,
             sender: "driver",
@@ -142,16 +144,10 @@ const ActiveRideMap: React.FC = () => {
             fileUrl: data.data.fileUrl,
           });
 
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              sender: "driver",
-              content: "",
-              timestamp,
-              type: "image",
-              fileUrl: data.data.fileUrl,
-            },
-          ]);
+          dispatch(addChatMessage({
+            requestId: rideData.requestId,
+            message,
+          }));
 
           toast.success("Image sent successfully");
           resetForm();
@@ -166,10 +162,16 @@ const ActiveRideMap: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !rideData) {
       navigate("/driver/dashboard");
+      return;
     }
-  }, [isOpen, navigate]);
+
+    // Set isTripStarted based on ride status
+    if (rideData.status === "started" || rideData.status === "completed") {
+      setIsTripStarted(true);
+    }
+  }, [isOpen, rideData, navigate]);
 
   useEffect(() => {
     let watchId: number;
@@ -179,10 +181,17 @@ const ActiveRideMap: React.FC = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setDriverLocation({ latitude, longitude });
+          if (socket && isConnected && rideData) {
+            socket.emit("driverLocationUpdate", {
+              requestId: rideData.requestId,
+              location: { latitude, longitude },
+            });
+          }
         },
         (error) => {
           console.error("Error getting initial location:", error);
           setDriverLocation({ latitude: 9.9516447, longitude: 76.3100864 });
+          toast.error("Unable to get location. Using default coordinates.");
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
@@ -191,14 +200,22 @@ const ActiveRideMap: React.FC = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setDriverLocation({ latitude, longitude });
+          if (socket && isConnected && rideData) {
+            socket.emit("driverLocationUpdate", {
+              requestId: rideData.requestId,
+              location: { latitude, longitude },
+            });
+          }
         },
         (error) => {
           console.error("Error watching location:", error);
+          toast.warn("Location update failed.");
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 1000 }
       );
     } else {
       setDriverLocation({ latitude: 9.9516447, longitude: 76.3100864 });
+      toast.error("Geolocation not supported by your browser.");
     }
 
     return () => {
@@ -206,10 +223,32 @@ const ActiveRideMap: React.FC = () => {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, []);
+  }, [socket, isConnected, rideData]);
 
   useEffect(() => {
     if (!socket || !isConnected || !rideData) return;
+
+    socket.on("rideStatus", (data: {
+      requestId: string;
+      status: 'accepted' | 'started' | 'completed' | 'cancelled' | 'failed';
+      userId: string;
+    }) => {
+      if (data.requestId === rideData.requestId) {
+        if (data.status === "cancelled" || data.status === "failed" || data.status === "completed") {
+          dispatch(hideRideMap());
+          navigate("/driver/dashboard");
+          toast.info(`Ride ${data.status}`);
+        } else {
+          dispatch(updateRideStatus({
+            requestId: data.requestId,
+            status: data.status,
+          }));
+          if (data.status === "started") {
+            setIsTripStarted(true);
+          }
+        }
+      }
+    });
 
     socket.on("receiveMessage", (data: {
       sender: "driver" | "user";
@@ -218,33 +257,41 @@ const ActiveRideMap: React.FC = () => {
       type: "text" | "image";
       fileUrl?: string;
     }) => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          sender: data.sender,
-          content: data.message,
-          timestamp: data.timestamp,
-          type: data.type,
-          fileUrl: data.fileUrl,
-        },
-      ]);
+      const message: Message = {
+        sender: data.sender,
+        content: data.message,
+        timestamp: data.timestamp,
+        type: data.type,
+        fileUrl: data.fileUrl,
+      };
+      dispatch(addChatMessage({
+        requestId: rideData.requestId,
+        message,
+      }));
       if (activeSection !== "messages") {
         setUnreadCount((prev) => prev + 1);
       }
     });
 
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+      toast.error("Lost connection to server. Please check your network.");
+    });
+
     return () => {
+      socket.off("rideStatus");
       socket.off("receiveMessage");
+      socket.off("disconnect");
     };
-  }, [socket, isConnected, activeSection, rideData]);
+  }, [socket, isConnected, activeSection, dispatch, rideData, navigate]);
 
   useEffect(() => {
-    if (chatEndRef.current) {
+    if (rideData?.chatMessages && chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [chatMessages]);
+  }, [rideData?.chatMessages]);
 
-  const parseCoords = (coords: Coordinates | undefined): Coordinates | null => {
+  const parseCoords = (coords: Coordinates | undefined): [number, number] | null => {
     if (!coords) return null;
     const lat = typeof coords.latitude === "string" ? parseFloat(coords.latitude) : coords.latitude;
     const lng = typeof coords.longitude === "string" ? parseFloat(coords.longitude) : coords.longitude;
@@ -252,7 +299,7 @@ const ActiveRideMap: React.FC = () => {
       console.warn("Invalid coordinates:", { lat, lng });
       return null;
     }
-    return { latitude: lat, longitude: lng };
+    return [lng, lat];
   };
 
   const createVehicleIcon = (): HTMLElement => {
@@ -281,6 +328,12 @@ const ActiveRideMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || !driverLocation || !rideData || mapInstanceRef.current) return;
 
+    if (!import.meta.env.VITE_MAPBOX_ACCESSTOKEN) {
+      console.error("Mapbox access token is missing");
+      toast.error("Mapbox access token is missing. Please check your environment variables.");
+      return;
+    }
+
     try {
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -288,7 +341,7 @@ const ActiveRideMap: React.FC = () => {
         center: [driverLocation.longitude, driverLocation.latitude],
         zoom: 12,
         attributionControl: false,
-        interactive: false,
+        interactive: true,
       });
 
       mapInstanceRef.current = map;
@@ -296,9 +349,6 @@ const ActiveRideMap: React.FC = () => {
       map.on("load", () => {
         setMapReady(true);
 
-        if (driverMarkerRef.current) {
-          driverMarkerRef.current.remove();
-        }
         driverMarkerRef.current = new mapboxgl.Marker({
           element: createVehicleIcon(),
           anchor: "center",
@@ -306,29 +356,25 @@ const ActiveRideMap: React.FC = () => {
           .setLngLat([driverLocation.longitude, driverLocation.latitude])
           .addTo(map);
 
-        const pickupCoords = parseCoords(rideData.pickup);
-        if (!isTripStarted && pickupCoords && pickupMarkerRef.current) {
-          pickupMarkerRef.current.remove();
-        }
-        if (!isTripStarted && pickupCoords) {
-          pickupMarkerRef.current = new mapboxgl.Marker({
-            color: "#ef4444",
-            scale: 0.8,
-          })
-            .setLngLat([pickupCoords.longitude, pickupCoords.latitude])
-            .addTo(map);
+        if (!isTripStarted) {
+          const pickupCoords = parseCoords(rideData.pickup);
+          if (pickupCoords) {
+            pickupMarkerRef.current = new mapboxgl.Marker({
+              color: "#ef4444",
+              scale: 0.8,
+            })
+              .setLngLat(pickupCoords)
+              .addTo(map);
+          }
         }
 
         const dropoffCoords = parseCoords(rideData.dropoff);
-        if (dropoffCoords && dropoffMarkerRef.current) {
-          dropoffMarkerRef.current.remove();
-        }
         if (dropoffCoords) {
           dropoffMarkerRef.current = new mapboxgl.Marker({
             color: "#3b82f6",
             scale: 0.8,
           })
-            .setLngLat([dropoffCoords.longitude, dropoffCoords.latitude])
+            .setLngLat(dropoffCoords)
             .addTo(map);
         }
 
@@ -338,6 +384,7 @@ const ActiveRideMap: React.FC = () => {
 
       map.on("error", (e) => {
         console.error("Mapbox error:", e);
+        toast.error("Failed to load map");
       });
 
       return () => {
@@ -349,59 +396,87 @@ const ActiveRideMap: React.FC = () => {
       };
     } catch (error) {
       console.error("Error initializing map:", error);
+      toast.error("Error initializing map");
     }
   }, [driverLocation, rideData, isTripStarted]);
 
   useEffect(() => {
-    if (driverMarkerRef.current && driverLocation && mapInstanceRef.current && mapReady) {
+    if (!mapInstanceRef.current || !mapReady || !driverLocation || !rideData) return;
+
+    if (driverMarkerRef.current) {
       driverMarkerRef.current.setLngLat([driverLocation.longitude, driverLocation.latitude]);
-      fetchTripRoute(mapInstanceRef.current);
     }
-  }, [driverLocation, mapReady]);
+
+    if (isTripStarted && pickupMarkerRef.current) {
+      pickupMarkerRef.current.remove();
+      pickupMarkerRef.current = null;
+    } else if (!isTripStarted && !pickupMarkerRef.current) {
+      const pickupCoords = parseCoords(rideData.pickup);
+      if (pickupCoords) {
+        pickupMarkerRef.current = new mapboxgl.Marker({
+          color: "#ef4444",
+          scale: 0.8,
+        })
+          .setLngLat(pickupCoords)
+          .addTo(mapInstanceRef.current);
+      }
+    }
+
+    adjustMapBounds(mapInstanceRef.current);
+    fetchTripRoute(mapInstanceRef.current);
+  }, [driverLocation, isTripStarted, mapReady, rideData]);
 
   const adjustMapBounds = (map: mapboxgl.Map) => {
     if (!driverLocation || !rideData) return;
 
-    const bounds = new mapboxgl.LngLatBounds().extend([driverLocation.longitude, driverLocation.latitude]);
+    const bounds = new mapboxgl.LngLatBounds([driverLocation.longitude, driverLocation.latitude], [driverLocation.longitude, driverLocation.latitude]);
 
-    const pickupCoords = parseCoords(rideData.pickup);
-    if (!isTripStarted && pickupCoords) {
-      bounds.extend([pickupCoords.longitude, pickupCoords.latitude]);
+    if (!isTripStarted) {
+      const pickupCoords = parseCoords(rideData.pickup);
+      if (pickupCoords) {
+        bounds.extend(pickupCoords);
+      }
     }
 
     const dropoffCoords = parseCoords(rideData.dropoff);
     if (dropoffCoords) {
-      bounds.extend([dropoffCoords.longitude, dropoffCoords.latitude]);
+      bounds.extend(dropoffCoords);
     }
 
-    map.fitBounds(bounds, {
-      padding: { top: 50, bottom: 300, left: 50, right: 50 },
-      maxZoom: 15,
-    });
+    try {
+      map.fitBounds(bounds, {
+        padding: { top: 80, bottom: 320, left: 50, right: 50 },
+        maxZoom: 15,
+        duration: 1000,
+      });
+    } catch (error) {
+      console.error("Error adjusting map bounds:", error);
+    }
   };
 
   const fetchTripRoute = async (map: mapboxgl.Map) => {
     if (!driverLocation || !rideData || !mapReady) return;
 
-    try {
-      let destinationCoords;
-      if (!isTripStarted && rideData.pickup) {
-        const pickupCoords = parseCoords(rideData.pickup);
-        if (pickupCoords) {
-          destinationCoords = `${pickupCoords.longitude},${pickupCoords.latitude}`;
-        }
-      } else if (isTripStarted && rideData.dropoff) {
-        const dropoffCoords = parseCoords(rideData.dropoff);
-        if (dropoffCoords) {
-          destinationCoords = `${dropoffCoords.longitude},${dropoffCoords.latitude}`;
-        }
-      } else {
-        return;
-      }
+    let destinationCoords: [number, number] | null = null;
+    if (!isTripStarted) {
+      destinationCoords = parseCoords(rideData.pickup);
+    } else {
+      destinationCoords = parseCoords(rideData.dropoff);
+    }
 
+    if (!destinationCoords) {
+      console.warn("No valid destination coordinates for route");
+      return;
+    }
+
+    try {
       const response = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${driverLocation.longitude},${driverLocation.latitude};${destinationCoords}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${driverLocation.longitude},${driverLocation.latitude};${destinationCoords[0]},${destinationCoords[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`
       );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -414,13 +489,13 @@ const ActiveRideMap: React.FC = () => {
         const distanceKm = (route.distance / 1000).toFixed(1);
         setTripDistance(`${distanceKm} km`);
 
-        const routeSource = map.getSource("route");
         const routeData: Feature<LineString> = {
           type: "Feature",
           properties: {},
-          geometry: route.geometry as LineString,
+          geometry: route.geometry,
         };
 
+        const routeSource = map.getSource("route");
         if (routeSource) {
           (routeSource as mapboxgl.GeoJSONSource).setData(routeData);
         } else {
@@ -444,14 +519,21 @@ const ActiveRideMap: React.FC = () => {
             },
           });
         }
+      } else {
+        console.warn("No routes found");
+        setArrivalTime("N/A");
+        setTripDistance("N/A");
       }
     } catch (error) {
       console.error("Error fetching route:", error);
+      toast.error("Failed to fetch route");
+      setArrivalTime("N/A");
+      setTripDistance("N/A");
     }
   };
 
   const handlePinSubmit = () => {
-    if (!rideData) return;
+    if (!rideData || !socket || !isConnected || !driverLocation) return;
 
     const correctPin = rideData.ride.securityPin.toString();
 
@@ -459,49 +541,70 @@ const ActiveRideMap: React.FC = () => {
       setPinError("");
       setIsTripStarted(true);
 
+      dispatch(updateRideStatus({
+        requestId: rideData.requestId,
+        status: "started",
+        driverCoordinates: driverLocation,
+      }));
+
+      socket.emit("rideStarted", {
+        bookingId: rideData.booking.bookingId,
+        userId: rideData.customer.id,
+        driverLocation,
+      });
+
       if (pickupMarkerRef.current) {
         pickupMarkerRef.current.remove();
         pickupMarkerRef.current = null;
       }
 
-      if (socket && isConnected && driverLocation) {
-        socket.emit("rideStarted", {
-          bookingId: rideData.booking.bookingId,
-          userId: rideData.customer.id,
-          driverLocation,
-        });
+      if (mapInstanceRef.current && mapReady) {
+        adjustMapBounds(mapInstanceRef.current);
+        fetchTripRoute(mapInstanceRef.current);
       }
 
-      if (mapInstanceRef.current && mapReady) {
-        setTimeout(() => {
-          adjustMapBounds(mapInstanceRef.current!);
-          fetchTripRoute(mapInstanceRef.current!);
-        }, 500);
-      }
+      toast.success("Ride started successfully");
     } else {
       setPinError("Invalid PIN. Please try again.");
     }
   };
 
   const handleCompleteRide = () => {
-    if (socket && rideData && isConnected) {
-      socket.emit("rideCompleted", {
-        bookingId: rideData.booking.bookingId,
-      });
-    }
+    if (!socket || !rideData || !isConnected) return;
+
+    socket.emit("rideCompleted", {
+      bookingId: rideData.booking.bookingId,
+      userId: rideData.customer.id,
+    });
+
+    dispatch(updateRideStatus({
+      requestId: rideData.requestId,
+      status: "completed",
+    }));
+
     dispatch(hideRideMap());
     navigate("/driver/dashboard");
+    toast.success("Ride completed successfully");
   };
 
   const handleCallCustomer = () => {
-    // Implement call functionality if customer number is available
-    // Example: window.open(`tel:${rideData.customer.number}`);
+    if (rideData?.customer?.number) {
+      window.open(`tel:${rideData.customer.number}`);
+    } else {
+      toast.error("Customer phone number not available");
+    }
   };
 
   const handleSendMessage = () => {
     if (!messageInput.trim() || !socket || !isConnected || !rideData) return;
 
     const timestamp = new Date().toISOString();
+    const message: Message = {
+      sender: "driver",
+      content: messageInput.trim(),
+      timestamp,
+      type: "text",
+    };
 
     socket.emit("sendMessage", {
       rideId: rideData.ride.rideId,
@@ -512,15 +615,10 @@ const ActiveRideMap: React.FC = () => {
       type: "text",
     });
 
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        sender: "driver",
-        content: messageInput.trim(),
-        timestamp,
-        type: "text",
-      },
-    ]);
+    dispatch(addChatMessage({
+      requestId: rideData.requestId,
+      message,
+    }));
 
     setMessageInput("");
   };
@@ -571,7 +669,7 @@ const ActiveRideMap: React.FC = () => {
     }
   };
 
-  if (!rideData) {
+  if (!rideData || !isOpen) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -583,7 +681,16 @@ const ActiveRideMap: React.FC = () => {
   }
 
   const getTripTitle = () => {
-    return isTripStarted ? `Drop-off: ${arrivalTime}` : `Pickup: ${arrivalTime}`;
+    switch (rideData.status) {
+      case "accepted":
+        return `Pickup: ${arrivalTime}`;
+      case "started":
+        return `Drop-off: ${arrivalTime}`;
+      case "completed":
+        return "Ride Completed";
+      default:
+        return `Ride Status: ${arrivalTime}`;
+    }
   };
 
   return (
@@ -593,8 +700,14 @@ const ActiveRideMap: React.FC = () => {
         {!mapReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading map...</p>
+              {import.meta.env.VITE_MAPBOX_ACCESSTOKEN ? (
+                <>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading map...</p>
+                </>
+              ) : (
+                <p className="text-red-600">Map cannot load: Missing Mapbox access token.</p>
+              )}
             </div>
           </div>
         )}
@@ -605,7 +718,7 @@ const ActiveRideMap: React.FC = () => {
           <CardHeader className="pb-3 px-4 pt-4">
             <CardTitle className="text-base sm:text-lg flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {isTripStarted ? (
+                {rideData.status === "started" || rideData.status === "completed" ? (
                   <Car className="h-4 w-4 text-blue-500" />
                 ) : (
                   <Clock className="h-4 w-4 text-emerald-500" />
@@ -654,325 +767,325 @@ const ActiveRideMap: React.FC = () => {
               </button>
             </div>
           </CardHeader>
-<CardContent className="px-4 pb-4 space-y-4">
-  {activeSection === "info" && (
-    <>
-      <div className="flex items-center gap-3">
-        <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
-          <AvatarImage src={rideData.customer.profileImageUrl} alt={rideData.customer.name} />
-          <AvatarFallback className="text-sm">{rideData.customer.name[0]}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm sm:text-base truncate">{rideData.customer.name}</p>
-          <p className="text-xs sm:text-sm text-gray-500">Vehicle: {rideData.ride.vehicleType}</p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <Button
-            size="icon"
-            variant="outline"
-            className="rounded-full h-8 w-8 sm:h-10 sm:w-10 relative"
-            onClick={() => {
-              setActiveSection("messages");
-              setUnreadCount(0);
-            }}
-            aria-label={`Messages with ${unreadCount} unread messages`}
-          >
-            <MessageSquare className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
+          <CardContent className="px-4 pb-4 space-y-4">
+            {activeSection === "info" && (
+              <>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
+                    <AvatarImage src={rideData.customer.profileImageUrl} alt={rideData.customer.name} />
+                    <AvatarFallback className="text-sm">{rideData.customer.name?.[0] ?? "C"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm sm:text-base truncate">{rideData.customer.name ?? "Customer"}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Vehicle: {rideData.ride.vehicleType ?? "N/A"}</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="rounded-full h-8 w-8 sm:h-10 sm:w-10 relative"
+                      onClick={() => {
+                        setActiveSection("messages");
+                        setUnreadCount(0);
+                      }}
+                      aria-label={`Messages with ${unreadCount} unread messages`}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="rounded-full h-8 w-8 sm:h-10 sm:w-10"
+                      onClick={handleCallCustomer}
+                    >
+                      <PhoneCall className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {!isTripStarted && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-medium text-sm mb-3">Enter 6-digit PIN to start ride:</h3>
+                    <div className="flex gap-2 mb-3 items-center">
+                      <Input
+                        type="text"
+                        placeholder="Enter PIN"
+                        value={enteredPin}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                          setEnteredPin(value);
+                          setPinError("");
+                        }}
+                        className="w-32 text-center text-lg font-mono"
+                        maxLength={6}
+                      />
+                      <Button
+                        onClick={handlePinSubmit}
+                        className="bg-green-600 hover:bg-green-700 h-10 px-2"
+                        disabled={enteredPin.length !== 6 || !isConnected}
+                      >
+                        Start Ride
+                      </Button>
+                    </div>
+                    {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Distance:</span>
+                    <span className="font-medium">{rideData.ride.estimatedDistance ?? tripDistance}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Duration:</span>
+                    <span className="font-medium">{rideData.ride.estimatedDuration ?? arrivalTime}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Fare:</span>
+                    <span className="font-medium">₹{rideData.ride.fareAmount ?? "N/A"}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 font-medium">PICKUP</p>
+                      <p className="text-sm font-medium leading-tight">{rideData.pickup.address ?? "Pickup Location"}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 font-medium">DROP-OFF</p>
+                      <p className="text-sm font-medium leading-tight">{rideData.dropoff.address ?? "Drop-off Location"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {isTripStarted && rideData.status !== "completed" && (
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={handleCompleteRide}
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 h-12"
+                    >
+                      Complete Ride
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
-          </Button>
-          <Button
-            size="icon"
-            variant="outline"
-            className="rounded-full h-8 w-8 sm:h-10 sm:w-10"
-            onClick={handleCallCustomer}
-          >
-            <PhoneCall className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {!isTripStarted && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="font-medium text-sm mb-3">Enter 6-digit PIN to start ride:</h3>
-          <div className="flex gap-2 mb-3 items-center">
-            <Input
-              type="text"
-              placeholder="Enter PIN"
-              value={enteredPin}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-                setEnteredPin(value);
-                setPinError("");
-              }}
-              className="w-32 text-center text-lg font-mono"
-              maxLength={6}
-            />
-            <Button
-              onClick={handlePinSubmit}
-              className="bg-green-600 hover:bg-green-700 h-10 px-2"
-              disabled={enteredPin.length !== 6}
-            >
-              Start Ride
-            </Button>
-          </div>
-          {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Distance:</span>
-          <span className="font-medium">{rideData.ride.estimatedDistance}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Duration:</span>
-          <span className="font-medium">{rideData.ride.estimatedDuration}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Fare:</span>
-          <span className="font-medium">₹{rideData.ride.fareAmount}</span>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex gap-3 items-start">
-          <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500 font-medium">PICKUP</p>
-            <p className="text-sm font-medium leading-tight">{rideData.pickup.address || "Pickup Location"}</p>
-          </div>
-        </div>
-        <div className="flex gap-3 items-start">
-          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500 font-medium">DROP-OFF</p>
-            <p className="text-sm font-medium leading-tight">{rideData.dropoff.address || "Drop-off Location"}</p>
-          </div>
-        </div>
-      </div>
-
-      {isTripStarted && (
-        <div className="flex gap-3 pt-2">
-          <Button
-            onClick={handleCompleteRide}
-            className="flex-1 bg-blue-500 hover:bg-blue-600 h-12"
-          >
-            Complete Ride
-          </Button>
-        </div>
-      )}
-    </>
-  )}
-  {activeSection === "messages" && (
-    <div className="space-y-4">
-      {isCameraOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-          <div className="relative bg-white rounded-lg p-6 w-full max-w-sm">
-            <Button
-              onClick={stopCamera}
-              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600"
-              size="icon"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <Webcam
-              audio={false}
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              videoConstraints={videoConstraints}
-              className="w-full rounded-lg"
-              onUserMediaError={(error) => {
-                console.error("Webcam error:", error);
-                toast.error("Failed to access camera. Please check permissions and try again.");
-                stopCamera();
-              }}
-            />
-            <div className="flex justify-center gap-2 mt-3">
-              <Button
-                onClick={captureImage}
-                className="bg-blue-600 hover:bg-blue-600"
-              >
-                Capture
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      {formik.values.selectedImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-          <form onSubmit={formik.handleSubmit}>
-            <div className="relative bg-white rounded-lg p-6 w-full max-w-sm">
-              <Button
-                onClick={clearImageSelection}
-                className="absolute top-2 right-2 bg-red-500 hover:bg-red-600"
-                size="icon"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <img
-                src={
-                  typeof formik.values.selectedImage === "string"
-                    ? formik.values.selectedImage
-                    : URL.createObjectURL(formik.values.selectedImage)
-                }
-                alt="Preview"
-                className="w-full rounded-lg max-h-[50vh] object-contain"
-              />
-              <div className="flex justify-center gap-2 mt-3">
-                {imageSource === "camera" && (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      clearImageSelection();
-                      startCamera();
+            {activeSection === "messages" && (
+              <div className="space-y-4">
+                {isCameraOpen && (
+                  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                    <div className="relative bg-white rounded-lg p-6 w-full max-w-sm">
+                      <Button
+                        onClick={stopCamera}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600"
+                        size="icon"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        videoConstraints={videoConstraints}
+                        className="w-full rounded-lg"
+                        onUserMediaError={(error) => {
+                          console.error("Webcam error:", error);
+                          toast.error("Failed to access camera. Please check permissions and try again.");
+                          stopCamera();
+                        }}
+                      />
+                      <div className="flex justify-center gap-2 mt-3">
+                        <Button
+                          onClick={captureImage}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Capture
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {formik.values.selectedImage && (
+                  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                    <form onSubmit={formik.handleSubmit}>
+                      <div className="relative bg-white rounded-lg p-6 w-full max-w-sm">
+                        <Button
+                          onClick={clearImageSelection}
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600"
+                          size="icon"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <img
+                          src={
+                            typeof formik.values.selectedImage === "string"
+                              ? formik.values.selectedImage
+                              : URL.createObjectURL(formik.values.selectedImage)
+                          }
+                          alt="Preview"
+                          className="w-full rounded-lg max-h-[50vh] object-contain"
+                        />
+                        <div className="flex justify-center gap-2 mt-3">
+                          {imageSource === "camera" && (
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                clearImageSelection();
+                                startCamera();
+                              }}
+                              className="bg-gray-600 hover:bg-gray-700"
+                            >
+                              Retake
+                            </Button>
+                          )}
+                          {imageSource === "file" && (
+                            <Button
+                              type="button"
+                              onClick={triggerFileInput}
+                              className="bg-gray-600 hover:bg-gray-700"
+                            >
+                              Choose Another
+                            </Button>
+                          )}
+                          <Button
+                            type="submit"
+                            className="bg-blue-600 hover:bg-blue-700"
+                            disabled={formik.isSubmitting}
+                          >
+                            Send
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                    <input
+                      ref={fileInputRef}
+                      id="file-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileInput}
+                    />
+                  </div>
+                )}
+                <div className="h-40 sm:h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3">
+                  {(!rideData.chatMessages || rideData.chatMessages.length === 0) && (
+                    <p className="text-center text-gray-500 text-sm">No messages yet.</p>
+                  )}
+                  {rideData.chatMessages?.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.sender === "driver" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div className="max-w-[70%]">
+                        {message.type === "text" && (
+                          <div
+                            className={`p-3 rounded-lg text-sm ${
+                              message.sender === "driver" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
+                            }`}
+                          >
+                            <p>{message.content}</p>
+                            <p
+                              className={`text-xs mt-1 ${
+                                message.sender === "driver" ? "text-blue-100" : "text-gray-500"
+                              }`}
+                            >
+                              {new Date(message.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        )}
+                        {message.type === "image" && message.fileUrl && (
+                          <div className="rounded-lg overflow-hidden">
+                            <img
+                              src={message.fileUrl}
+                              alt="Shared content"
+                              className="max-w-[200px] h-auto rounded-lg"
+                            />
+                            <p
+                              className={`text-xs mt-1 text-right ${
+                                message.sender === "driver" ? "text-blue-500" : "text-gray-500"
+                              }`}
+                            >
+                              {new Date(message.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={chatEndRef} />
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 h-10"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter" && messageInput.trim()) {
+                        handleSendMessage();
+                      }
                     }}
-                    className="bg-gray-600 hover:bg-gray-700"
-                  >
-                    Retake
-                  </Button>
-                )}
-                {imageSource === "file" && (
-                  <Button
-                    type="button"
-                    onClick={triggerFileInput}
-                    className="bg-gray-600 hover:bg-gray-700"
-                  >
-                    Choose Another
-                  </Button>
-                )}
-                <Button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled={formik.isSubmitting}
-                >
-                  Send
-                </Button>
-              </div>
-            </div>
-          </form>
-          <input
-            ref={fileInputRef}
-            id="file-input"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileInput}
-          />
-        </div>
-      )}
-      <div className="h-40 sm:h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3">
-        {chatMessages.length === 0 && (
-          <p className="text-center text-gray-500 text-sm">No messages yet.</p>
-        )}
-        {chatMessages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.sender === "driver" ? "justify-end" : "justify-start"}`}
-          >
-            <div className="max-w-[70%]">
-              {message.type === "text" && (
-                <div
-                  className={`p-3 rounded-lg text-sm ${
-                    message.sender === "driver" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
-                  }`}
-                >
-                  <p>{message.content}</p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      message.sender === "driver" ? "text-blue-100" : "text-gray-500"
-                    }`}
-                  >
-                    {new Date(message.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              )}
-              {message.type === "image" && message.fileUrl && (
-                <div className="rounded-lg overflow-hidden">
-                  <img
-                    src={message.fileUrl}
-                    alt="Shared content"
-                    className="max-w-[200px] h-auto rounded-lg"
                   />
-                  <p
-                    className={`text-xs mt-1 text-right ${
-                      message.sender === "driver" ? "text-blue-500" : "text-gray-500"
-                    }`}
+                  <Button
+                    onClick={handleSendMessage}
+                    className="h-10 bg-green-600 hover:bg-green-700"
+                    disabled={!messageInput.trim() || !isConnected}
                   >
-                    {new Date(message.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={startCamera}
+                    className="h-10 w-10 bg-blue-600 hover:bg-blue-700 p-0"
+                    disabled={!!formik.values.selectedImage || isCameraOpen}
+                  >
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                  <div className="relative">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      className="h-10 w-10 p-0"
+                      disabled={!!formik.values.selectedImage || isCameraOpen}
+                    >
+                      <label htmlFor="file-input">
+                        <Image className="h-4 w-4" />
+                        <span className="sr-only">Choose image</span>
+                      </label>
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      id="file-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileInput}
+                      disabled={!!formik.values.selectedImage || isCameraOpen}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        ))}
-        <div ref={chatEndRef} />
-      </div>
-      <div className="flex gap-2">
-        <Input
-          value={messageInput}
-          onChange={(e) => setMessageInput(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 h-10"
-          onKeyPress={(e) => {
-            if (e.key === "Enter" && messageInput.trim()) {
-              handleSendMessage();
-            }
-          }}
-        />
-        <Button
-          onClick={handleSendMessage}
-          className="h-10 bg-green-600 hover:bg-green-700"
-          disabled={!messageInput.trim() || !isConnected}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-        <Button
-          onClick={startCamera}
-          className="h-10 w-10 bg-blue-600 hover:bg-blue-700 p-0"
-          disabled={!!formik.values.selectedImage || isCameraOpen}
-        >
-          <Camera className="h-4 w-4" />
-        </Button>
-        <div className="relative">
-          <Button
-            asChild
-            variant="ghost"
-            className="h-10 w-10 p-0"
-            disabled={!!formik.values.selectedImage || isCameraOpen}
-          >
-            <label htmlFor="file-input">
-              <Image className="h-4 w-4" />
-              <span className="sr-only">Choose image</span>
-            </label>
-          </Button>
-          <input
-            ref={fileInputRef}
-            id="file-input"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileInput}
-            disabled={!!formik.values.selectedImage || isCameraOpen}
-          />
-        </div>
-      </div>
-    </div>
-  )}
-</CardContent>
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>
