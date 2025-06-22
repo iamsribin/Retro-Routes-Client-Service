@@ -25,8 +25,15 @@ import { RootState } from "@/services/redux/store";
 import { useSocket } from "@/context/SocketContext";
 import axiosUser from "@/services/axios/userAxios";
 import { toast } from "sonner";
+import Webcam from "react-webcam";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOKEN;
+
+const videoConstraints = {
+  width: { ideal: 1280 },
+  height: { ideal: 720 },
+  facingMode: "environment",
+};
 
 interface Coordinates {
   latitude: number;
@@ -100,13 +107,12 @@ interface Message {
 const RideTrackingPage: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
-  const userDriverMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const userPickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const userDropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const pickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const webcamRef = useRef<Webcam | null>(null);
 
   const [arrivalTime, setArrivalTime] = useState<string>("Calculating...");
   const [tripDistance, setTripDistance] = useState<string>("");
@@ -119,7 +125,6 @@ const RideTrackingPage: React.FC = () => {
   const [cancelTimeLeft, setCancelTimeLeft] = useState<number>(30);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [imageSource, setImageSource] = useState<"camera" | "file" | null>(null);
 
   const dispatch = useDispatch();
@@ -310,7 +315,7 @@ const RideTrackingPage: React.FC = () => {
     }
   }, [chatMessages]);
 
-  const parseCoords = (coords: Coordinates | undefined): Coordinates | null => {
+  const parseCoords = (coords: Coordinates | undefined): [number, number] | null => {
     if (!coords) return null;
     const lat =
       typeof coords.latitude === "string"
@@ -324,7 +329,7 @@ const RideTrackingPage: React.FC = () => {
       console.warn("Invalid coordinates:", { lat, lng });
       return null;
     }
-    return { latitude: lat, longitude: lng };
+    return [lng, lat];
   };
 
   const createVehicleIcon = (): HTMLElement => {
@@ -353,19 +358,20 @@ const RideTrackingPage: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || !rideData || mapInstanceRef.current) return;
 
-    try {
-      if (!rideData.driverCoordinates) return;
+    const driverCoords = parseCoords(rideData.driverCoordinates);
+    if (!driverCoords) {
+      console.error("Invalid driver coordinates");
+      return;
+    }
 
+    try {
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: "mapbox://styles/mapbox/navigation-day-v1",
-        center: [
-          rideData.driverCoordinates.longitude,
-          rideData.driverCoordinates.latitude,
-        ],
+        center: driverCoords,
         zoom: 12,
         attributionControl: false,
-        interactive: false,
+        interactive: true,
       });
 
       mapInstanceRef.current = map;
@@ -373,42 +379,35 @@ const RideTrackingPage: React.FC = () => {
       map.on("load", () => {
         setMapReady(true);
 
-        const driverCoords = parseCoords(rideData.driverCoordinates);
-        if (driverCoords && userDriverMarkerRef.current) {
-          userDriverMarkerRef.current.remove();
-        }
-        if (driverCoords) {
-          userDriverMarkerRef.current = new mapboxgl.Marker({
-            element: createVehicleIcon(),
-            anchor: "center",
-          })
-            .setLngLat([driverCoords.longitude, driverCoords.latitude])
-            .addTo(map);
+        // Add driver marker
+        driverMarkerRef.current = new mapboxgl.Marker({
+          element: createVehicleIcon(),
+          anchor: "center",
+        })
+          .setLngLat(driverCoords)
+          .addTo(map);
+
+        // Add pickup marker if trip hasn't started
+        if (!isTripStarted) {
+          const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
+          if (pickupCoords) {
+            pickupMarkerRef.current = new mapboxgl.Marker({
+              color: "#ef4444",
+              scale: 0.8,
+            })
+              .setLngLat(pickupCoords)
+              .addTo(map);
+          }
         }
 
-        const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
-        if (!isTripStarted && pickupCoords && userPickupMarkerRef.current) {
-          userPickupMarkerRef.current.remove();
-        }
-        if (!isTripStarted && pickupCoords) {
-          userPickupMarkerRef.current = new mapboxgl.Marker({
-            color: "#ef4444",
-            scale: 0.8,
-          })
-            .setLngLat([pickupCoords.longitude, pickupCoords.latitude])
-            .addTo(map);
-        }
-
+        // Add dropoff marker
         const dropoffCoords = parseCoords(rideData.booking?.dropoffCoordinates);
-        if (dropoffCoords && userDropoffMarkerRef.current) {
-          userDropoffMarkerRef.current.remove();
-        }
         if (dropoffCoords) {
-          userDropoffMarkerRef.current = new mapboxgl.Marker({
+          dropoffMarkerRef.current = new mapboxgl.Marker({
             color: "#3b82f6",
             scale: 0.8,
           })
-            .setLngLat([dropoffCoords.longitude, dropoffCoords.latitude])
+            .setLngLat(dropoffCoords)
             .addTo(map);
         }
 
@@ -418,6 +417,7 @@ const RideTrackingPage: React.FC = () => {
 
       map.on("error", (e) => {
         console.error("Mapbox error:", e);
+        toast.error("Failed to load map");
       });
 
       return () => {
@@ -429,24 +429,37 @@ const RideTrackingPage: React.FC = () => {
       };
     } catch (error) {
       console.error("Error initializing map:", error);
+      toast.error("Error initializing map");
     }
   }, [rideData, isTripStarted]);
 
   useEffect(() => {
-    const driverCoords = parseCoords(rideData?.driverCoordinates);
-    if (
-      userDriverMarkerRef.current &&
-      driverCoords &&
-      mapInstanceRef.current &&
-      mapReady
-    ) {
-      userDriverMarkerRef.current.setLngLat([
-        driverCoords.longitude,
-        driverCoords.latitude,
-      ]);
-      fetchTripRoute(mapInstanceRef.current);
+    if (!mapInstanceRef.current || !mapReady || !rideData) return;
+
+    const driverCoords = parseCoords(rideData.driverCoordinates);
+    if (driverCoords && driverMarkerRef.current) {
+      driverMarkerRef.current.setLngLat(driverCoords);
     }
-  }, [rideData?.driverCoordinates, mapReady]);
+
+    // Update pickup marker visibility based on trip status
+    if (isTripStarted && pickupMarkerRef.current) {
+      pickupMarkerRef.current.remove();
+      pickupMarkerRef.current = null;
+    } else if (!isTripStarted && !pickupMarkerRef.current) {
+      const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
+      if (pickupCoords && mapInstanceRef.current) {
+        pickupMarkerRef.current = new mapboxgl.Marker({
+          color: "#ef4444",
+          scale: 0.8,
+        })
+          .setLngLat(pickupCoords)
+          .addTo(mapInstanceRef.current);
+      }
+    }
+
+    adjustMapBounds(mapInstanceRef.current);
+    fetchTripRoute(mapInstanceRef.current);
+  }, [rideData?.driverCoordinates, isTripStarted, mapReady]);
 
   const adjustMapBounds = (map: mapboxgl.Map) => {
     if (!rideData) return;
@@ -454,52 +467,60 @@ const RideTrackingPage: React.FC = () => {
     const driverCoords = parseCoords(rideData.driverCoordinates);
     if (!driverCoords) return;
 
-    const bounds = new mapboxgl.LngLatBounds().extend([
-      driverCoords.longitude,
-      driverCoords.latitude,
-    ]);
+    const bounds = new mapboxgl.LngLatBounds(driverCoords, driverCoords);
 
-    const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
-    if (!isTripStarted && pickupCoords) {
-      bounds.extend([pickupCoords.longitude, pickupCoords.latitude]);
+    if (!isTripStarted) {
+      const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
+      if (pickupCoords) {
+        bounds.extend(pickupCoords);
+      }
     }
 
     const dropoffCoords = parseCoords(rideData.booking?.dropoffCoordinates);
     if (dropoffCoords) {
-      bounds.extend([dropoffCoords.longitude, dropoffCoords.latitude]);
+      bounds.extend(dropoffCoords);
     }
 
-    map.fitBounds(bounds, {
-      padding: { top: 50, bottom: 300, left: 50, right: 50 },
-      maxZoom: 15,
-    });
+    try {
+      map.fitBounds(bounds, {
+        padding: { top: 80, bottom: 320, left: 50, right: 50 },
+        maxZoom: 15,
+        duration: 1000,
+      });
+    } catch (error) {
+      console.error("Error adjusting map bounds:", error);
+    }
   };
 
   const fetchTripRoute = async (map: mapboxgl.Map) => {
     if (!rideData || !mapReady) return;
 
+    const driverCoords = parseCoords(rideData.driverCoordinates);
+    if (!driverCoords) {
+      console.warn("No valid driver coordinates for route");
+      return;
+    }
+
+    let destinationCoords: [number, number] | null = null;
+    if (!isTripStarted && rideData.booking?.pickupCoordinates) {
+      destinationCoords = parseCoords(rideData.booking.pickupCoordinates);
+    } else if (isTripStarted && rideData.booking?.dropoffCoordinates) {
+      destinationCoords = parseCoords(rideData.booking.dropoffCoordinates);
+    }
+
+    if (!destinationCoords) {
+      console.warn("No valid destination coordinates for route");
+      return;
+    }
+
     try {
-      const driverCoords = parseCoords(rideData.driverCoordinates);
-      if (!driverCoords) return;
-
-      let destinationCoords;
-      if (!isTripStarted && rideData.booking?.pickupCoordinates) {
-        const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
-        if (pickupCoords) {
-          destinationCoords = `${pickupCoords.longitude},${pickupCoords.latitude}`;
-        }
-      } else if (isTripStarted && rideData.booking?.dropoffCoordinates) {
-        const dropoffCoords = parseCoords(rideData.booking.dropoffCoordinates);
-        if (dropoffCoords) {
-          destinationCoords = `${dropoffCoords.longitude},${dropoffCoords.latitude}`;
-        }
-      } else {
-        return;
-      }
-
       const response = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${driverCoords.longitude},${driverCoords.latitude};${destinationCoords}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${driverCoords[0]},${driverCoords[1]};${destinationCoords[0]},${destinationCoords[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`
       );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -514,13 +535,13 @@ const RideTrackingPage: React.FC = () => {
         const distanceKm = (route.distance / 1000).toFixed(1);
         setTripDistance(`${distanceKm} km`);
 
-        const routeSource = map.getSource("route");
         const routeData: Feature<LineString> = {
           type: "Feature",
           properties: {},
-          geometry: route.geometry as LineString,
+          geometry: route.geometry,
         };
 
+        const routeSource = map.getSource("route");
         if (routeSource) {
           (routeSource as mapboxgl.GeoJSONSource).setData(routeData);
         } else {
@@ -544,9 +565,16 @@ const RideTrackingPage: React.FC = () => {
             },
           });
         }
+      } else {
+        console.warn("No routes found");
+        setArrivalTime("N/A");
+        setTripDistance("N/A");
       }
     } catch (error) {
       console.error("Error fetching route:", error);
+      toast.error("Failed to fetch route");
+      setArrivalTime("N/A");
+      setTripDistance("N/A");
     }
   };
 
@@ -591,44 +619,26 @@ const RideTrackingPage: React.FC = () => {
     setMessageInput("");
   };
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-      setStream(mediaStream);
-      setIsCameraOpen(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        await videoRef.current.play();
-      }
-    } catch (error) {
-      console.error("Error accessing camera:", error);
-      toast.error("Failed to access camera. Please check permissions and try again.");
-    }
+  const startCamera = () => {
+    setIsCameraOpen(true);
+    toast.info("Camera opened successfully");
   };
 
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-      setIsCameraOpen(false);
-    }
+    setIsCameraOpen(false);
   };
 
   const captureImage = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const context = canvasRef.current.getContext("2d");
-    if (!context) return;
-
-    canvasRef.current.width = videoRef.current.videoWidth;
-    canvasRef.current.height = videoRef.current.videoHeight;
-    context.drawImage(videoRef.current, 0, 0);
-    const imageDataUrl = canvasRef.current.toDataURL("image/jpeg", 0.8);
-    formik.setFieldValue("selectedImage", imageDataUrl);
-    setImageSource("camera");
-    stopCamera();
+    if (webcamRef.current) {
+      const imageDataUrl = webcamRef.current.getScreenshot();
+      if (imageDataUrl) {
+        formik.setFieldValue("selectedImage", imageDataUrl);
+        setImageSource("camera");
+        setIsCameraOpen(false);
+      } else {
+        toast.error("Failed to capture image. Please try again.");
+      }
+    }
   }, [formik]);
 
   const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -650,6 +660,7 @@ const RideTrackingPage: React.FC = () => {
 
   const triggerFileInput = () => {
     if (fileInputRef.current) {
+      fileInputRef.current.value = "";
       fileInputRef.current.click();
     }
   };
@@ -808,13 +819,13 @@ const RideTrackingPage: React.FC = () => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Distance:</span>
                     <span className="font-medium">
-                      {rideData.booking?.distance || "5.2 km"}
+                      {rideData.booking?.distance || tripDistance}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Duration:</span>
                     <span className="font-medium">
-                      {rideData.booking?.duration || "15 mins"}
+                      {rideData.booking?.duration || arrivalTime}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
@@ -875,21 +886,23 @@ const RideTrackingPage: React.FC = () => {
                   <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
                     <div className="relative bg-white rounded-lg p-6 w-full max-w-sm">
                       <Button
-                        onClick={() => {
-                          stopCamera();
-                          clearImageSelection();
-                        }}
+                        onClick={stopCamera}
                         className="absolute top-2 right-2 bg-red-500 hover:bg-red-600"
                         size="icon"
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
+                      <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        videoConstraints={videoConstraints}
                         className="w-full rounded-lg"
-                        style={{ maxHeight: "400px" }}
+                        onUserMediaError={(error) => {
+                          console.error("Webcam error:", error);
+                          toast.error("Failed to access camera. Please check permissions and try again.");
+                          stopCamera();
+                        }}
                       />
                       <div className="flex justify-center gap-2 mt-3">
                         <Button
@@ -939,10 +952,7 @@ const RideTrackingPage: React.FC = () => {
                           {imageSource === "file" && (
                             <Button
                               type="button"
-                              onClick={() => {
-                                clearImageSelection();
-                                triggerFileInput();
-                              }}
+                              onClick={triggerFileInput}
                               className="bg-gray-600 hover:bg-gray-700"
                             >
                               Choose Another
@@ -958,6 +968,14 @@ const RideTrackingPage: React.FC = () => {
                         </div>
                       </div>
                     </form>
+                    <input
+                      ref={fileInputRef}
+                      id="file-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileInput}
+                    />
                   </div>
                 )}
 
@@ -1047,7 +1065,7 @@ const RideTrackingPage: React.FC = () => {
                   <Button
                     onClick={startCamera}
                     className="h-10 w-10 bg-blue-600 hover:bg-blue-700 p-0"
-                    disabled={!!formik.values.selectedImage}
+                    disabled={!!formik.values.selectedImage || isCameraOpen}
                   >
                     <Camera className="h-4 w-4" />
                   </Button>
@@ -1056,7 +1074,7 @@ const RideTrackingPage: React.FC = () => {
                       asChild
                       variant="ghost"
                       className="h-10 w-10 p-0"
-                      disabled={!!formik.values.selectedImage}
+                      disabled={!!formik.values.selectedImage || isCameraOpen}
                     >
                       <label htmlFor="file-input">
                         <Image className="h-4 w-4" />
@@ -1070,7 +1088,7 @@ const RideTrackingPage: React.FC = () => {
                       accept="image/*"
                       className="hidden"
                       onChange={handleFileInput}
-                      disabled={!!formik.values.selectedImage}
+                      disabled={!!formik.values.selectedImage || isCameraOpen}
                     />
                   </div>
                 </div>
@@ -1079,7 +1097,6 @@ const RideTrackingPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 };
