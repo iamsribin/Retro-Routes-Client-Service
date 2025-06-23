@@ -265,6 +265,7 @@ const RideTrackingPage: React.FC = () => {
     if (!socket || !isConnected || !rideData) return;
 
     socket.on("rideStatus", (data: RideStatusData) => {
+      console.log("Received rideStatus:", data);
       if (data.status === "cancelled" || data.status === "Failed" || data.status === "RideFinished") {
         dispatch(hideRideMap());
         localStorage.removeItem("cancelTimerStart");
@@ -282,6 +283,7 @@ const RideTrackingPage: React.FC = () => {
     });
 
     socket.on("driverStartRide", (driverLocation: Coordinates) => {
+      console.log("Received driverStartRide:", driverLocation);
       dispatch(updateRideStatus({
         ride_id: rideData.ride_id,
         status: "RideStarted",
@@ -316,7 +318,6 @@ const RideTrackingPage: React.FC = () => {
 
     socket.on("disconnect", () => {
       console.log("Socket disconnected");
-      // Avoid updating state if component is unmounting
       if (rideData) {
         toast.error("Lost connection to server. Please check your network.");
       }
@@ -337,17 +338,14 @@ const RideTrackingPage: React.FC = () => {
   }, [rideData?.chatMessages]);
 
   const parseCoords = (coords: Coordinates | undefined): [number, number] | null => {
-    if (!coords) return null;
-    const lat =
-      typeof coords.latitude === "string"
-        ? parseFloat(coords.latitude)
-        : coords.latitude;
-    const lng =
-      typeof coords.longitude === "string"
-        ? parseFloat(coords.longitude)
-        : coords.longitude;
+    if (!coords) {
+      console.warn("Coordinates are undefined");
+      return null;
+    }
+    const lat = typeof coords.latitude === "string" ? parseFloat(coords.latitude.trim()) : coords.latitude;
+    const lng = typeof coords.longitude === "string" ? parseFloat(coords.longitude.trim()) : coords.longitude;
     if (isNaN(lat) || isNaN(lng)) {
-      console.warn("Invalid coordinates:", { lat, lng });
+      console.warn("Invalid coordinates:", { lat, lng, coords });
       return null;
     }
     return [lng, lat];
@@ -377,19 +375,25 @@ const RideTrackingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!mapContainerRef.current || !rideData || mapInstanceRef.current) return;
+    if (!isOpen || !rideData || !mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Validate access token
     if (!import.meta.env.VITE_MAPBOX_ACCESSTOKEN) {
       console.error("Mapbox access token is missing");
       toast.error("Mapbox access token is missing. Please check your environment variables.");
       return;
     }
 
+    if (!rideData.booking) {
+      console.error("rideData.booking is undefined");
+      toast.error("Ride data is incomplete");
+      return;
+    }
+console.log("][[][]",rideData.driverCoordinates);
+
     const driverCoords = parseCoords(rideData.driverCoordinates);
     if (!driverCoords) {
-      console.error("Invalid driver coordinates");
-      toast.error("Invalid driver coordinates");
+      console.error("Invalid driver coordinates on map initialization");
+      toast.error("Cannot initialize map: Invalid driver coordinates");
       return;
     }
 
@@ -408,7 +412,6 @@ const RideTrackingPage: React.FC = () => {
       map.on("load", () => {
         setMapReady(true);
 
-        // Add driver marker
         driverMarkerRef.current = new mapboxgl.Marker({
           element: createVehicleIcon(),
           anchor: "center",
@@ -416,9 +419,8 @@ const RideTrackingPage: React.FC = () => {
           .setLngLat(driverCoords)
           .addTo(map);
 
-        // Add pickup marker if trip hasn't started
         if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
-          const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
+          const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
           if (pickupCoords) {
             pickupMarkerRef.current = new mapboxgl.Marker({
               color: "#ef4444",
@@ -426,11 +428,12 @@ const RideTrackingPage: React.FC = () => {
             })
               .setLngLat(pickupCoords)
               .addTo(map);
+          } else {
+            console.warn("Invalid pickup coordinates");
           }
         }
 
-        // Add dropoff marker
-        const dropoffCoords = parseCoords(rideData.booking?.dropoffCoordinates);
+        const dropoffCoords = parseCoords(rideData.booking.dropoffCoordinates);
         if (dropoffCoords) {
           dropoffMarkerRef.current = new mapboxgl.Marker({
             color: "#3b82f6",
@@ -438,6 +441,8 @@ const RideTrackingPage: React.FC = () => {
           })
             .setLngLat(dropoffCoords)
             .addTo(map);
+        } else {
+          console.warn("Invalid drop-off coordinates");
         }
 
         adjustMapBounds(map);
@@ -460,24 +465,25 @@ const RideTrackingPage: React.FC = () => {
       console.error("Error initializing map:", error);
       toast.error("Error initializing map");
     }
-  }, [rideData]);
+  }, [isOpen, rideData]);
 
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapReady || !rideData) return;
+    if (!mapInstanceRef.current || !mapReady || !rideData || !rideData.booking) return;
 
     const driverCoords = parseCoords(rideData.driverCoordinates);
     if (driverCoords && driverMarkerRef.current) {
       driverMarkerRef.current.setLngLat(driverCoords);
+    } else {
+      console.warn("Cannot update driver marker: Invalid coordinates or marker not initialized");
     }
 
-    // Update pickup marker visibility based on trip status
     if (rideData.status === "RideStarted" || rideData.status === "RideFinished") {
       if (pickupMarkerRef.current) {
         pickupMarkerRef.current.remove();
         pickupMarkerRef.current = null;
       }
     } else if ((rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") && !pickupMarkerRef.current) {
-      const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
+      const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
       if (pickupCoords && mapInstanceRef.current) {
         pickupMarkerRef.current = new mapboxgl.Marker({
           color: "#ef4444",
@@ -488,26 +494,41 @@ const RideTrackingPage: React.FC = () => {
       }
     }
 
+    if (!dropoffMarkerRef.current) {
+      const dropoffCoords = parseCoords(rideData.booking.dropoffCoordinates);
+      if (dropoffCoords && mapInstanceRef.current) {
+        dropoffMarkerRef.current = new mapboxgl.Marker({
+          color: "#3b82f6",
+          scale: 0.8,
+        })
+          .setLngLat(dropoffCoords)
+          .addTo(mapInstanceRef.current);
+      }
+    }
+
     adjustMapBounds(mapInstanceRef.current);
     fetchTripRoute(mapInstanceRef.current);
   }, [rideData?.driverCoordinates, rideData?.status, mapReady]);
 
   const adjustMapBounds = (map: mapboxgl.Map) => {
-    if (!rideData) return;
+    if (!rideData || !rideData.booking) return;
 
     const driverCoords = parseCoords(rideData.driverCoordinates);
-    if (!driverCoords) return;
+    if (!driverCoords) {
+      console.warn("Cannot adjust map bounds: Invalid driver coordinates");
+      return;
+    }
 
     const bounds = new mapboxgl.LngLatBounds(driverCoords, driverCoords);
 
     if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
-      const pickupCoords = parseCoords(rideData.booking?.pickupCoordinates);
+      const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
       if (pickupCoords) {
         bounds.extend(pickupCoords);
       }
     }
 
-    const dropoffCoords = parseCoords(rideData.booking?.dropoffCoordinates);
+    const dropoffCoords = parseCoords(rideData.booking.dropoffCoordinates);
     if (dropoffCoords) {
       bounds.extend(dropoffCoords);
     }
@@ -524,23 +545,41 @@ const RideTrackingPage: React.FC = () => {
   };
 
   const fetchTripRoute = async (map: mapboxgl.Map) => {
-    if (!rideData || !mapReady) return;
+    if (!rideData || !mapReady || !rideData.booking) {
+      console.warn("Cannot fetch route: rideData, map, or booking not ready");
+      return;
+    }
 
     const driverCoords = parseCoords(rideData.driverCoordinates);
     if (!driverCoords) {
-      console.warn("No valid driver coordinates for route");
+      console.warn("Cannot fetch route: Invalid driver coordinates");
+      toast.error("Cannot display route: Invalid driver location");
       return;
     }
 
     let destinationCoords: [number, number] | null = null;
-    if ((rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") && rideData.booking?.pickupCoordinates) {
+    let routeColor: string = "#10b981"; // Green for pickup
+
+    if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
       destinationCoords = parseCoords(rideData.booking.pickupCoordinates);
-    } else if ((rideData.status === "RideStarted" || rideData.status === "RideFinished") && rideData.booking?.dropoffCoordinates) {
+      routeColor = "#10b981";
+    } else if (rideData.status === "RideStarted" || rideData.status === "RideFinished") {
       destinationCoords = parseCoords(rideData.booking.dropoffCoordinates);
+      routeColor = "#3b82f6"; // Blue for drop-off
     }
 
     if (!destinationCoords) {
-      console.warn("No valid destination coordinates for route");
+      console.warn("Cannot fetch route: Invalid destination coordinates");
+      const routeSource = map.getSource("route");
+      if (routeSource) {
+        (routeSource as mapboxgl.GeoJSONSource).setData({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: [] },
+        });
+      }
+      setArrivalTime("N/A");
+      setTripDistance("N/A");
       return;
     }
 
@@ -554,14 +593,13 @@ const RideTrackingPage: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log("Mapbox API response:", data);
 
       if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
 
         const durationMinutes = Math.round(route.duration / 60);
-        setArrivalTime(
-          durationMinutes <= 1 ? "1 min" : `${durationMinutes} mins`
-        );
+        setArrivalTime(durationMinutes <= 1 ? "1 min" : `${durationMinutes} mins`);
 
         const distanceKm = (route.distance / 1000).toFixed(1);
         setTripDistance(`${distanceKm} km`);
@@ -590,7 +628,7 @@ const RideTrackingPage: React.FC = () => {
               "line-cap": "round",
             },
             paint: {
-              "line-color": rideData.status === "RideStarted" || rideData.status === "RideFinished" ? "#3b82f6" : "#10b981",
+              "line-color": routeColor,
               "line-width": 5,
               "line-opacity": 0.8,
             },
@@ -598,12 +636,28 @@ const RideTrackingPage: React.FC = () => {
         }
       } else {
         console.warn("No routes found");
+        const routeSource = map.getSource("route");
+        if (routeSource) {
+          (routeSource as mapboxgl.GeoJSONSource).setData({
+            type: "Feature",
+            properties: {},
+            geometry: { type: "LineString", coordinates: [] },
+          });
+        }
         setArrivalTime("N/A");
         setTripDistance("N/A");
       }
     } catch (error) {
       console.error("Error fetching route:", error);
       toast.error("Failed to fetch route");
+      const routeSource = map.getSource("route");
+      if (routeSource) {
+        (routeSource as mapboxgl.GeoJSONSource).setData({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: [] },
+        });
+      }
       setArrivalTime("N/A");
       setTripDistance("N/A");
     }
@@ -709,9 +763,9 @@ const RideTrackingPage: React.FC = () => {
     switch (rideData.status) {
       case "Accepted":
       case "DriverComingToPickup":
-        return `Pickup: ${arrivalTime}`;
+        return `Driver to Pickup: ${arrivalTime}`;
       case "RideStarted":
-        return `Drop-off: ${arrivalTime}`;
+        return `To Drop-off: ${arrivalTime}`;
       case "RideFinished":
         return "Ride Completed";
       default:
