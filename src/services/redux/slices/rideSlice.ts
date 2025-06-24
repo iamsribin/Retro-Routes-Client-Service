@@ -64,7 +64,7 @@ interface RideStatusData {
   status: "searching" | "Accepted" | "DriverComingToPickup" | "RideStarted" | "RideFinished" | "Failed" | "cancelled";
   message?: string;
   driverId?: string;
-  booking?: Booking;
+  booking: Booking;
   driverCoordinates?: Coordinates;
   driverDetails?: DriverDetails;
   chatMessages: Message[];

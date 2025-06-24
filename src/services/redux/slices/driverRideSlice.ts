@@ -10,7 +10,7 @@ interface CustomerDetails {
 interface LocationCoordinates {
   latitude: number;
   longitude: number;
-  address: string;
+  address?: string;
 }
 
 interface RideDetails {

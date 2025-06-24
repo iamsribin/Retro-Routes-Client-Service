@@ -167,7 +167,6 @@ const ActiveRideMap: React.FC = () => {
       return;
     }
 
-    // Set isTripStarted based on ride status
     if (rideData.status === "started" || rideData.status === "completed") {
       setIsTripStarted(true);
     }
@@ -209,7 +208,7 @@ const ActiveRideMap: React.FC = () => {
         },
         (error) => {
           console.error("Error watching location:", error);
-          toast.warn("Location update failed.");
+          toast.warning("Location update failed.");
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 1000 }
       );
@@ -278,11 +277,6 @@ const ActiveRideMap: React.FC = () => {
       toast.error("Lost connection to server. Please check your network.");
     });
 
-    return () => {
-      socket.off("rideStatus");
-      socket.off("receiveMessage");
-      socket.off("disconnect");
-    };
   }, [socket, isConnected, activeSection, dispatch, rideData, navigate]);
 
   useEffect(() => {

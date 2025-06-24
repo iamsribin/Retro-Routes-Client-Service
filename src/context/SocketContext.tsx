@@ -27,8 +27,6 @@ interface SocketProviderProps {
 const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL_SOCKET;
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  console.log("========= SocketProvider Initialized ===========");
-
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
@@ -38,13 +36,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     admin: state.admin,
     role: state.user.role || state.driver.role || state.admin.role,
   }));
-
-  console.log("SocketProvider state:", {
-    userId: user.user_id,
-    driverId: driver.driverId,
-    adminId: admin._id,
-    role,
-  });
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -78,8 +69,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       refreshToken = localStorage.getItem("adminRefreshToken");
     }
 
-    console.log("SocketProvider id, role, and tokens:", { id, role, token, refreshToken });
-
     if (!id || !role || !SOCKET_URL || !token) {
       console.warn("Missing id, role, SOCKET_URL, or token. Disconnecting socket.");
       if (socket) {
@@ -90,7 +79,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    console.log(`Establishing socket connection for ${role} with id: ${id}`);
     const newSocket = io(SOCKET_URL, {
       query: { token, refreshToken },
       transports: ["websocket"],

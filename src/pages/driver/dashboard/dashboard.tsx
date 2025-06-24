@@ -50,12 +50,19 @@ interface BookingDetails {
   createdAt: string;
 }
 
+interface Message {
+  sender: "driver" | "user";
+  content: string;
+  timestamp: string;
+  type: "text" | "image";
+  fileUrl?: string;
+}
+
 interface CustomerDetails {
   id: string;
   name: string;
   profileImageUrl?: string;
 }
-
 interface DriverRideRequest {
   requestId: string;
   customer: CustomerDetails;
@@ -65,6 +72,8 @@ interface DriverRideRequest {
   booking: BookingDetails;
   requestTimeout: number;
   requestTimestamp: string;
+  chatMessages: Message[];
+  status: 'accepted' | 'started' | 'completed' | 'cancelled' | 'failed';
 }
 
 const DriverDashboard: React.FC = () => {
@@ -152,7 +161,6 @@ const DriverDashboard: React.FC = () => {
 
     socket.on("rideRequest", (rideRequest: DriverRideRequest) => {
       if (!rideRequest || !rideRequest.booking) {
-        console.error("Invalid ride request data:", rideRequest);
         toast({
           title: "Ride Request Error",
           description: "Invalid ride request data received.",
@@ -160,7 +168,6 @@ const DriverDashboard: React.FC = () => {
         });
         return;
       }
-      console.log("rideRequest==-", rideRequest);
 
       try {
         setActiveRide(rideRequest);
@@ -237,12 +244,6 @@ const DriverDashboard: React.FC = () => {
 
   const handleAcceptRide = useCallback(() => {
     if (socket && activeRide && isConnected) {
-      console.log(`Emitting rideResponse:${activeRide.ride.rideId}`, {
-        requestId: activeRide.requestId,
-        rideId: activeRide.ride.rideId,
-        accepted: true,
-        timestamp: new Date().toISOString(),
-      });
 
       socket.emit(`rideResponse:${activeRide.ride.rideId}`, {
         requestId: activeRide.requestId,
@@ -251,9 +252,8 @@ const DriverDashboard: React.FC = () => {
         bookingId: activeRide.booking.bookingId,
         timestamp: new Date().toISOString(),
       });
-
+      activeRide.status = "accepted"
       setShowRideRequest(false);
-      console.log("jklhfdajk",activeRide);
       dispatch(showRideMap(activeRide));
       navigate("/driver/rideTracking");
 
@@ -312,38 +312,6 @@ const DriverDashboard: React.FC = () => {
     }
   }, [socket, activeRide, isConnected, toast]);
 
-  const handleArrived = useCallback(() => {
-    if (socket && activeRide && isConnected) {
-      socket.emit("driverArrived", {
-        bookingId: activeRide.booking.bookingId,
-      });
-
-      toast({
-        title: "Arrival Notification",
-        description: "You have notified the customer of your arrival.",
-        variant: "default",
-      });
-    }
-  }, [socket, activeRide, isConnected, toast]);
-
-  const handleCancelRide = useCallback(() => {
-    if (socket && activeRide && isConnected) {
-      socket.emit("cancelRide", {
-        bookingId: activeRide.booking.bookingId,
-        reason: "Driver cancelled",
-      });
-
-      setActiveRide(null);
-      dispatch(hideRideMap());
-      navigate("/driver/dashboard");
-
-      toast({
-        title: "Ride Cancelled",
-        description: "You have cancelled the ride.",
-        variant: "destructive",
-      });
-    }
-  }, [socket, activeRide, isConnected, dispatch, navigate, toast]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

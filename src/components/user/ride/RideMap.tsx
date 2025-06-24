@@ -323,12 +323,7 @@ const RideTrackingPage: React.FC = () => {
       }
     });
 
-    return () => {
-      socket.off("rideStatus");
-      socket.off("driverStartRide");
-      socket.off("receiveMessage");
-      socket.off("disconnect");
-    };
+
   }, [socket, isConnected, activeSection, dispatch, rideData]);
 
   useEffect(() => {
@@ -342,12 +337,12 @@ const RideTrackingPage: React.FC = () => {
       console.warn("Coordinates are undefined");
       return null;
     }
-    const lat = typeof coords.latitude === "string" ? parseFloat(coords.latitude.trim()) : coords.latitude;
-    const lng = typeof coords.longitude === "string" ? parseFloat(coords.longitude.trim()) : coords.longitude;
+    const lat = typeof coords.latitude === "string" ? parseFloat(coords.latitude) : coords.latitude;
+    const lng = typeof coords.longitude === "string" ? parseFloat(coords.longitude) : coords.longitude;
     if (isNaN(lat) || isNaN(lng)) {
       console.warn("Invalid coordinates:", { lat, lng, coords });
       return null;
-    }
+    } 
     return [lng, lat];
   };
 
@@ -666,8 +661,8 @@ console.log("][[][]",rideData.driverCoordinates);
   const handleCancelTrip = () => {
     if (socket && isConnected && rideData) {
       socket.emit("cancelRide", { rideId: rideData.ride_id });
-      dispatch(hideRideMap());
-      localStorage.removeItem("cancelTimerStart");
+      // dispatch(hideRideMap());
+      // localStorage.removeItem("cancelTimerStart"); 
     }
   };
 
