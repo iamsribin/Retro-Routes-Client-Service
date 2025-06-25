@@ -26,6 +26,7 @@ import { useSocket } from "@/context/SocketContext";
 import axiosUser from "@/services/axios/userAxios";
 import { toast } from "sonner";
 import Webcam from "react-webcam";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOKEN;
 
@@ -131,6 +132,7 @@ const RideTrackingPage: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
   const [imageSource, setImageSource] = useState<"camera" | "file" | null>(null);
+const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -661,8 +663,9 @@ console.log("][[][]",rideData.driverCoordinates);
   const handleCancelTrip = () => {
     if (socket && isConnected && rideData) {
       socket.emit("cancelRide", {userId: rideData.booking.user.user_id, rideId: rideData.ride_id });
-      // dispatch(hideRideMap());
-      // localStorage.removeItem("cancelTimerStart"); 
+     toast.info("Ride cancellation requested");
+      setIsCancelDialogOpen(false);
+
     }
   };
 
@@ -961,15 +964,40 @@ console.log("][[][]",rideData.driverCoordinates);
                   </div>
                 </div>
 
-                {canCancelTrip && rideData.status === "Accepted" && (
+{canCancelTrip && rideData.status === "Accepted" && (
                   <div className="flex gap-3 pt-2">
-                    <Button
-                      onClick={handleCancelTrip}
-                      className="flex-1 bg-red-500 hover:bg-red-600 h-12"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancel Ride ({cancelTimeLeft}s)
-                    </Button>
+                    <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          className="flex-1 bg-red-500 hover:bg-red-600 h-12"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel Ride ({cancelTimeLeft}s)
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Cancel Ride</DialogTitle>
+                          <DialogDescription>
+                            Are you sure you want to cancel your ride? This action cannot be undone.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsCancelDialogOpen(false)}
+                          >
+                            No, Keep Ride
+                          </Button>
+                          <Button
+                            className="bg-red-500 hover:bg-red-600"
+                            onClick={handleCancelTrip}
+                          >
+                            Yes, Cancel Ride
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 )}
               </>

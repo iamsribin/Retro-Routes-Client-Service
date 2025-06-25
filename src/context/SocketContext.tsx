@@ -143,7 +143,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
 newSocket.on("canceled", (data) => {
-  console.log("ca;mdfj ", data);
   
   if (data.user) {
     // This is a user ride
