@@ -7,6 +7,9 @@ import { driverLogout } from "@/services/redux/slices/driverAuthSlice";
 import { adminLogout } from "@/services/redux/slices/adminAuthSlice";
 import { showNotification } from "@/services/redux/slices/notificationSlice";
 import { useNavigate } from "react-router-dom";
+import { hideRideMap } from "@/services/redux/slices/rideSlice";
+import { hideRideMap as hideDriverRideMap } from "@/services/redux/slices/driverRideSlice";
+
 
 interface SocketContextType {
   socket: Socket | null;
@@ -138,6 +141,21 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
       navigate("/login");
     });
+
+newSocket.on("canceled", (data) => {
+  console.log("ca;mdfj ", data);
+  
+  if (data.user) {
+    // This is a user ride
+    dispatch(hideRideMap()); 
+    dispatch(showNotification({ type: "success", message: `Ride canceled` }));
+  } else {
+    // This is a driver ride
+    dispatch(hideDriverRideMap()); 
+    dispatch(showNotification({ type: "info", message: `Ride canceled by user. You're now offline. Enable online and start ride.` }));
+  }
+});
+
 
     return () => {
       console.log(`Cleaning up socket for ${role}: ${id}`);

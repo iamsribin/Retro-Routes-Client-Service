@@ -39,7 +39,6 @@ interface Message {
   type: "text" | "image";
   fileUrl?: string;
 }
-
 interface DriverRideRequest {
   requestId: string;
   customer: CustomerDetails;

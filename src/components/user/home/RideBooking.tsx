@@ -96,14 +96,23 @@ interface DriverDetails {
   vehicleModel: string;
 }
 
+interface Message {
+  sender: "driver" | "user";
+  content: string;
+  timestamp: string;
+  type: "text" | "image";
+  fileUrl?: string;
+}
+
 interface RideStatusData {
   ride_id: string;
-  status: "searching" | "Accepted" | "Failed" | "cancelled";
+  status: "searching" | "Accepted" | "DriverComingToPickup" | "RideStarted" | "RideFinished" | "Failed" | "cancelled";
   message?: string;
   driverId?: string;
-  booking?: Booking;
+  booking: Booking;
   driverCoordinates?: Coordinates;
   driverDetails?: DriverDetails;
+  chatMessages: Message[];
 }
 
 interface ScheduledRide {
@@ -190,12 +199,10 @@ const Ride: React.FC = () => {
     const setupSocketListeners = () => {
       if (!socket || !isConnected) return;
 
-      socket.on("rideStatus", (data: RideStatusData) => {
+      socket.on("rideStatus", (data: RideStatusData) => {        
         setIsSearching(false);
         setShowVehicleSheet(false);
         setRideStatus(data);
-        console.log("rideStatus==", data);
-
         const notificationType = getNotificationType(data.status);
         const navigateTo = data.status === "Accepted" ? "/ride-tracking" : undefined;
 
@@ -360,30 +367,6 @@ const Ride: React.FC = () => {
     }
   };
 
-  // const fetchDriverRoute = async (
-  //   driverLocation: { latitude: number; longitude: number },
-  //   pickupLocation: { lat: number; lng: number }
-  // ) => {
-  //   const directionsService = new google.maps.DirectionsService();
-  //   try {
-  //     const result = await directionsService.route({
-  //       origin: { lat: driverLocation.latitude, lng: driverLocation.longitude },
-  //       destination: pickupLocation,
-  //       travelMode: google.maps.TravelMode.DRIVING,
-  //     });
-  //     setDriverDirections(result);
-  //   } catch (error) {
-  //     console.log("rour Error", error);
-
-  //     setNotification({
-  //       open: true,
-  //       type: "error",
-  //       title: "Route Error",
-  //       message: "Could not calculate driver route",
-  //     });
-  //   }
-  // };
-
   const handleSearchCabs = async () => {
     if (!destination || (useCurrentLocationAsPickup && !userLocation) || (!useCurrentLocationAsPickup && !origin)) {
       setNotification({
@@ -395,13 +378,6 @@ const Ride: React.FC = () => {
       return;
     }
     await fetchRoute();
-  };
-
-  const handleScheduleToggle = () => {
-    setIsScheduled((prev) => !prev);
-    if (!isScheduled) {
-      setScheduledRide({ date: null, time: "" });
-    }
   };
 
   const geocodeLatLng = async (lat: number, lng: number): Promise<string> => {
@@ -441,11 +417,11 @@ const Ride: React.FC = () => {
     }
 
     setIsSearching(true);
-    setRideStatus({
-      ride_id: "",
-      status: "searching",
-      message: "Searching for available drivers...",
-    });
+    // setRideStatus({
+    //   ride_id: "",
+    //   status: "searching",
+    //   message: "Searching for available drivers...",
+    // });
 
     try {
       if (!socket || !isConnected) {

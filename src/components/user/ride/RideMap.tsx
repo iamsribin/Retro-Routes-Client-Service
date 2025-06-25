@@ -660,7 +660,7 @@ console.log("][[][]",rideData.driverCoordinates);
 
   const handleCancelTrip = () => {
     if (socket && isConnected && rideData) {
-      socket.emit("cancelRide", { rideId: rideData.ride_id });
+      socket.emit("cancelRide", {userId: rideData.booking.user.user_id, rideId: rideData.ride_id });
       // dispatch(hideRideMap());
       // localStorage.removeItem("cancelTimerStart"); 
     }
