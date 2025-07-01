@@ -224,60 +224,75 @@ const ActiveRideMap: React.FC = () => {
     };
   }, [socket, isConnected, rideData]);
 
-  useEffect(() => {
-    if (!socket || !isConnected || !rideData) return;
+useEffect(() => {
+  if (!socket || !isConnected || !rideData) return;
 
-    socket.on("rideStatus", (data: {
-      requestId: string;
-      status: 'accepted' | 'started' | 'completed' | 'cancelled' | 'failed';
-      userId: string;
-    }) => {
-      if (data.requestId === rideData.requestId) {
-        if (data.status === "cancelled" || data.status === "failed" || data.status === "completed") {
-          dispatch(hideRideMap());
-          navigate("/driver/dashboard");
-          toast.info(`Ride ${data.status}`);
-        } else {
-          dispatch(updateRideStatus({
+  const handleRideStatus = (data: {
+    requestId: string;
+    status: "accepted" | "started" | "completed" | "cancelled" | "failed";
+    userId: string;
+  }) => {
+    if (data.requestId === rideData.requestId) {
+      if (data.status === "cancelled" || data.status === "failed" || data.status === "completed") {
+        dispatch(hideRideMap());
+        navigate("/driver/dashboard");
+        toast.info(`Ride ${data.status}`);
+      } else {
+        dispatch(
+          updateRideStatus({
             requestId: data.requestId,
             status: data.status,
-          }));
-          if (data.status === "started") {
-            setIsTripStarted(true);
-          }
+          })
+        );
+        if (data.status === "started") {
+          setIsTripStarted(true);
         }
       }
-    });
+    }
+  };
 
-    socket.on("receiveMessage", (data: {
-      sender: "driver" | "user";
-      message: string;
-      timestamp: string;
-      type: "text" | "image";
-      fileUrl?: string;
-    }) => {
-      const message: Message = {
-        sender: data.sender,
-        content: data.message,
-        timestamp: data.timestamp,
-        type: data.type,
-        fileUrl: data.fileUrl,
-      };
-      dispatch(addChatMessage({
+  const handleReceiveMessage = (data: {
+    sender: "driver" | "user";
+    message: string;
+    timestamp: string;
+    type: "text" | "image";
+    fileUrl?: string;
+  }) => {
+    const message: Message = {
+      sender: data.sender,
+      content: data.message,
+      timestamp: data.timestamp,
+      type: data.type,
+      fileUrl: data.fileUrl,
+    };
+    dispatch(
+      addChatMessage({
         requestId: rideData.requestId,
         message,
-      }));
-      if (activeSection !== "messages") {
-        setUnreadCount((prev) => prev + 1);
-      }
-    });
+      })
+    );
+    if (activeSection !== "messages") {
+      setUnreadCount((prev) => prev + 1);
+    }
+  };
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-      toast.error("Lost connection to server. Please check your network.");
-    });
+  const handleDisconnect = () => {
+    console.log("Socket disconnected");
+    toast.error("Lost connection to server. Please check your network.");
+  };
 
-  }, [socket, isConnected, activeSection, dispatch, rideData, navigate]);
+  // Register listeners
+  socket.on("rideStatus", handleRideStatus);
+  socket.on("receiveMessage", handleReceiveMessage);
+  socket.on("disconnect", handleDisconnect);
+
+  // Cleanup function
+  return () => {
+    socket.off("rideStatus", handleRideStatus);
+    socket.off("receiveMessage", handleReceiveMessage);
+    socket.off("disconnect", handleDisconnect);
+  };
+}, [socket, isConnected, activeSection, dispatch, rideData, navigate]);
 
   useEffect(() => {
     if (rideData?.chatMessages && chatEndRef.current) {
@@ -520,7 +535,6 @@ const ActiveRideMap: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching route:", error);
-      toast.error("Failed to fetch route");
       setArrivalTime("N/A");
       setTripDistance("N/A");
     }

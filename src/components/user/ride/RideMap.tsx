@@ -263,70 +263,83 @@ const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
     }
   }, [isOpen, navigate]);
 
-  useEffect(() => {
-    if (!socket || !isConnected || !rideData) return;
+useEffect(() => {
+  if (!socket || !isConnected || !rideData) return;
 
-    socket.on("rideStatus", (data: RideStatusData) => {
-      console.log("Received rideStatus:", data);
-      if (data.status === "cancelled" || data.status === "Failed" || data.status === "RideFinished") {
-        dispatch(hideRideMap());
-        localStorage.removeItem("cancelTimerStart");
-      } else {
-        dispatch(updateRideStatus({
+  const handleRideStatus = (data: RideStatusData) => {
+    console.log("Received rideStatus:", data);
+    if (data.status === "cancelled" || data.status === "Failed" || data.status === "RideFinished") {
+      dispatch(hideRideMap());
+      localStorage.removeItem("cancelTimerStart");
+    } else {
+      dispatch(
+        updateRideStatus({
           ride_id: data.ride_id,
           status: data.status,
           driverCoordinates: data.driverCoordinates,
-        }));
-        if (data.status === "DriverComingToPickup" || data.status === "RideStarted") {
-          setCanCancelTrip(false);
-          localStorage.removeItem("cancelTimerStart");
-        }
+        })
+      );
+      if (data.status === "DriverComingToPickup" || data.status === "RideStarted") {
+        setCanCancelTrip(false);
+        localStorage.removeItem("cancelTimerStart");
       }
-    });
+    }
+  };
 
-    socket.on("driverStartRide", (driverLocation: Coordinates) => {
-      console.log("Received driverStartRide:", driverLocation);
-      dispatch(updateRideStatus({
+  const handleDriverStartRide = (driverLocation: Coordinates) => {
+    console.log("Received driverStartRide:", driverLocation);
+    dispatch(
+      updateRideStatus({
         ride_id: rideData.ride_id,
         status: "RideStarted",
         driverCoordinates: driverLocation,
-      }));
-      setCanCancelTrip(false);
-      localStorage.removeItem("cancelTimerStart");
-    });
-
-    socket.on(
-      "receiveMessage",
-      (data: {
-        sender: "driver" | "user";
-        message: string;
-        timestamp: string;
-        type: "text" | "image";
-        fileUrl?: string;
-      }) => {
-        const message: Message = {
-          sender: data.sender,
-          content: data.message,
-          timestamp: data.timestamp,
-          type: data.type,
-          fileUrl: data.fileUrl,
-        };
-        dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
-        if (activeSection !== "messages") {
-          setUnreadCount((prev) => prev + 1);
-        }
-      }
+      })
     );
+    setCanCancelTrip(false);
+    localStorage.removeItem("cancelTimerStart");
+  };
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-      if (rideData) {
-        toast.error("Lost connection to server. Please check your network.");
-      }
-    });
+  const handleReceiveMessage = (data: {
+    sender: "driver" | "user";
+    message: string;
+    timestamp: string;
+    type: "text" | "image";
+    fileUrl?: string;
+  }) => {
+    const message: Message = {
+      sender: data.sender,
+      content: data.message,
+      timestamp: data.timestamp,
+      type: data.type,
+      fileUrl: data.fileUrl,
+    };
+    dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
+    if (activeSection !== "messages") {
+      setUnreadCount((prev) => prev + 1);
+    }
+  };
 
+  const handleDisconnect = () => {
+    console.log("Socket disconnected");
+    if (rideData) {
+      toast.error("Lost connection to server. Please check your network.");
+    }
+  };
 
-  }, [socket, isConnected, activeSection, dispatch, rideData]);
+  // Register listeners
+  socket.on("rideStatus", handleRideStatus);
+  socket.on("driverStartRide", handleDriverStartRide);
+  socket.on("receiveMessage", handleReceiveMessage);
+  socket.on("disconnect", handleDisconnect);
+
+  // Cleanup function
+  return () => {
+    socket.off("rideStatus", handleRideStatus);
+    socket.off("driverStartRide", handleDriverStartRide);
+    socket.off("receiveMessage", handleReceiveMessage);
+    socket.off("disconnect", handleDisconnect);
+  };
+}, [socket, isConnected, activeSection, dispatch, rideData]);
 
   useEffect(() => {
     if (rideData?.chatMessages && chatEndRef.current) {
@@ -646,7 +659,7 @@ console.log("][[][]",rideData.driverCoordinates);
       }
     } catch (error) {
       console.error("Error fetching route:", error);
-      toast.error("Failed to fetch route");
+      // toast.error("Failed to fetch route");
       const routeSource = map.getSource("route");
       if (routeSource) {
         (routeSource as mapboxgl.GeoJSONSource).setData({
