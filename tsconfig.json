@@ -17,3 +17,23 @@
     "strictNullChecks": false
   }
 }
+
+// {
+//   "compilerOptions": {
+//     "baseUrl": "src2",
+//     "paths": {
+//      "@/*": ["*"],
+//       "@/lib/*": ["lib/*"],
+//       "@/shared/*": ["shared/*"]
+//     },
+//     "target": "esnext",
+//     "module": "esnext",
+//     "moduleResolution": "node",
+//     "jsx": "react-jsx",
+//     "esModuleInterop": true,
+//     "skipLibCheck": true,
+//     "forceConsistentCasingInFileNames": true
+//   },
+//   "include": ["src2/**/*"],
+//   "exclude": ["node_modules", "dist"]
+// }

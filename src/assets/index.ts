@@ -1,5 +1,4 @@
 
-// Assets index file
 export { default as Logo } from './logo.svg';
 export { default as HeroBg } from './hero-bg.jpg';
 export { default as Feature1 } from './feature-1.svg';

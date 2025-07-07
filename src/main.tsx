@@ -1,14 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
+import App from "./App";
 import { Provider } from "react-redux";
 import { ThemeProvider } from "@material-tailwind/react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { BrowserRouter as Router } from "react-router-dom"; // Add BrowserRouter here
-import { persistor, store } from "./services/redux/store.ts";
+import { BrowserRouter as Router } from "react-router-dom";
+import { persistor, store } from "./shared/services/redux/store.js";
 import { PersistGate } from "redux-persist/integration/react";
-import { SocketProvider } from "./context/SocketContext.tsx";
-import ErrorBoundary from "./components/ErrorBounderies.tsx";
+import { SocketProvider } from "@/context/socket-context.js";
+import ErrorBoundary from "@/shared/components/ErrorBoundaries";
 import "./index.css";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;

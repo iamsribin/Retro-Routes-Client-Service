@@ -1,14 +1,14 @@
 import "./App.scss";
 import { Routes, Route } from "react-router-dom";
 import { ChakraProvider } from "@chakra-ui/react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import UserRoutes from "./routes/user-routes";
-import DriverRoutes from "./routes/driver-routes";
-import AdminRoutes from "./routes/admin-routes";
-import NotFound from "./pages/NotFound";
-import NotificationModal from "@/components/NotificationModal";
+import { Toaster } from "@/shared/components/ui/toaster";
+import { Toaster as Sonner } from "@/shared/components/ui/sonner";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import UserRoutes from "@/features/user/routes/user-routes";
+import DriverRoutes from "@/features/driver/routes/driver-routes";
+import AdminRoutes from "@/features/admin/routes/admin-routes";
+import NotFound from "@/shared/components/NotFound";
+import NotificationModal from "@/shared/components/NotificationModal";
 
 function App() {
   return (
