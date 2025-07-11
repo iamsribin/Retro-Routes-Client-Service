@@ -7,15 +7,7 @@
   import { useDispatch } from "react-redux"; 
   import { InsuranceValidation } from "@/shared/utils/validation";
 import ApiEndpoints from "@/constants/api-end-pointes";
-
-  interface InsuranceFormValues {
-    pollutionImage: File | null;
-    insuranceImage: File | null;
-    insuranceStartDate: string;
-    insuranceExpiryDate: string;
-    pollutionStartDate: string;
-    pollutionExpiryDate: string;
-  }
+import { InsuranceFormValues } from "./type";
 
   function Insurance() {
     const [locationPage, setLocationPage] = useState(false);

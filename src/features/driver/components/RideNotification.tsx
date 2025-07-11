@@ -4,48 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { MapPin, Timer, ArrowDown, Car, Clock, IndianRupee } from 'lucide-react';
 import { Progress } from '@/shared/components/ui/progress';
-
-interface Customer {
-  name: string;
-  profileImageUrl?: string;
-}
-
-interface LocationCoordinates {
-  latitude: number;
-  longitude: number;
-  address: string;
-}
-
-interface RideDetails {
-  rideId: string;
-  estimatedDistance: string;
-  estimatedDuration: string;
-  fareAmount: number;
-  vehicleType: string;
-  securityPin: number;
-}
-
-interface BookingDetails {
-  bookingId: string;
-  userId: string;
-  pickupLocation: LocationCoordinates;
-  dropoffLocation: LocationCoordinates;
-  rideDetails: RideDetails;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
-  createdAt: string;
-}
-
-interface RideNotificationProps {
-  customer: Customer;
-  pickup: LocationCoordinates;
-  dropoff: LocationCoordinates;
-  ride: RideDetails;
-  booking: BookingDetails;
-  timeLeft: number;
-  requestTimeout: number;
-  onAccept: () => void;
-  onDecline: () => void;
-}
+import { RideNotificationProps } from './type';
 
 const RideNotification: React.FC<RideNotificationProps> = ({
   customer,

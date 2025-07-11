@@ -29,103 +29,9 @@ import { useSocket } from "@/context/socket-context";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { showRideMap } from "@/shared/services/redux/slices/rideSlice";
 import { RootState } from "@/shared/services/redux/store";
-
-interface BackendVehicle {
-  vehicleModel: string;
-  image: string;
-  basePrice: number;
-  pricePerKm: number;
-  eta: string;
-  features: string[];
-}
-
-interface VehicleOption {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  pricePerKm: number;
-  eta: string;
-  features: string[];
-}
-
-interface Coordinates {
-  latitude: number;
-  longitude: number;
-}
-
-interface Booking {
-  date: string;
-  distance: string;
-  driver: {
-    driverName: string;
-    driverNumber: string;
-    driverProfile: string;
-    driver_id: string;
-  };
-  driverCoordinates: Coordinates;
-  dropoffCoordinates: Coordinates;
-  dropoffLocation: string;
-  duration: string;
-  pickupCoordinates: Coordinates;
-  pickupLocation: string;
-  pin: number;
-  price: number;
-  ride_id: string;
-  status: string;
-  user: {
-    userName: string;
-    userProfile: string;
-    user_id: string;
-    number: string;
-  };
-  vehicleModel: string;
-  _id: string;
-  __v: number;
-}
-
-interface DriverDetails {
-  cancelledRides: number;
-  color: string;
-  driverId: string;
-  driverImage: string;
-  driverName: string;
-  mobile: number;
-  number: string;
-  rating: number;
-  vehicleModel: string;
-}
-
-interface Message {
-  sender: "driver" | "user";
-  content: string;
-  timestamp: string;
-  type: "text" | "image";
-  fileUrl?: string;
-}
-
-interface RideStatusData {
-  ride_id: string;
-  status: "searching" | "Accepted" | "DriverComingToPickup" | "RideStarted" | "RideFinished" | "Failed" | "cancelled";
-  message?: string;
-  driverId?: string;
-  booking: Booking;
-  driverCoordinates?: Coordinates;
-  driverDetails?: DriverDetails;
-  chatMessages: Message[];
-}
-
-interface ScheduledRide {
-  date: Date | null;
-  time: string;
-}
-
-interface NotificationState {
-  open: boolean;
-  type: "success" | "error" | "info";
-  title: string;
-  message: string;
-}
+import { RideStatusData } from "@/shared/types/user/rideTypes";
+import { BackendVehicle, VehicleOption } from "./type";
+import { NotificationState } from "@/shared/types/commonTypes";
 
 const libraries: ("places")[] = ["places"];
 const mapContainerStyle = {
@@ -167,11 +73,6 @@ const Ride: React.FC = () => {
   const [useCurrentLocationAsPickup, setUseCurrentLocationAsPickup] =
     useState<boolean>(false);
   const [showVehicleSheet, setShowVehicleSheet] = useState<boolean>(false);
-  const [isScheduled, setIsScheduled] = useState<boolean>(false);
-  const [scheduledRide, setScheduledRide] = useState<ScheduledRide>({
-    date: null,
-    time: "",
-  });
   const [driverDirections, setDriverDirections] =
     useState<google.maps.DirectionsResult | null>(null);
   const [notification, setNotification] = useState<NotificationState>({
@@ -212,7 +113,7 @@ const Ride: React.FC = () => {
           showNotification({
             type: notificationType,
             message: data.message || `Ride status: ${data.status}`,
-            data: { rideId: data.ride_id, driverId: data.driverId },
+            data: { rideId: data.ride_id, driverId: data.driverDetails.driverId },
             navigate: navigateTo,
           })
         );
@@ -468,8 +369,6 @@ const Ride: React.FC = () => {
           longitude: dropoffLng,
         },
         vehicleModel,
-        isScheduled,
-        scheduledDateTime: isScheduled ? scheduledRide : null,
         userName: user.user,
         estimatedPrice: selectedVehicleData?.price ?? 0,
         estimatedDuration: distanceInfo.duration,

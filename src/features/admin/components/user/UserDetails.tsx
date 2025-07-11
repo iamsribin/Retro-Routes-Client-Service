@@ -6,11 +6,11 @@ import { Dialog } from "@material-tailwind/react";
 import { useDispatch } from "react-redux";
 
 import { axiosAdmin } from '@/shared/services/axios/adminAxios';
-import { UserInterface } from "@/shared/types/IUser";
 import { userBlockUnblockValidation } from "@/shared/utils/validation";
 import { useSocket } from '@/context/socket-context';
 
 import ApiEndpoints from "@/constants/api-end-pointes";
+import { UserInterface } from "@/shared/types/user/userTypes";
 
 const UserDetails = () => {
     const [statusModal, setStatusModal] = useState(false);

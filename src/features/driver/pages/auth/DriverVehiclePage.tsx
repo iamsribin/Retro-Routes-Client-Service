@@ -7,17 +7,7 @@ import { VehicleValidation } from "@/shared/utils/validation";
 import DriverInsurancePage from "./DriverInsurancePage";
 import { useDispatch } from "react-redux";
 import ApiEndpoints from "@/constants/api-end-pointes";
-
-interface VehicleFormValues {
-  registrationID: string;
-  model: string;
-  rcFrontImage: File | null;
-  rcBackImage: File | null;
-  carFrontImage: File | null;
-  carSideImage: File | null;
-  rcStartDate: string;
-  rcExpiryDate: string;
-}
+import { VehicleFormValues } from "./type";
 
 function Vehicle() {
   const [locationPage, setLocationPage] = useState(false);

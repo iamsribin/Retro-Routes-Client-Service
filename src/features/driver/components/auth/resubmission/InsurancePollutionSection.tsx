@@ -1,16 +1,7 @@
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
-
-interface InsurancePollutionSectionProps {
-  formik: FormikProps<ResubmissionFormValues>;
-  previews: Previews;
-  handleFileInput: (field: string, e: React.ChangeEvent<HTMLInputElement>) => void;
-  resubmissionData: ResubmissionData;
-}
+import { InsurancePollutionSectionProps } from "../type";
 
 const InsurancePollutionSection: React.FC<InsurancePollutionSectionProps> = ({ formik, previews, handleFileInput, resubmissionData }) => {
   if (!['insurance', 'pollution'].some(field => resubmissionData.fields.includes(field))) return null;
-
   return (
     <div className="mb-6">
       <h1 className="text-blue-800 font-bold text-lg">Insurance and Pollution Details</h1>

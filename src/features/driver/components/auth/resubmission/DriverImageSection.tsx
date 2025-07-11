@@ -1,12 +1,4 @@
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
-
-interface DriverImageSectionProps {
-  formik: FormikProps<ResubmissionFormValues>;
-  previews: Previews;
-  handleFileInput: (field: string, e: React.ChangeEvent<HTMLInputElement>) => void;
-  resubmissionData: ResubmissionData;
-}
+import { DriverImageSectionProps } from "../type";
 
 const DriverImageSection: React.FC<DriverImageSectionProps> = ({ formik, previews, handleFileInput, resubmissionData }) => {
   if (!resubmissionData.fields.includes('driverImage')) return null;

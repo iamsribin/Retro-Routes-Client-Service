@@ -1,5 +1,3 @@
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
 import { handleFileInput } from '@/shared/utils/resubmissionHelpers';
 import AadhaarSection from '../../components/auth/resubmission/AadhaarSection';
 import LicenseSection from '../../components/auth/resubmission/LicenseSection';
@@ -7,19 +5,7 @@ import VehicleSection from '../../components/auth/resubmission/VehicleSection';
 import InsurancePollutionSection from '../../components/auth/resubmission/InsurancePollutionSection';
 import DriverImageSection from '../../components/auth/resubmission/DriverImageSection';
 import LocationSection from '../../components/auth/resubmission/LocationSection';
-
-interface ResubmissionFormProps {
-  formik: FormikProps<ResubmissionFormValues>;
-  resubmissionData: ResubmissionData;
-  previews: Previews;
-  setPreviews: React.Dispatch<React.SetStateAction<Previews>>;
-  latitude: number;
-  longitude: number;
-  setLatitude: React.Dispatch<React.SetStateAction<number>>;
-  setLongitude: React.Dispatch<React.SetStateAction<number>>;
-  driverId: string | null;
-  load: boolean;
-}
+import { ResubmissionFormProps } from './type';
 
 const ResubmissionForm: React.FC<ResubmissionFormProps> = ({
   formik,

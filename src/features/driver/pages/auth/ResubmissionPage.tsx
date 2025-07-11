@@ -5,7 +5,6 @@ import { useFormik } from 'formik';
 import { toast } from 'sonner';
 import axiosDriver from '@/shared/services/axios/driverAxios';
 import { ResubmissionValidation } from '@/shared/utils/validation';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
 import { fetchResubmissionData } from '@/shared/utils/resubmissionHelpers';
 import ResubmissionHeader from '../../components/auth/resubmission/ResubmissionHeader';
 import ResubmissionForm from '@/features/driver/components/forms/ResubmissionForm';
@@ -13,6 +12,7 @@ import Loader from '@/shared/components/loaders/shimmer';
 import DriverPhotoPage from './DriverIdentificationPage';
 import LoadingSpinner from '@/shared/components/loaders/LoadingSpinner';
 import ApiEndpoints from '@/constants/api-end-pointes';
+import { ResubmissionData, ResubmissionFormValues, Previews } from '../../components/auth/type';
 
 const ResubmissionPage: React.FC = () => {
   const navigate = useNavigate();

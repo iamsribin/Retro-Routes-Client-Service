@@ -10,77 +10,17 @@ import { useToast } from "@chakra-ui/react";
 import DriverNavbar from "../components/DriverNavbar";
 import RideNotification from "../components/RideNotification";
 import { useSocket } from "@/context/socket-context";
-import { showRideMap, hideRideMap } from "@/shared/services/redux/slices/driverRideSlice";
+import { showRideMap } from "@/shared/services/redux/slices/driverRideSlice";
+import { Coordinates } from "@/shared/types/commonTypes";
+import { DriverRideRequest } from "./type";
 
 const NOTIFICATION_SOUND = "/uber_tune.mp3";
-
-interface DriverLocation {
-  latitude: number;
-  longitude: number;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  profileImageUrl?: string;
-}
-
-interface LocationCoordinates {
-  latitude: number;
-  longitude: number;
-  address: string;
-}
-
-interface RideDetails {
-  rideId: string;
-  estimatedDistance: string;
-  estimatedDuration: string;
-  fareAmount: number;
-  vehicleType: string;
-  securityPin: number;
-}
-
-interface BookingDetails {
-  bookingId: string;
-  userId: string;
-  pickupLocation: LocationCoordinates;
-  dropoffLocation: LocationCoordinates;
-  rideDetails: RideDetails;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
-  createdAt: string;
-}
-
-interface Message {
-  sender: "driver" | "user";
-  content: string;
-  timestamp: string;
-  type: "text" | "image";
-  fileUrl?: string;
-}
-
-interface CustomerDetails {
-  id: string;
-  name: string;
-  profileImageUrl?: string;
-}
-interface DriverRideRequest {
-  requestId: string;
-  customer: CustomerDetails;
-  pickup: LocationCoordinates;
-  dropoff: LocationCoordinates;
-  ride: RideDetails;
-  booking: BookingDetails;
-  requestTimeout: number;
-  requestTimestamp: string;
-  chatMessages: Message[];
-  status: 'accepted' | 'started' | 'completed' | 'cancelled' | 'failed';
-}
 
 const DriverDashboard: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [showRideRequest, setShowRideRequest] = useState<boolean>(false);
   const [activeRide, setActiveRide] = useState<DriverRideRequest | null>(null);
-  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
+  const [driverLocation, setDriverLocation] = useState<Coordinates | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -402,6 +342,7 @@ const DriverDashboard: React.FC = () => {
         {showRideRequest && activeRide && (
           <RideNotification
             customer={{
+              id:activeRide.customer.id,
               name: activeRide.customer.name,
               profileImageUrl: activeRide.customer.profileImageUrl,
             }}

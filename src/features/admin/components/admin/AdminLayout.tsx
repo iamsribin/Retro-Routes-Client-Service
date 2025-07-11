@@ -17,7 +17,6 @@ import { adminLogout } from "@/shared/services/redux/slices/adminAuthSlice";
 import { useDispatch } from 'react-redux';
 import logoutLocalStorage from '@/shared/utils/localStorage';
 
-// Define the props interface with proper typing for children
 interface AdminLayoutProps {
   children: React.ReactNode;
 }

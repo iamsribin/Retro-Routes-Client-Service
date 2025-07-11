@@ -1,56 +1,5 @@
+import { DriverRideRequest, Coordinates, Message, LocationCoordinates } from "@/shared/types/types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-interface CustomerDetails {
-  id: string;
-  name: string;
-  profileImageUrl?: string;
-  number?: string; // Added for call functionality
-}
-
-interface LocationCoordinates {
-  latitude: number;
-  longitude: number;
-  address?: string;
-}
-
-interface RideDetails {
-  rideId: string;
-  estimatedDistance: string;
-  estimatedDuration: string;
-  fareAmount: number;
-  vehicleType: string;
-  securityPin: number;
-}
-
-interface BookingDetails {
-  bookingId: string;
-  userId: string;
-  pickupLocation: LocationCoordinates;
-  dropoffLocation: LocationCoordinates;
-  rideDetails: RideDetails;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'started' | 'completed';
-  createdAt: string;
-}
-
-interface Message {
-  sender: "driver" | "user";
-  content: string;
-  timestamp: string;
-  type: "text" | "image";
-  fileUrl?: string;
-}
-interface DriverRideRequest {
-  requestId: string;
-  customer: CustomerDetails;
-  pickup: LocationCoordinates;
-  dropoff: LocationCoordinates;
-  ride: RideDetails;
-  booking: BookingDetails;
-  requestTimeout: number;
-  requestTimestamp: string;
-  chatMessages: Message[];
-  status: 'accepted' | 'started' | 'completed' | 'cancelled' | 'failed';
-}
 
 interface RideState {
   isOpen: boolean;
@@ -80,8 +29,8 @@ const RideMapSlice = createSlice({
     },
     updateRideStatus: (state, action: PayloadAction<{
       requestId: string;
-      status: DriverRideRequest['status'];
-      driverCoordinates?: LocationCoordinates;
+    status: DriverRideRequest['status'];
+      driverCoordinates?: Coordinates;
     }>) => {
       if (state.rideData && state.rideData.requestId === action.payload.requestId) {
         state.rideData.status = action.payload.status;

@@ -1,12 +1,4 @@
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
-
-interface LicenseSectionProps {
-  formik: FormikProps<ResubmissionFormValues>;
-  previews: Previews;
-  handleFileInput: (field: string, e: React.ChangeEvent<HTMLInputElement>) => void;
-  resubmissionData: ResubmissionData;
-}
+import { LicenseSectionProps } from '../type';
 
 const LicenseSection: React.FC<LicenseSectionProps> = ({ formik, previews, handleFileInput, resubmissionData }) => {
   if (!resubmissionData.fields.includes('license')) return null;

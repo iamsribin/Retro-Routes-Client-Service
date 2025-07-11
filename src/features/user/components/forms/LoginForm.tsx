@@ -2,8 +2,7 @@ import { useFormik } from "formik";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { ConfirmationResult } from "firebase/auth";
-import { CredentialResponse } from "@react-oauth/google";
+
 import { PinInput, PinInputField, HStack } from "@chakra-ui/react";
 import { GoogleLogin } from "@react-oauth/google";
 import { sendOtp } from "@/shared/hooks/useAuth";
@@ -13,38 +12,12 @@ import { loginValidation } from "@/shared/utils/validation";
 import { useUserApi, useUserApiRequest } from "@/shared/hooks/apiHooks";
 import { toast } from "sonner";
 import ApiEndpoints from "@/constants/api-end-pointes";
-
-interface UserData {
-  user: string;
-  user_id: string;
-  userToken: string;
-  refreshToken: string;
-  loggedIn: boolean;
-  role: "User" | "Admin";
-  mobile: number | undefined;
-  profile: string;
-}
+import { LoginFormProps } from "./type";
 
 declare global {
   interface Window {
     recaptchaVerifier?: any;
   }
-}
-
-interface LoginFormProps {
-  auth: unknown;
-  otpInput: boolean;
-  setOtpInput: (value: boolean) => void;
-  otp: number;
-  setOtp: (value: number) => void;
-  counter: number;
-  setCounter: (value: number) => void;
-  confirmationResult: ConfirmationResult | null;
-  setConfirmationResult: (value: ConfirmationResult | null) => void;
-  userData: UserData;
-  setUserData: (value: UserData) => void;
-  onGoogleLogin: (data: CredentialResponse) => void;
-  loading: boolean;
 }
 
 const LoginForm = ({
@@ -65,7 +38,6 @@ const LoginForm = ({
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Initialize API hook and request state
   const api = useUserApi();
   const { request, loading, error } = useUserApiRequest<any>();
 
@@ -81,7 +53,6 @@ const LoginForm = ({
     validationSchema: loginValidation,
     onSubmit: async (values) => {
       try {
-        // Use the custom API hook for the POST request
         const response = await request(() =>
           api.post(ApiEndpoints.USER_CHECK_LOGIN, values)
         );

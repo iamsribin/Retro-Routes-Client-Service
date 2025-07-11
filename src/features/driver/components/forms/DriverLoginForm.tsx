@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import { toast } from "sonner";
-import { ConfirmationResult } from "firebase/auth";
-import { CredentialResponse } from "@react-oauth/google";
 import { HStack, PinInput, PinInputField } from "@chakra-ui/react";
 import { PhoneIcon } from "@chakra-ui/icons";
 import { GoogleLogin } from "@react-oauth/google";
@@ -15,31 +13,7 @@ import { sendOtp } from "@/shared/hooks/useAuth";
 import { loginValidation } from "@/shared/utils/validation";
 import { useDispatch } from "react-redux";
 import ApiEndpoints from "@/constants/api-end-pointes";
-
-interface DriverData {
-  name: string;
-  driverToken: string;
-  driver_id: string;
-  refreshToken: string;
-  role: "Driver";
-}
-
-interface DriverLoginFormProps {
-  auth: unknown;
-  otpInput: boolean;
-  setOtpInput: (value: boolean) => void;
-  otp: number;
-  setOtp: (value: number) => void;
-  load: boolean;
-  setLoad: (value: boolean) => void;
-  counter: number;
-  setCounter: (value: number) => void;
-  confirmationResult: ConfirmationResult | null;
-  setConfirmationResult: (value: ConfirmationResult | null) => void;
-  driverData: DriverData;
-  setDriverData: (value: DriverData) => void;
-  onGoogleLogin: (data: CredentialResponse) => void;
-}
+import { DriverLoginFormProps } from "./type";
 
 const DriverLoginForm = ({
   auth,
@@ -47,7 +21,6 @@ const DriverLoginForm = ({
   setOtpInput,
   otp,
   setOtp,
-  load,
   setLoad,
   counter,
   setCounter,
@@ -75,6 +48,7 @@ const DriverLoginForm = ({
         setLoad(true);
         const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_CHECK_LOGIN, values);
         setLoad(false);
+console.log("data===",data);
 
         switch (data.message) {
           case "Success":

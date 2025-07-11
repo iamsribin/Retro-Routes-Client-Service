@@ -1,12 +1,4 @@
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
-
-interface AadhaarSectionProps {
-  formik: FormikProps<ResubmissionFormValues>;
-  previews: Previews;
-  handleFileInput: (field: string, e: React.ChangeEvent<HTMLInputElement>) => void;
-  resubmissionData: ResubmissionData;
-}
+import { AadhaarSectionProps } from '../type';
 
 const AadhaarSection: React.FC<AadhaarSectionProps> = ({ formik, previews, handleFileInput, resubmissionData }) => {
   if (!resubmissionData.fields.includes('aadhar')) return null;

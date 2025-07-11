@@ -12,24 +12,7 @@ import { Shield, ShieldOff, MoreHorizontal, Eye } from "lucide-react";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/shared/components/ui/input";
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  status: string;
-  joinDate: string;
-  vehicle?: string;
-  joiningDate: Date;
-  userImage?: string;
-  mobile: string;
-}
-
-interface UserListProps {
-  users: User[];
-  type: "user" | "driver";
-  isBlocked: "active" | "block" | "pending";
-}
+import { UserListProps } from "./type";
 
 const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
   const navigate = useNavigate();
@@ -37,7 +20,6 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 6;
 
-  // Filter users based on search term
   const filteredUsers = useMemo(() => {
     return users.filter(
       (user) =>
@@ -46,14 +28,12 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
     );
   }, [users, searchTerm]);
 
-  // Calculate pagination
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * usersPerPage,
     currentPage * usersPerPage
   );
 
-  // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -68,7 +48,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset to first page on search
+            setCurrentPage(1); 
           }}
           className="max-w-sm"
         />

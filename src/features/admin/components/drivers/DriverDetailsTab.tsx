@@ -2,27 +2,7 @@ import { TabsContent } from "@/shared/components/ui/tabs";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Button } from "@/shared/components/ui/button";
 import { Check, X, Lock, Unlock } from "lucide-react";
-
-interface DriverInterface {
-  _id: string;
-  name: string;
-  email: string;
-  mobile: number;
-  driverImage: string;
-  joiningDate: string;
-  account_status: string;
-}
-
-interface DriverDetailsTabProps {
-  driver: DriverInterface;
-  note: string;
-  setNote: (value: string) => void;
-  isRejecting: boolean;
-  setIsRejecting: (value: boolean) => void;
-  selectedFields: string[];
-  setSelectedFields: (value: string[]) => void;
-  handleVerification: (status: "Verified" | "Rejected" | "Good" | "Block", fields?: string[]) => void;
-}
+import { DriverDetailsTabProps } from "./type";
 
 const documentGroups = [
   { label: "Driver Image", value: "driverImge" },
@@ -45,7 +25,8 @@ const DriverDetailsTab = ({
   selectedFields,
   setSelectedFields,
   handleVerification,
-}: DriverDetailsTabProps) => {
+}: DriverDetailsTabProps
+) => {
   return (
     <TabsContent value="details" className="p-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

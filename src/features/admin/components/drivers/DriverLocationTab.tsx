@@ -2,14 +2,15 @@ import { TabsContent } from "@/shared/components/ui/tabs";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { DriverInterface } from "@/shared/types/driver/driverType";
 
-interface DriverInterface {
-  name: string;
-  location: {
-    longitude: string;
-    latitude: string;
-  };
-}
+// interface DriverInterface {
+//   name: string;
+//   location: {
+//     longitude: string;
+//     latitude: string;
+//   };
+// }
 
 interface DriverLocationTabProps {
   driver: DriverInterface;

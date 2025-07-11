@@ -1,12 +1,4 @@
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
-
-interface VehicleSectionProps {
-  formik: FormikProps<ResubmissionFormValues>;
-  previews: Previews;
-  handleFileInput: (field: string, e: React.ChangeEvent<HTMLInputElement>) => void;
-  resubmissionData: ResubmissionData;
-}
+import { VehicleSectionProps } from "../type";
 
 const VehicleSection: React.FC<VehicleSectionProps> = ({ formik, previews, handleFileInput, resubmissionData }) => {
   if (!['registerationID', 'model', 'rc', 'carImage'].some(field => resubmissionData.fields.includes(field))) return null;

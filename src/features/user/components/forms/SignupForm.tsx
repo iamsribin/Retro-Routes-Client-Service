@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { useFormik } from 'formik';
 import { Box } from '@chakra-ui/react';
 import { signupValidation } from '@/shared/utils/validation';
-import { SignupFormProps, SignupFormValues } from '@/shared/utils/types';
+import { SignupFormProps, SignupFormValues } from './type';
 import { checkUser } from '@/shared/utils/authHelpers';
 import LoadingSpinner from '@/shared/components/loaders/LoadingSpinner';
 import SignupFields from "./SignupFields"

@@ -27,6 +27,8 @@ import axiosUser from "@/shared/services/axios/userAxios";
 import { toast } from "sonner";
 import Webcam from "react-webcam";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
+import { RideStatusData } from "@/shared/types/user/rideTypes";
+import { Coordinates, Message } from "@/shared/types/commonTypes";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOKEN;
 
@@ -35,82 +37,6 @@ const videoConstraints = {
   height: { ideal: 720 },
   facingMode: "environment",
 };
-
-interface Coordinates {
-  latitude: number;
-  longitude: number;
-}
-
-interface Driver {
-  driverName: string;
-  driverNumber: string;
-  driverProfile: string;
-  driver_id: string;
-}
-
-interface User {
-  userName: string;
-  userProfile: string;
-  user_id: string;
-  number: string;
-}
-
-interface Booking {
-  date: string;
-  distance: string;
-  driver: Driver;
-  driverCoordinates: Coordinates;
-  dropoffCoordinates: Coordinates;
-  dropoffLocation: string;
-  duration: string;
-  pickupCoordinates: Coordinates;
-  pickupLocation: string;
-  pin: number;
-  price: number;
-  ride_id: string;
-  status: string;
-  user: User;
-  vehicleModel: string;
-  _id: string;
-  __v: number;
-}
-
-interface DriverDetails {
-  cancelledRides: number;
-  color: string;
-  driverId: string;
-  driverImage: string;
-  driverName: string;
-  mobile: number;
-  number: string;
-  rating: number;
-  vehicleModel: string;
-}
-
-interface RideStatusData {
-  ride_id: string;
-  status: "searching" | "Accepted" | "DriverComingToPickup" | "RideStarted" | "RideFinished" | "Failed" | "cancelled";
-  message?: string;
-  driverId?: string;
-  booking?: Booking;
-  driverCoordinates?: Coordinates;
-  driverDetails?: DriverDetails;
-  chatMessages: {
-    sender: "driver" | "user";
-    content: string;
-    timestamp: string;
-    type: "text" | "image";
-    fileUrl?: string;
-  }[];
-}
-
-interface Message {
-  sender: "driver" | "user";
-  content: string;
-  timestamp: string;
-  type: "text" | "image";
-  fileUrl?: string;
-}
 
 const RideTrackingPage: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -180,7 +106,7 @@ const RideTrackingPage: React.FC = () => {
             sender: "user",
             message: "",
             timestamp,
-            driverId: rideData.booking?.driver.driver_id,
+            driverId: rideData.driverDetails.driverId,
             type: "image",
             fileUrl: data.data.fileUrl,
           });
@@ -673,7 +599,7 @@ console.log("][[][]",rideData.driverCoordinates);
 
   const handleCancelTrip = () => {
     if (socket && isConnected && rideData) {
-      socket.emit("cancelRide", {userId: rideData.booking.user.user_id, rideId: rideData.ride_id });
+      socket.emit("cancelRide", {userId: rideData.userDetails.user_id, rideId: rideData.ride_id });
      toast.info("Ride cancellation requested");
       setIsCancelDialogOpen(false);
 
@@ -681,8 +607,8 @@ console.log("][[][]",rideData.driverCoordinates);
   };
 
   const handleCallDriver = () => {
-    if (rideData?.booking?.driver.driverNumber) {
-      window.open(`tel:${rideData.booking.driver.driverNumber}`);
+    if (rideData?.driverDetails.number) {
+      window.open(`tel:${rideData?.driverDetails.number}`);
     }
   };
 
@@ -702,7 +628,7 @@ console.log("][[][]",rideData.driverCoordinates);
       sender: "user",
       message: messageInput.trim(),
       timestamp,
-      driverId: rideData.booking?.driver.driver_id,
+      driverId: rideData.driverDetails.driverId,
       type: "text",
     });
 
@@ -863,17 +789,17 @@ console.log("][[][]",rideData.driverCoordinates);
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
                     <AvatarImage
-                      src={rideData.booking?.driver.driverProfile}
-                      alt={rideData.booking?.driver.driverName}
+                      src={rideData.driverDetails.driverImage}
+                      alt={rideData.driverDetails.driverName}
                     />
                     <AvatarFallback className="text-sm">
-                      {rideData.booking?.driver.driverName?.[0] ?? "D"}
+                      {rideData.driverDetails.driverName}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">
-                      {rideData.booking?.driver.driverName ?? "Driver"}
+                      {rideData.driverDetails.driverName }
                     </p>
                     <p className="text-xs sm:text-sm text-gray-500">
                       Vehicle:{" "}

@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import UserList from '../../components/user/UserList';
 import { axiosAdmin } from '@/shared/services/axios/adminAxios';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { cn } from '@/shared/lib/utils'; // Assuming you have a utility for classnames
+import { cn } from '@/shared/lib/utils'; 
 import { useDispatch } from 'react-redux';
 import ApiEndpoints from '@/constants/api-end-pointes';
 
@@ -12,7 +11,6 @@ const Users: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'block'>('active');
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
-  const navigate = useNavigate();
 
   const dispatch = useDispatch();
 

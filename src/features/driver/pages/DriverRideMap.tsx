@@ -26,6 +26,7 @@
   import driverAxios from "@/shared/services/axios/driverAxios";
   import { toast } from "sonner";
   import Webcam from "react-webcam";
+import { Coordinates, Message } from "@/shared/types/commonTypes";
 
   mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOKEN;
 
@@ -34,41 +35,6 @@
     height: { ideal: 720 },
     facingMode: "environment",
   };
-
-  interface Coordinates {
-    latitude: number;
-    longitude: number;
-    address?: string;
-  }
-
-  interface Customer {
-    id: string;
-    name: string;
-    profileImageUrl?: string;
-    number?: string;
-  }
-
-  interface Ride {
-    rideId: string;
-    securityPin: number;
-    estimatedDistance: string;
-    estimatedDuration: string;
-    fareAmount: number;
-    vehicleType: string;
-  }
-
-  interface Booking {
-    bookingId: string;
-    userId: string;
-  }
-
-  interface Message {
-    sender: "driver" | "user";
-    content: string;
-    timestamp: string;
-    type: "text" | "image";
-    fileUrl?: string;
-  }
 
   const DriverRideMap: React.FC = () => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -552,7 +518,7 @@
         dispatch(updateRideStatus({
           requestId: rideData.requestId,
           status: "started",
-          driverCoordinates: driverLocation,
+        driverCoordinates: driverLocation,
         }));
 
         socket.emit("rideStarted", {
@@ -993,7 +959,7 @@
                     {(!rideData.chatMessages || rideData.chatMessages.length === 0) && (
                       <p className="text-center text-gray-500 text-sm">No messages yet.</p>
                     )}
-                    {rideData.chatMessages?.map((message, index) => (
+                    {rideData.chatMessages?.map((message : Message, index:number) => (
                       <div
                         key={index}
                         className={`flex ${message.sender === "driver" ? "justify-end" : "justify-start"}`}

@@ -12,13 +12,13 @@ import { toast } from "sonner";
 import { jwtDecode } from "jwt-decode";
 import { useUserApi, useUserApiRequest } from "@/shared/hooks/apiHooks";
 import ApiEndpoints from "@/constants/api-end-pointes";
-import { DecodedToken, UserData } from "@/shared/types/IUser";
-
+import { DecodedToken } from "../components/forms/type";
+import { UserAuthData } from "@/shared/types/user/userTypes";
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [userData, setUserData] = useState<UserData>({
+  const [userData, setUserData] = useState<UserAuthData>({
     user: "",
     user_id: "",
     userToken: "",

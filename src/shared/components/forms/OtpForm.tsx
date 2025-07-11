@@ -1,19 +1,10 @@
 import { MouseEvent } from 'react';
-import { FormikProps } from 'formik';
 import { Button, Text, HStack, PinInput, PinInputField } from '@chakra-ui/react';
 import { toast } from 'sonner';
 import axiosUser from '@/shared/services/axios/userAxios';
 import ApiEndpoints from '@/constants/api-end-pointes';
-import { SignupFormValues } from '@/shared/utils/types';
+import { OtpFormProps } from '@/shared/types/formTypes';
 import { useDispatch } from 'react-redux';
-
-interface OtpFormProps {
-  counter: number;
-  setCounter: (value: number) => void;
-  otp: number;
-  setOtp: (value: number) => void;
-  formik: FormikProps<SignupFormValues>;
-}
 
 const OtpForm = ({ counter, setCounter, otp, setOtp, formik }: OtpFormProps) => {
   const dispatch = useDispatch();

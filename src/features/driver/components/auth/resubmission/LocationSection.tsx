@@ -1,21 +1,11 @@
 import { lazy } from 'react';
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues } from '@/shared/utils/types';
 import { handleGeolocation, handleGetCurrentLocation } from '@/shared/utils/resubmissionHelpers';
 import ExploreIcon from '@mui/icons-material/Explore';
 import WhereToVoteIcon from '@mui/icons-material/WhereToVote';
+import { LocationSectionProps } from '../type';
 
-// Lazy load SignupMap
 const SignupMap = lazy(() => import('../../../pages/auth/SignupMap'));
 
-interface LocationSectionProps {
-  formik: FormikProps<ResubmissionFormValues>;
-  latitude: number;
-  longitude: number;
-  setLatitude: React.Dispatch<React.SetStateAction<number>>;
-  setLongitude: React.Dispatch<React.SetStateAction<number>>;
-  resubmissionData: ResubmissionData;
-}
 
 const LocationSection: React.FC<LocationSectionProps> = ({ formik, latitude, longitude, setLatitude, setLongitude, resubmissionData }) => {
   if (!resubmissionData.fields.includes('location')) return null;

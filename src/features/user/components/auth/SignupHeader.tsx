@@ -1,7 +1,5 @@
-interface SignupHeaderProps {
-    otpPage: boolean;
-  }
-  
+import { SignupHeaderProps } from "./type";
+
   const SignupHeader = ({ otpPage }: SignupHeaderProps) => {
     return (
       <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 justify-around items-center mb-3 md:m-0">

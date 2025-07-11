@@ -11,16 +11,11 @@ import { openRejectedModal } from "@/shared/services/redux/slices/rejectModalSli
 import DriverLoginHeader from "../../components/auth/LoginHeader";
 import DriverLoginForm from "@/features/driver/components/forms/DriverLoginForm";
 import { auth } from "@/shared/services/firebase";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import ApiEndpoints from "@/constants/api-end-pointes";
-
-interface DriverData {
-  name: string;
-  driverToken: string;
-  driver_id: string;
-  refreshToken: string;
-  role: "Driver";
-}
+import { DriverAuthData } from "@/shared/types/driver/driverType";
+import PendingModal from "@/shared/components/PendingModal";
+import  RejectedModal  from "@/shared/components/RejectModal";
 
 interface DecodedToken {
   email: string;
@@ -34,13 +29,16 @@ const DriverLogin = () => {
   const [load, setLoad] = useState(false);
   const [counter, setCounter] = useState(40);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [driverData, setDriverData] = useState<DriverData>({
+  const [driverData, setDriverData] = useState<DriverAuthData>({
     name: "",
     driverToken: "",
     driver_id: "",
     refreshToken: "",
     role: "Driver",
   });
+
+      const isOpenPending  = useSelector((store: {pendingModal:{isOpenPending:boolean}}) => store.pendingModal.isOpenPending);
+    const isOpenRejected  = useSelector((store: {rejectModal:{isOpenRejected:boolean}}) => store.rejectModal.isOpenRejected);
 
   const handleGoogleLogin = async (req: CredentialResponse) => {
     try {
@@ -90,6 +88,9 @@ const DriverLogin = () => {
   };
 
   return (
+        <>
+          {isOpenPending && <PendingModal />}
+            {isOpenRejected && <RejectedModal/>}
     <div className="driver-registration-container bg-white h-screen flex justify-center items-center">
       <div className="w-5/6 md:w-4/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
         <DriverLoginHeader otpInput={otpInput} load={load} />
@@ -112,6 +113,7 @@ const DriverLogin = () => {
       </div>
       <div id="recaptcha-container" />
     </div>
+</>
   );
 };
 

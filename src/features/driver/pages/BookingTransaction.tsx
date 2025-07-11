@@ -24,29 +24,12 @@ import { RootState, AppDispatch } from "@/shared/services/redux/store";
 import driverAxios from "@/shared/services/axios/driverAxios";
 import DriverNavbar from '../components/DriverNavbar';
 import { Calendar } from 'lucide-react';
-
-interface Booking {
-  _id: string;
-  ride_id: string;
-  user_id: string;
-  userName: string;
-  pickupCoordinates: { latitude: number; longitude: number };
-  dropoffCoordinates: { latitude: number; longitude: number };
-  pickupLocation: string;
-  dropoffLocation: string;
-  driver_id?: string;
-  distance?: string;
-  price?: number;
-  date: Date;
-  status: 'Pending' | 'Accepted' | 'Confirmed' | 'Completed' | 'Cancelled';
-  paymentMode?: string;
-}
-
+import { BookingListType } from './type';
 
 const BookingList: React.FC = () => {
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<BookingListType[]>([]);
+  const [filteredBookings, setFilteredBookings] = useState<BookingListType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('All');

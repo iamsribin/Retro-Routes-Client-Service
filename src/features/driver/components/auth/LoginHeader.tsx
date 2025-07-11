@@ -1,9 +1,5 @@
 import Loader from "@/shared/components/loaders/shimmer";
-
-interface DriverLoginHeaderProps {
-  otpInput: boolean;
-  load: boolean;
-}
+import { DriverLoginHeaderProps } from "./type";
 
 const DriverLoginHeader = ({ otpInput, load }: DriverLoginHeaderProps) => {
   return (

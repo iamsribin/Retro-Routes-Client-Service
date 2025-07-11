@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { axiosAdmin } from "@/shared/services/axios/adminAxios";
 import { toast } from "sonner";
 import { useFormik } from "formik";
-import { UserInterface } from "@/shared/types/IUser";
+import { UserInterface } from "@/shared/types/types";
 import { useDispatch } from "react-redux";
 import { Eye } from "lucide-react";
 import { Button } from "@chakra-ui/react";

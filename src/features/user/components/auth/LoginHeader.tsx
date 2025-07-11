@@ -1,7 +1,5 @@
-interface LoginHeaderProps {
-    otpInput: boolean;
-  }
-  
+import { LoginHeaderProps } from "./type";
+
   const LoginHeader = ({ otpInput }: LoginHeaderProps) => {
     return (
       <div className="relative overflow-hidden h-full sm:pl-14 md:pl-16 md:w-1/2 justify-around items-center mb-3 md:m-0">

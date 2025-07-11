@@ -5,7 +5,7 @@ import { useFormik } from 'formik';
 import { toast } from 'sonner';
 import axiosDriver from '@/shared/services/axios/driverAxios';
 import { ResubmissionValidation } from '@/shared/utils/validation';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '@/shared/utils/types';
+import { ResubmissionData, ResubmissionFormValues, Previews } from '../type';
 import { fetchResubmissionData } from '@/shared/utils/resubmissionHelpers';
 import ResubmissionHeader from './ResubmissionHeader';
 import ResubmissionForm from '../../forms/ResubmissionForm';

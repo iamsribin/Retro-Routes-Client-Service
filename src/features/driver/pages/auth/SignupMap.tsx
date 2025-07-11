@@ -1,12 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import useLocalStorage from "@/shared/hooks/useLocalStorage";
-
-interface MapProps {
-    latitude: number;
-    longitude: number;
-    onLocationChange: (lat: number, lng: number, status: any) => void;
-}
+import { MapProps } from "../../components/auth/type";
 
 export default function SignupMap({ latitude, longitude, onLocationChange }: MapProps) {
     const mapRef = useRef<L.Map | null>(null);

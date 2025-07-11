@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import { toast } from "sonner";
-import { ConfirmationResult } from "firebase/auth";
 import { PinInput, PinInputField, HStack } from "@chakra-ui/react";
 import { FaMobileAlt, FaUser, FaEnvelope, FaKey, FaUsers } from "react-icons/fa";
 import axiosDriver from "@/shared/services/axios/driverAxios";
@@ -11,20 +10,7 @@ import { signupValidation } from "@/shared/utils/validation";
 import { auth } from "@/shared/services/firebase";
 import { useDispatch } from "react-redux";
 import ApiEndpoints from "@/constants/api-end-pointes";
-
-interface DriverSignupFormProps {
-  otpPage: boolean;
-  setOtpPage: (value: boolean) => void;
-  counter: number;
-  setCounter: (value: number) => void;
-  load: boolean;
-  setLoad: (value: boolean) => void;
-  otp: number;
-  setOtp: (value: number) => void;
-  confirmationResult: ConfirmationResult | null;
-  setConfirmationResult: (value: ConfirmationResult | null) => void;
-  setStep: (step: "credentials" | "documents" | "location" | "driverImage" | "vehicle" | "insurance") => void;
-}
+import { DriverSignupFormProps } from "./type";
 
 const DriverSignupForm = ({
   otpPage,

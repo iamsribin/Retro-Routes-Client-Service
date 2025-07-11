@@ -1,14 +1,8 @@
 import { ChangeEvent } from 'react';
-import { FormikProps } from 'formik';
 import { Input, InputGroup, InputLeftElement, Button, Text, VStack } from '@chakra-ui/react';
 import { AtSignIcon, EmailIcon, PhoneIcon, LockIcon, SmallAddIcon } from '@chakra-ui/icons';
-import { SignupFormValues } from '@/shared/utils/types';
-
-interface SignupFieldsProps {
-  formik: FormikProps<SignupFormValues>;
-  userImageUrl: string | null;
-  setUserImageUrl: (url: string | null) => void;
-}
+import { SignupFieldsProps } from './type';
+import { SignupFormValues } from './type';
 
 const SignupFields = ({ formik, userImageUrl, setUserImageUrl }: SignupFieldsProps) => {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {

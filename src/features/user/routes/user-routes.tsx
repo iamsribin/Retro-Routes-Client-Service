@@ -17,7 +17,6 @@ function UserRoutes() {
       <Route path={AppRoutes.USER_HOME} element={<HomePage />} />
       <Route path={AppRoutes.LOGIN} element={<AuthRedirect role={ROLE}><LoginPage /></AuthRedirect>} />
       <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><SignupPage /></AuthRedirect>} />
-      <Route path="*" element={<NotFound />} />
       <Route path="ride-tracking" element={<RideMap/>}/>
       <Route path="profile" element={<UserProfile/>}/>
       <Route path="*" element={<NotFound />} />

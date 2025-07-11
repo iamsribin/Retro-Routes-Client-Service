@@ -2,11 +2,6 @@ import { useEffect, useState, ChangeEvent } from "react";
 import {
   ChevronRight,
   Star,
-  Wallet,
-  Car,
-  FileText,
-  Award,
-  Calendar,
   Phone,
   Mail,
   Edit2,
@@ -27,85 +22,13 @@ import DriverNavbar from "../components/DriverNavbar";
 import { format as formatDate } from "date-fns";
 import * as yup from "yup";
 import { ResubmissionValidation } from "@/shared/utils/validation";
+import { DocumentStatusProps, DriverProfileData, FileData, FormDataType, PopupNotificationProps, ZoomableImageProps } from "./type";
+import { Feedback, Transaction } from "@/shared/types/commonTypes";
 
-// Define interfaces
-interface Transaction {
-  status: "Credited" | "Debited";
-  details: string;
-  date: string;
-  amount: number;
-}
-
-interface Wallet {
-  balance: number;
-  transactions: Transaction[];
-}
-
-interface RideDetails {
-  completedRides: number;
-  cancelledRides: number;
-  totalEarnings: number;
-}
-
-interface Feedback {
-  ride_id: string;
-  date: string;
-  rating: number;
-  feedback: string;
-}
-
-interface Aadhar {
-  aadharId: string;
-  aadharFrontImageUrl: string;
-  aadharBackImageUrl: string;
-}
-
-interface License {
-  licenseId: string;
-  licenseFrontImageUrl: string;
-  licenseBackImageUrl: string;
-  licenseValidity: string;
-}
-
-interface VehicleDetails {
-  registerationID: string;
-  model: string;
-  rcFrondImageUrl: string;
-  rcBackImageUrl: string;
-  rcStartDate: string;
-  rcExpiryDate: string;
-  carFrondImageUrl: string;
-  carBackImageUrl: string;
-  insuranceImageUrl: string;
-  insuranceStartDate: string;
-  insuranceExpiryDate: string;
-  pollutionImageUrl: string;
-  pollutionStartDate: string;
-  pollutionExpiryDate: string;
-}
-
-interface DriverData {
-  name: string;
-  email: string;
-  mobile: string;
-  driverImage: string;
-  joiningDate: string;
-  account_status: "Good" | "Pending" | "Incomplete" | "Blocked";
-  isAvailable: boolean;
-  totalRatings: number;
-  wallet: Wallet;
-  RideDetails: RideDetails;
-  feedbacks: Feedback[];
-  aadhar: Aadhar;
-  license: License;
-  vehicle_details: VehicleDetails;
-}
-
-// Popup Notification Component
-interface PopupNotificationProps {
+interface PopupState {
   message: string;
   type: "success" | "error";
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const PopupNotification: React.FC<PopupNotificationProps> = ({ message, type, onClose }) => {
@@ -127,12 +50,6 @@ const PopupNotification: React.FC<PopupNotificationProps> = ({ message, type, on
   );
 };
 
-// Document Status Component
-interface DocumentStatusProps {
-  expiryDate: string;
-  title: string;
-}
-
 const DocumentStatus: React.FC<DocumentStatusProps> = ({ expiryDate, title }) => {
   const today = new Date();
   const expiry = new Date(expiryDate);
@@ -147,12 +64,6 @@ const DocumentStatus: React.FC<DocumentStatusProps> = ({ expiryDate, title }) =>
     </div>
   );
 };
-
-// Zoomable Image Component
-interface ZoomableImageProps {
-  src: string;
-  alt: string;
-}
 
 const ZoomableImage: React.FC<ZoomableImageProps> = ({ src, alt }) => {
   return (
@@ -169,7 +80,6 @@ const ZoomableImage: React.FC<ZoomableImageProps> = ({ src, alt }) => {
   );
 };
 
-// Utility function to format currency
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -177,7 +87,6 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-// Utility function to safely format dates
 const safelyFormatDate = (dateString: string | undefined, formatString: string): string => {
   if (!dateString) {
     return "N/A";
@@ -192,31 +101,14 @@ const safelyFormatDate = (dateString: string | undefined, formatString: string):
   return formatDate(date, formatString);
 };
 
-// Type for form data (dynamic based on field)
-interface FormData {
-  [key: string]: string | undefined;
-}
-
-// Type for file data
-interface FileData {
-  [key: string]: File | null;
-}
-
-// Type for popup state
-interface PopupState {
-  message: string;
-  type: "success" | "error";
-  onClose?: () => void;
-}
-
 export default function DriverProfile() {
   const [activeTab, setActiveTab] = useState<"profile" | "documents" | "earnings" | "feedback">("profile");
-  const [driverData, setDriverData] = useState<DriverData | null>(null);
+  const [driverData, setDriverData] = useState<DriverProfileData | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData>({});
+  const [formData, setFormData] = useState<FormDataType>({});
   const [fileData, setFileData] = useState<FileData>({});
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [popup, setPopup] = useState<PopupState | null>(null);
@@ -238,7 +130,7 @@ export default function DriverProfile() {
 
       try {
         setLoading(true);
-        const { data } = await driverAxios(dispatch).get<DriverData>(`/getDriverDetails`);
+        const { data } = await driverAxios(dispatch).get<DriverProfileData>(`/getDriverDetails`);
         setDriverData(data);
         setIsAvailable(data.isAvailable);
         setError(null);
@@ -293,7 +185,7 @@ export default function DriverProfile() {
         setFormData({ model: driverData.vehicle_details.model });
         break;
       case "registerationID":
-        setFormData({ registerationID: driverData.vehicle_details.registerationID });
+        setFormData({ registerationID: driverData.vehicle_details.registrationID });
         break;
       case "carImage":
         setFormData({
@@ -422,7 +314,7 @@ export default function DriverProfile() {
         if (fileData.driverImageUrl) formDataToSend.append("driverImage", fileData.driverImageUrl);
       }
 
-      const { data } = await driverAxios(dispatch).post<{ data: Partial<DriverData> }>(
+      const { data } = await driverAxios(dispatch).post<{ data: Partial<DriverProfileData> }>(
         `/updateDriverDetails/${driverId}`,
         formDataToSend,
         {
@@ -690,7 +582,7 @@ export default function DriverProfile() {
                         ) : (
                           <div className="flex items-center gap-3">
                             <span className="font-medium text-gray-800">
-                              {driverData.vehicle_details.registerationID}
+                              {driverData.vehicle_details.registrationID}
                             </span>
                             <button
                               onClick={() => handleEdit("registerationID")}

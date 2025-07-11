@@ -2,14 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Player } from '@lottiefiles/react-lottie-player';
-
-interface NotificationDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  type: 'success' | 'error' | 'info';
-  title: string;
-  message: string;
-}
+import { NotificationDialogProps } from '../types/propsType';
 
 const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onOpenChange, type, title, message }) => {
   const animationUrls = {
