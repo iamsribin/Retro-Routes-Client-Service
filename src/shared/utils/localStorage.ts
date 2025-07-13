@@ -12,7 +12,6 @@ const logoutLocalStorage = (role: Role) => {
   } else if (role === "Driver") {
     localStorage.removeItem("driverToken");
     localStorage.removeItem("DriverRefreshToken");
-    localStorage.removeItem("driverId");
   }
 };
 

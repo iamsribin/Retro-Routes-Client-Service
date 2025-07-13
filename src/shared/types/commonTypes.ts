@@ -68,6 +68,14 @@ interface CustomerDetails {
   number?:string
 }
 
+interface NotificationDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  type: 'success' | 'error' | 'info';
+  title: string;
+  message: string;
+}
+
 export type {
   Coordinates,
   Message,
@@ -78,5 +86,6 @@ export type {
   Transaction,
   RideDetailsForBooking,
   BookingDetails,
-  CustomerDetails
+  CustomerDetails,
+  NotificationDialogProps
 };

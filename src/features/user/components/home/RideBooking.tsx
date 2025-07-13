@@ -22,7 +22,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-import NotificationDialog from "@/shared/hooks/useNotificationDialog";
+// import NotificationDialog from "@/shared/hooks/useNotificationDialog";
 import axiosUser from "@/shared/services/axios/userAxios";
 import { useDispatch, useSelector } from "react-redux";
 import { useSocket } from "@/context/socket-context";
@@ -599,7 +599,7 @@ const Ride: React.FC = () => {
           </SheetContent>
         </Sheet>
 
-        <NotificationDialog
+        {/* <NotificationDialog
           open={notification.open}
           onOpenChange={(open: boolean) =>
             setNotification((prev) => ({ ...prev, open }))
@@ -607,7 +607,7 @@ const Ride: React.FC = () => {
           type={notification.type}
           title={notification.title}
           message={notification.message}
-        />
+        /> */}
       </div>
     </div>
   );

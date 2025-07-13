@@ -57,7 +57,8 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
       });
     }
     console.log("isOnline", isOnline);
-
+            // latitude:11.072035,
+            // longitude: 76.074005,
     if (isOnline && navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {

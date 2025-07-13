@@ -49,21 +49,16 @@ const DriverLogin = () => {
       const { data } = await axiosDriver(dispatch).post(ApiEndpoints.DRIVER_CHECK_GOOGLE_LOGIN, {
         email: decode.email,
       });
-      console.log("======data=====",data);
 
       switch (data.message) {
         case "Success":
           toast.success("Login success!");
           localStorage.setItem("driverToken", data.token);
           localStorage.setItem("DriverRefreshToken", data.refreshToken);
-          localStorage.setItem("role", "Driver");
           dispatch(driverLogin({ name: data.name, driver_id: data._id, role: "Driver" }));
-          localStorage.removeItem("driverId");
-          // navigate("/driver/dashboard");
           break;
         case "Incomplete registration":
           toast.info("Please complete the registration!");
-          localStorage.setItem("driverId", data.driverId);
           navigate("/driver/signup");
           break;
         case "Blocked":
@@ -73,8 +68,8 @@ const DriverLogin = () => {
           dispatch(openPendingModal());
           break;
         case "Rejected":
+        localStorage.setItem("role", "Resubmission");
           dispatch(openRejectedModal());
-          localStorage.setItem("driverId", data.driverId);
           break;
         default:
           toast.error("Not registered! Please register to continue.");

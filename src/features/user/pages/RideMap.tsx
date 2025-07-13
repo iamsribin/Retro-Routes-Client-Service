@@ -56,7 +56,7 @@ const RideTrackingPage: React.FC = () => {
   const [canCancelTrip, setCanCancelTrip] = useState<boolean>(true);
   const [cancelTimeLeft, setCancelTimeLeft] = useState<number>(30);
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+  const [isCameraOpen, setIsCameraOpen] =useState<boolean>(false);
   const [imageSource, setImageSource] = useState<"camera" | "file" | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
 
@@ -189,81 +189,102 @@ const RideTrackingPage: React.FC = () => {
     }
   }, [isOpen, navigate]);
 
-useEffect(() => {
-  if (!socket || !isConnected || !rideData) return;
+  useEffect(() => {
+    if (!socket || !isConnected || !rideData) return;
 
-  const handleRideStatus = (data: RideStatusData) => {
-    console.log("Received rideStatus:", data);
-    if (data.status === "cancelled" || data.status === "Failed" || data.status === "RideFinished") {
-      dispatch(hideRideMap());
-      localStorage.removeItem("cancelTimerStart");
-    } else {
+    const handleRideStatus = (data: RideStatusData) => {
+      console.log("Received rideStatus:", data);
+      if (data.status === "cancelled" || data.status === "Failed" || data.status === "RideFinished") {
+        dispatch(hideRideMap());
+        localStorage.removeItem("cancelTimerStart");
+      } else {
+        dispatch(
+          updateRideStatus({
+            ride_id: data.ride_id,
+            status: data.status,
+            driverCoordinates: data.driverCoordinates,
+          })
+        );
+        if (data.status === "DriverComingToPickup" || data.status === "RideStarted") {
+          setCanCancelTrip(false);
+          localStorage.removeItem("cancelTimerStart");
+        }
+      }
+    };
+
+    const handleDriverStartRide = (driverLocation: Coordinates) => {
+      console.log("Received driverStartRide:", driverLocation);
       dispatch(
         updateRideStatus({
-          ride_id: data.ride_id,
-          status: data.status,
-          driverCoordinates: data.driverCoordinates,
+          ride_id: rideData.ride_id,
+          status: "RideStarted",
+          driverCoordinates: driverLocation,
         })
       );
-      if (data.status === "DriverComingToPickup" || data.status === "RideStarted") {
-        setCanCancelTrip(false);
-        localStorage.removeItem("cancelTimerStart");
-      }
-    }
-  };
-
-  const handleDriverStartRide = (driverLocation: Coordinates) => {
-    console.log("Received driverStartRide:", driverLocation);
-    dispatch(
-      updateRideStatus({
-        ride_id: rideData.ride_id,
-        status: "RideStarted",
-        driverCoordinates: driverLocation,
-      })
-    );
-    setCanCancelTrip(false);
-    localStorage.removeItem("cancelTimerStart");
-  };
-
-  const handleReceiveMessage = (data: {
-    sender: "driver" | "user";
-    message: string;
-    timestamp: string;
-    type: "text" | "image";
-    fileUrl?: string;
-  }) => {
-    const message: Message = {
-      sender: data.sender,
-      content: data.message,
-      timestamp: data.timestamp,
-      type: data.type,
-      fileUrl: data.fileUrl,
+      setCanCancelTrip(false);
+      localStorage.removeItem("cancelTimerStart");
     };
-    dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
-    if (activeSection !== "messages") {
-      setUnreadCount((prev) => prev + 1);
-    }
-  };
 
-  const handleDisconnect = () => {
-    console.log("Socket disconnected");
-    if (rideData) {
-      toast.error("Lost connection to server. Please check your network.");
-    }
-  };
+    const handleReceiveMessage = (data: {
+      sender: "driver" | "user";
+      message: string;
+      timestamp: string;
+      type: "text" | "image";
+      fileUrl?: string;
+    }) => {
+      const message: Message = {
+        sender: data.sender,
+        content: data.message,
+        timestamp: data.timestamp,
+        type: data.type,
+        fileUrl: data.fileUrl,
+      };
+      dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
+      if (activeSection !== "messages") {
+        setUnreadCount((prev) => prev + 1);
+      }
+    };
 
-  socket.on("rideStatus", handleRideStatus);
-  socket.on("driverStartRide", handleDriverStartRide);
-  socket.on("receiveMessage", handleReceiveMessage);
-  socket.on("disconnect", handleDisconnect);
+    const handleDriverLocationUpdate = (data: { driverId: string; coordinates: Coordinates }) => {
+      console.log("Received driverLocationUpdate:", data);
+      const parsedCoords = parseCoords(data.coordinates);
+      if (parsedCoords && driverMarkerRef.current && mapInstanceRef.current) {
+        driverMarkerRef.current.setLngLat(parsedCoords);
+        dispatch(
+          updateRideStatus({
+            ride_id: rideData.ride_id,
+            status: rideData.status,
+            driverCoordinates: data.coordinates,
+          })
+        );
+        adjustMapBounds(mapInstanceRef.current);
+        fetchTripRoute(mapInstanceRef.current);
+      } else {
+        console.warn("Cannot update driver marker: Invalid coordinates or marker/map not initialized");
+      }
+    };
 
-  return () => {
-    socket.off("rideStatus", handleRideStatus);
-    socket.off("driverStartRide", handleDriverStartRide);
-    socket.off("receiveMessage", handleReceiveMessage);
-    socket.off("disconnect", handleDisconnect);
-  }; 
-}, [socket, isConnected, activeSection, dispatch, rideData]);
+    const handleDisconnect = () => {
+      console.log("Socket disconnected");
+      if (rideData) {
+        toast.error("Lost connection to server. Please check your network.");
+      }
+    };
+
+    socket.on("rideStatus", handleRideStatus);
+    socket.on("driverStartRide", handleDriverStartRide);
+    socket.on("receiveMessage", handleReceiveMessage);
+    socket.on("driverLocationUpdate", handleDriverLocationUpdate);
+    socket.on("disconnect", handleDisconnect);
+
+    return () => {
+      socket.off("rideStatus", handleRideStatus);
+      socket.off("driverStartRide", handleDriverStartRide);
+      socket.off("receiveMessage", handleReceiveMessage);
+      socket.off("driverLocationUpdate", handleDriverLocationUpdate);
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, [socket, isConnected, activeSection, dispatch, rideData]);
 
   useEffect(() => {
     if (rideData?.chatMessages && chatEndRef.current) {
@@ -281,7 +302,7 @@ useEffect(() => {
     if (isNaN(lat) || isNaN(lng)) {
       console.warn("Invalid coordinates:", { lat, lng, coords });
       return null;
-    } 
+    }
     return [lng, lat];
   };
 
@@ -322,7 +343,6 @@ useEffect(() => {
       toast.error("Ride data is incomplete");
       return;
     }
-console.log("][[][]",rideData.driverCoordinates);
 
     const driverCoords = parseCoords(rideData.driverCoordinates);
     if (!driverCoords) {
@@ -583,7 +603,6 @@ console.log("][[][]",rideData.driverCoordinates);
       }
     } catch (error) {
       console.error("Error fetching route:", error);
-      // toast.error("Failed to fetch route");
       const routeSource = map.getSource("route");
       if (routeSource) {
         (routeSource as mapboxgl.GeoJSONSource).setData({
@@ -599,10 +618,9 @@ console.log("][[][]",rideData.driverCoordinates);
 
   const handleCancelTrip = () => {
     if (socket && isConnected && rideData) {
-      socket.emit("cancelRide", {userId: rideData.userDetails.user_id, rideId: rideData.ride_id });
-     toast.info("Ride cancellation requested");
+      socket.emit("cancelRide", { userId: rideData.userDetails.user_id, rideId: rideData.ride_id });
+      toast.info("Ride cancellation requested");
       setIsCancelDialogOpen(false);
-
     }
   };
 
@@ -799,7 +817,7 @@ console.log("][[][]",rideData.driverCoordinates);
 
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">
-                      {rideData.driverDetails.driverName }
+                      {rideData.driverDetails.driverName}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-500">
                       Vehicle:{" "}
@@ -887,8 +905,8 @@ console.log("][[][]",rideData.driverCoordinates);
                   </div>
 
                   <div className="flex gap-3 items-start">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5e">
+                      <div className="'w-2 h-2 rounded-full bg-blue-500"></div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500 font-medium">
@@ -901,7 +919,7 @@ console.log("][[][]",rideData.driverCoordinates);
                   </div>
                 </div>
 
-{canCancelTrip && rideData.status === "Accepted" && (
+                {canCancelTrip && rideData.status === "Accepted" && (
                   <div className="flex gap-3 pt-2">
                     <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                       <DialogTrigger asChild>
@@ -1045,48 +1063,48 @@ console.log("][[][]",rideData.driverCoordinates);
                       No messages yet.
                     </p>
                   )}
-{rideData.chatMessages?.map((message, index) => (
-  <div
-    key={index}
-    className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
-  >
-    <div className="max-w-[70%]">
-      {message.type === "text" && message.content && (
-        <div
-          className={`p-3 rounded-lg text-sm ${
-            message.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
-          }`}
-        >
-          <p>{message.content}</p>
-          <p
-            className={`text-xs mt-1 ${
-              message.sender === "user" ? "text-blue-100" : "text-gray-500"
-            }`}
-          >
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </p>
-        </div>
-      )}
-      {message.type === "image" && message.fileUrl && (
-        <div className="rounded-lg overflow-hidden">
-          <img
-            src={message.fileUrl}
-            alt="Shared content"
-            className="max-w-[200px] h-auto rounded-lg"
-            onError={(e) => console.log("Image load failed:", e)}
-          />
-          <p
-            className={`text-xs mt-1 text-right ${
-              message.sender === "user" ? "text-blue-500" : "text-gray-500"
-            }`}
-          >
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </p>
-        </div>
-      )}
-    </div>
-  </div>
-))}
+                  {rideData.chatMessages?.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div className="max-w-[70%]">
+                        {message.type === "text" && message.content && (
+                          <div
+                            className={`p-3 rounded-lg text-sm ${
+                              message.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
+                            }`}
+                          >
+                            <p>{message.content}</p>
+                            <p
+                              className={`text-xs mt-1 ${
+                                message.sender === "user" ? "text-blue-100" : "text-gray-500"
+                              }`}
+                            >
+                              {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
+                        )}
+                        {message.type === "image" && message.fileUrl && (
+                          <div className="rounded-lg overflow-hidden">
+                            <img
+                              src={message.fileUrl}
+                              alt="Shared content"
+                              className="max-w-[200px] h-auto rounded-lg"
+                              onError={(e) => console.log("Image load failed:", e)}
+                            />
+                            <p
+                              className={`text-xs mt-1 text-right ${
+                                message.sender === "user" ? "text-blue-500" : "text-gray-500"
+                              }`}
+                            >
+                              {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                   <div ref={chatEndRef} />
                 </div>
                 <div className="flex gap-2">

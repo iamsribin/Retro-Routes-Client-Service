@@ -63,7 +63,6 @@ console.log("data===",data);
             break;
           case "Incomplete":
             toast.info("Please complete the verification!");
-            localStorage.setItem("driverId", data.driverId);
             navigate("/driver/signup");
             break;
           case "Blocked":
@@ -73,7 +72,6 @@ console.log("data===",data);
             dispatch(openPendingModal());
             break;
           case "Rejected":
-            localStorage.setItem("driverId", data.driverId);
             localStorage.setItem("role", "Resubmission");
             dispatch(openRejectedModal());
             break;
