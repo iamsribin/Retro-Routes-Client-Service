@@ -1,4 +1,3 @@
- 
 import { Routes, Route } from "react-router-dom";
 
 import DriverLoginPage from "../pages/auth/DriverLoginPage";
@@ -13,11 +12,14 @@ import DriverProfile from "../pages/DriverProfile";
 import BookingTransaction from "../pages/BookingTransaction";
 import BookingDetails from "../pages/BookingDetails";
 import DriverRideMap from "../pages/DriverRideMap";
+import { DriverLocationProvider } from "@/context/driver-location-context";
+
 
 const ROLE = "Driver"; 
 
 function DriverRoutes() {
   return (
+    <DriverLocationProvider>
     <Routes>
       <Route path={AppRoutes.LOGIN} element={<AuthRedirect role={ROLE}><DriverLoginPage /></AuthRedirect>} />
       <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><DriverSignupPage /></AuthRedirect>} />
@@ -29,6 +31,7 @@ function DriverRoutes() {
       <Route path="getMyTripDetails/:bookingId" element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
+    </DriverLocationProvider>
   );
 }
 

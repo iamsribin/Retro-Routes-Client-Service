@@ -32,6 +32,7 @@ import { RootState } from "@/shared/services/redux/store";
 import { RideStatusData } from "@/shared/types/user/rideTypes";
 import { BackendVehicle, VehicleOption } from "./type";
 import { NotificationState } from "@/shared/types/commonTypes";
+import { geocodeLatLng } from "@/shared/utils/locationToAddress";
 
 const libraries: ("places")[] = ["places"];
 const mapContainerStyle = {
@@ -283,20 +284,7 @@ const Ride: React.FC = () => {
     await fetchRoute();
   };
 
-  const geocodeLatLng = async (lat: number, lng: number): Promise<string> => {
-    const geocoder = new google.maps.Geocoder();
-    const latlng = { lat, lng };
 
-    return new Promise((resolve, reject) => {
-      geocoder.geocode({ location: latlng }, (results, status) => {
-        if (status === "OK" && results?.[0]) {
-          resolve(results[0].formatted_address);
-        } else {
-          reject(new Error("Geocoding failed"));
-        }
-      });
-    });
-  };
 
   const handleBookRide = async () => {
     if (!origin || !destination || !userLocation || !selectedVehicle || !distanceInfo) {
@@ -309,22 +297,7 @@ const Ride: React.FC = () => {
       return;
     }
 
-    // if (isScheduled && (!scheduledRide.date || !scheduledRide.time)) {
-    //   setNotification({
-    //     open: true,
-    //     type: "error",
-    //     title: "Booking Error",
-    //     message: "Please select both date and time for scheduled ride",
-    //   });
-    //   return;
-    // }
-
     setIsSearching(true);
-    // setRideStatus({
-    //   ride_id: "",
-    //   status: "searching",
-    //   message: "Searching for available drivers...",
-    // });
 
     try {
       if (!socket || !isConnected) {

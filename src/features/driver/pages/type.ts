@@ -1,12 +1,9 @@
 import {
   Coordinates,
   Feedback,
-  LocationCoordinates,
-  Message,
   Wallet,
 } from "@/shared/types/commonTypes";
 import { Aadhar, License, VehicleDetails } from "@/shared/types/driver/driverType";
-import { User } from "@/shared/types/user/userTypes";
 
 interface BookingListType {
   _id: string;
@@ -25,14 +22,7 @@ interface BookingListType {
   paymentMode?: string;
 }
 
-interface RideDetailsForBooking {
-  rideId: string;
-  estimatedDistance: string;
-  estimatedDuration: string;
-  fareAmount: number;
-  vehicleType: string;
-  securityPin: number;
-}
+
 
 interface RideDetailsForProfile {
   completedRides: number;
@@ -40,32 +30,6 @@ interface RideDetailsForProfile {
   totalEarnings: number;
 }
 
-interface BookingDetails {
-  bookingId: string;
-  userId: string;
-  pickupLocation: LocationCoordinates;
-  dropoffLocation: LocationCoordinates;
-  rideDetails: RideDetailsForBooking;
-  status: "pending" | "accepted" | "declined" | "cancelled";
-  createdAt: string;
-}
-
-interface DriverRideRequest {
-  requestId: string;
-  customer:  {
-  id: string;
-  name: string;
-  profileImageUrl?: string;
-};
-  pickup: LocationCoordinates;
-  dropoff: LocationCoordinates;
-  ride: RideDetailsForBooking;
-  booking: BookingDetails;
-  requestTimeout: number;
-  requestTimestamp: string;
-  chatMessages: Message[];
-  status: "accepted" | "started" | "completed" | "cancelled" | "failed";
-}
 
 interface DocumentStatusProps {
   expiryDate: string;
@@ -110,7 +74,6 @@ interface FileData {
 
 export type {
   BookingListType,
-  DriverRideRequest,
   DriverProfileData,
   DocumentStatusProps,
   PopupNotificationProps,

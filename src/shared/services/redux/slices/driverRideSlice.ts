@@ -1,4 +1,5 @@
-import { DriverRideRequest, Coordinates, Message, LocationCoordinates } from "@/shared/types/types";
+import { LocationCoordinates, Message } from "@/shared/types/commonTypes";
+import { DriverRideRequest } from "@/shared/types/driver/ridetype";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface RideState {
@@ -30,7 +31,7 @@ const RideMapSlice = createSlice({
     updateRideStatus: (state, action: PayloadAction<{
       requestId: string;
     status: DriverRideRequest['status'];
-      driverCoordinates?: Coordinates;
+      driverCoordinates?: LocationCoordinates;
     }>) => {
       if (state.rideData && state.rideData.requestId === action.payload.requestId) {
         state.rideData.status = action.payload.status;

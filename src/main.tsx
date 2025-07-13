@@ -5,9 +5,9 @@ import { Provider } from "react-redux";
 import { ThemeProvider } from "@material-tailwind/react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { BrowserRouter as Router } from "react-router-dom";
-import { persistor, store } from "./shared/services/redux/store.js";
+import { persistor, store } from "./shared/services/redux/store";
 import { PersistGate } from "redux-persist/integration/react";
-import { SocketProvider } from "@/context/socket-context.js";
+import { SocketProvider } from "@/context/socket-context";
 import ErrorBoundary from "@/shared/components/ErrorBoundaries";
 import "./index.css";
 

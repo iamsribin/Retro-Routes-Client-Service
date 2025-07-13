@@ -5,6 +5,7 @@ interface DriverAuthState {
   driverId: string;
   loggedIn: boolean;
   role: "Driver" | "";
+  isOnline: boolean;
 }
 
 const initialState: DriverAuthState = {
@@ -12,6 +13,7 @@ const initialState: DriverAuthState = {
   driverId: "",
   loggedIn: false,
   role: "",
+  isOnline:false
 };
 
 const driverAuthSlice = createSlice({
@@ -41,9 +43,17 @@ const driverAuthSlice = createSlice({
       localStorage.removeItem("DriverRefreshToken");
       localStorage.removeItem("driverId");
     },
+    setOnline: (
+      state,
+      action: PayloadAction<{
+      onlineStatus:boolean
+      }>
+    ) => {
+        state.isOnline = action.payload.onlineStatus
+    }
   },
 });
 
-export const { driverLogin, driverLogout } = driverAuthSlice.actions;
+export const { driverLogin, driverLogout, setOnline } = driverAuthSlice.actions;
 
 export default driverAuthSlice;

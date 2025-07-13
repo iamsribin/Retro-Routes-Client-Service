@@ -1,10 +1,4 @@
-import { LocationCoordinates } from "@/shared/types/commonTypes";
-
-interface Customer {
-  id: string;
-  name: string;
-  profileImageUrl?: string;
-}
+import { CustomerDetails, LocationCoordinates } from "@/shared/types/commonTypes";
 
 interface RideDetails {
   rideId: string;
@@ -26,7 +20,7 @@ interface BookingDetails {
 }
 
 interface RideNotificationProps {
-  customer: Customer;
+  customer: CustomerDetails;
   pickup: LocationCoordinates;
   dropoff: LocationCoordinates;
   ride: RideDetails;
@@ -37,4 +31,4 @@ interface RideNotificationProps {
   onDecline: () => void;
 }
 
-export type {RideNotificationProps}
+export type {RideNotificationProps,RideDetails}

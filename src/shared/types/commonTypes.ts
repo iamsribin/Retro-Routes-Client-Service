@@ -42,6 +42,32 @@ interface Wallet {
   transactions: Transaction[];
 }
 
+interface RideDetailsForBooking {
+  rideId: string;
+  estimatedDistance: string;
+  estimatedDuration: string;
+  fareAmount: number;
+  vehicleType: string;
+  securityPin: number;
+}
+
+interface BookingDetails {
+  bookingId: string;
+  userId: string;
+  pickupLocation: LocationCoordinates;
+  dropoffLocation: LocationCoordinates;
+  rideDetails: RideDetailsForBooking;
+  status: "pending" | "accepted" | "declined" | "cancelled";
+  createdAt: string;
+}
+
+interface CustomerDetails {
+  id: string;
+  name: string;
+  profileImageUrl?: string;
+  number?:string
+}
+
 export type {
   Coordinates,
   Message,
@@ -49,5 +75,8 @@ export type {
   LocationCoordinates,
   Feedback,
   Wallet,
-  Transaction
+  Transaction,
+  RideDetailsForBooking,
+  BookingDetails,
+  CustomerDetails
 };
