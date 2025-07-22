@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { DriverRideRequest } from "@/shared/types/driver/ridetype";
 import { useDriverLocation } from "@/context/driver-location-context";
 import { Toast, useToast } from "@chakra-ui/react";
+import { getDistanceInMeters } from "@/shared/utils/getDistanceInMeters";
 
 interface TripInfoProps {
   rideData: DriverRideRequest;
@@ -67,23 +68,37 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
     }
   };
 
-  const handleCompleteRide = () => {
-    if (!socket || !rideData || !isConnected) return;
+const handleCompleteRide = () => {
+  if (!socket || !rideData || !isConnected || !driverLocation) return;
 
-    socket.emit("rideCompleted", {
-      bookingId: rideData.booking.bookingId,
-      userId: rideData.customer.id,
-    });
+  const dropLat = rideData.dropoff.latitude;
+  const dropLng = rideData.dropoff.longitude;
+  const driverLat = driverLocation.latitude;
+  const driverLng = driverLocation.longitude;
 
-    dispatch(
-      updateRideStatus({
-        requestId: rideData.requestId,
-        status: "completed",
-      })
-    );
+  const distance = getDistanceInMeters(driverLat, driverLng, dropLat, dropLng);
 
-    toast.success("Ride completed successfully");
-  };
+  const ALLOWED_DISTANCE = 100; 
+
+  if (distance > ALLOWED_DISTANCE) {
+    toast.error("You are too far from the drop-off location to complete the ride.");
+    return;
+  }
+
+  socket.emit("rideCompleted", {
+    bookingId: rideData.booking.bookingId,
+    userId: rideData.customer.id,
+  });
+
+  dispatch(
+    updateRideStatus({
+      requestId: rideData.requestId,
+      status: "completed",
+    })
+  );
+
+  toast.success("Ride completed successfully");
+};
 
   const handleCallCustomer = () => {
     if (rideData?.customer?.number) {

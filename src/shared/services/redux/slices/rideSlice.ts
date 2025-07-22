@@ -5,11 +5,13 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 interface RideState {
   isOpen: boolean;
   rideData: RideStatusData | null;
+  paymentStatus: 'idle' | 'pending' | 'completed' | 'failed';
 }
 
 const initialState: RideState = {
   isOpen: false,
   rideData: null,
+  paymentStatus: 'idle',
 };
 
 const RideMapSlice = createSlice({
@@ -41,8 +43,12 @@ const RideMapSlice = createSlice({
         state.rideData.chatMessages = [...(state.rideData.chatMessages ?? []), action.payload.message];
       }
     },
+
+    setPaymentStatus: (state, action: PayloadAction<RideState['paymentStatus']>) => {
+      state.paymentStatus = action.payload;
+    },
   },
 });
 
-export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage } = RideMapSlice.actions;
+export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage,setPaymentStatus } = RideMapSlice.actions;
 export default RideMapSlice;

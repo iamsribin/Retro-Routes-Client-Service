@@ -1,9 +1,16 @@
 import { DriverAuthData } from "@/shared/types/driver/driverType";
 import { CredentialResponse } from "@react-oauth/google";
 import { ConfirmationResult } from "firebase/auth";
-import { Previews, ResubmissionData, ResubmissionFormValues } from "../auth/type";
+import { Previews, ResubmissionData, ResubmissionFormValues  } from "@/shared/types/commonTypes";
 import { FormikProps } from "formik";
-
+import { StatusCode } from "@/shared/types/enum";
+export interface Res_checkRegisterDriver{
+  status: StatusCode;
+  message: string;
+  driverId?: string;
+  isFullyRegistered: boolean,
+  nextStep?: 'documents' | 'driverImage' | 'location' | 'insurance' | 'vehicle' | null;
+}
 interface DriverLoginFormProps {
   auth: unknown;
   otpInput: boolean;

@@ -1,57 +1,129 @@
-import { useEffect, useRef } from "react";
-import L from "leaflet";
-import useLocalStorage from "@/shared/hooks/useLocalStorage";
-import { MapProps } from "../../components/auth/type";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useRef, useEffect, useState } from "react";
+import mapboxgl from "mapbox-gl";
+import { toast } from "sonner";
+import "./SignupMap.scss";
+mapboxgl.accessToken = import.meta.env.VITE_MPBOX_ACCESS_TOKEN;
 
-export default function SignupMap({ latitude, longitude, onLocationChange }: MapProps) {
-    const mapRef = useRef<L.Map | null>(null);
-    const userMarkerRef = useRef<L.Marker | null>(null);
+interface MapProps {
+  latitude: number;
+  longitude: number;
+  handleGeolocation: (lat: number, lng: number, status: any) => void;
+  isGeolocationActive: boolean;
+}
 
-    const [userPosition, setUserPosition] = useLocalStorage("USER_MARKER", {
-        latitude: latitude,
-        longitude: longitude,
+const SignupMap = ({
+  latitude,
+  longitude,
+  handleGeolocation,
+  isGeolocationActive,
+}: MapProps) => {
+  const mapContainer = useRef<HTMLDivElement | null>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const marker = useRef<mapboxgl.Marker | null>(null);
+  const [lng, setLng] = useState(longitude);
+  const [lat, setLat] = useState(latitude);
+  const [zoom, setZoom] = useState(9);
+
+  useEffect(() => {
+    if (isGeolocationActive) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setLng(longitude);
+            setLat(latitude);
+            setZoom(15);
+            handleGeolocation(latitude, longitude, true);
+
+            if (marker.current) {
+              marker.current.setLngLat([longitude, latitude]);
+            }
+
+            if (map.current) {
+              map.current.flyTo({
+                center: [longitude, latitude],
+                zoom: 15,
+              });
+            }
+          },
+          (error) => {
+            toast.error(error.message);
+          }
+        );
+      } else {
+        toast.error("No location service");
+      }
+    }
+  }, [isGeolocationActive, handleGeolocation]);
+
+  useEffect(() => {
+    if (map.current) return;
+
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current || "",
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: [lng, lat],
+      zoom: zoom,
     });
 
-    useEffect(() => {
-        if (!mapRef.current) {
-            mapRef.current = L.map("map").setView(
-                [latitude, longitude],
-                4
-            );
+    marker.current = new mapboxgl.Marker({
+      draggable: true,
+    })
+      .setLngLat([lng, lat])
+      .addTo(map.current);
 
-            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution:
-                    '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            }).addTo(mapRef.current);
+    marker.current.on("dragend", () => {
+      if (marker.current) {
+        const lngLat = marker.current.getLngLat();
+        const newLng = lngLat.lng;
+        const newLat = lngLat.lat;
 
-            mapRef.current.on('click', (e: L.LeafletMouseEvent) => {
-                const { lat, lng } = e.latlng;
-                setUserPosition({ latitude: lat, longitude: lng });
-                onLocationChange(lat, lng, true);
-            });
-        }
-    }, []);
+        setLng(newLng);
+        setLat(newLat);
+        handleGeolocation(newLat, newLng, true);
+      }
+    });
 
-    useEffect(() => {
-        if (mapRef.current) {
-            if (userMarkerRef.current) {
-                userMarkerRef.current.setLatLng([latitude, longitude]);
-            } else {
-                userMarkerRef.current = L.marker([latitude, longitude])
-                    .addTo(mapRef.current)
-                    .bindPopup("Select your location");
-            }
-            mapRef.current.setView([latitude, longitude]);
+    map.current.on("dblclick", handleMapDoubleClick);
 
-            const el = userMarkerRef.current?.getElement();
-            if (el) {
-                el.style.filter = "hue-rotate(120deg)";
-            }
+    map.current.on("click", (e) => {
+      const { lng, lat } = e.lngLat;
+      setLng(lng);
+      setLat(lat);
+      handleGeolocation(lat, lng, true);
 
-            setUserPosition({ latitude, longitude });
-            onLocationChange(latitude, longitude, true);
-        }
-    }, [latitude, longitude]);
+      if (marker.current) {
+        marker.current.setLngLat([lng, lat]);
+      }
+    });
+  }, []);
 
-    return <div id="map" style={{ height: "400px", width: "400px" }} />;
-}
+  useEffect(() => {
+    if (map.current && marker.current) {
+      marker.current.setLngLat([longitude, latitude]);
+      map.current.flyTo({
+        center: [longitude, latitude],
+        zoom: zoom,
+      });
+      setLng(longitude);
+      setLat(latitude);
+    }
+  }, [latitude, longitude]);
+
+  const handleMapDoubleClick = (e: mapboxgl.MapMouseEvent) => {
+    const { lng, lat } = e.lngLat;
+    setLng(lng);
+    setLat(lat);
+    setZoom(15);
+    handleGeolocation(lat, lng, true);
+
+    if (marker.current) {
+      marker.current.setLngLat([lng, lat]);
+    }
+  };
+
+  return <div ref={mapContainer} className="map-container" />;
+};
+
+export default SignupMap;

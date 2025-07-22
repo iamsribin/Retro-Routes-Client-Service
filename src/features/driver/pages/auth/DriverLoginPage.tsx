@@ -56,6 +56,7 @@ const DriverLogin = () => {
           localStorage.setItem("driverToken", data.token);
           localStorage.setItem("DriverRefreshToken", data.refreshToken);
           dispatch(driverLogin({ name: data.name, driver_id: data._id, role: "Driver" }));
+          
           break;
         case "Incomplete registration":
           toast.info("Please complete the registration!");
@@ -68,8 +69,9 @@ const DriverLogin = () => {
           dispatch(openPendingModal());
           break;
         case "Rejected":
-        localStorage.setItem("role", "Resubmission");
-          dispatch(openRejectedModal());
+            localStorage.setItem("role", "Resubmission");
+            localStorage.setItem("driverId",data.driverId)
+            dispatch(openRejectedModal());
           break;
         default:
           toast.error("Not registered! Please register to continue.");

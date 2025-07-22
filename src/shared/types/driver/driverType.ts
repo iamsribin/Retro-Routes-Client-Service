@@ -1,4 +1,4 @@
-import { Coordinates } from "../commonTypes";
+import { Feedback, LocationCoordinates } from "../commonTypes";
 
 interface DriverDetails {
   color: string;
@@ -21,50 +21,79 @@ interface DriverAuthData {
 }
 
 interface VehicleDetails {
-  registrationID: string;
-  model: string;
-  rcFrondImageUrl: string;
-  rcBackImageUrl: string;
-  carFrondImageUrl: string;
-  carBackImageUrl: string;
-  rcStartDate: string;
-  rcExpiryDate: string;
-  insuranceImageUrl: string;
-  insuranceStartDate: string;
-  insuranceExpiryDate: string;
-  pollutionImageUrl: string;
-  pollutionStartDate: string;
-  pollutionExpiryDate: string;
-}
+    registrationId: string;
+    number: string;
+    color: string;
+    model: string;
+    rcFrontImageUrl: string;
+    rcBackImageUrl: string;
+    carFrontImageUrl: string;
+    carBackImageUrl: string;
+    rcStartDate: Date;
+    rcExpiryDate: Date;
+    insuranceImageUrl: string;
+    insuranceStartDate: Date;
+    insuranceExpiryDate: Date;
+    pollutionImageUrl: string;
+    pollutionStartDate: Date;
+    pollutionExpiryDate: Date;
+  }
 
-interface DriverInterface {
-  _id: string;
+ interface DriverInterface {
+  _id:string;
   name: string;
   email: string;
   mobile: number;
+  adminCommission?: number;
+  password: string;
   driverImage: string;
+  referralCode: string;
+  joiningDate: Date;
   aadhar: Aadhar;
-  license: License;
-  location: Coordinates;
-  vehicle_details: VehicleDetails;
-  joiningDate: string;
-  account_status: string;
+  license:License;
+  location: LocationCoordinates;
+  vehicleDetails:VehicleDetails;
+  accountStatus: "Good" | "Warning" | "Rejected" | "Blocked" | "Pending" | "Incomplete";
+  wallet?: wallet;
+
+  rideDetails?: {
+    completedRides?: number;
+    cancelledRides?: number;
+    totalEarnings?: {amount:number, date: Date}[];
+
+  };
+
   isAvailable: boolean;
-  totalRatings: number;
+  totalRatings?: number;
+
+  feedbacks?: Feedback[];
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface Aadhar {
-  aadharId: string;
-  aadharFrontImageUrl: string;
-  aadharBackImageUrl: string;
-}
+    id: string;
+    frontImageUrl: string;
+    backImageUrl: string;
+  }
+interface wallet {
+    balance: number;
+    transactions?: {
+      date: Date;
+      details: string;
+      rideId: string;
+      amount: number;
+      status: "credit" | "debit";
+    }[];
+  }
 
 interface License {
-  licenseId: string;
-  licenseFrontImageUrl: string;
-  licenseBackImageUrl: string;
-  licenseValidity: string;
-}
+    id: string;
+    frontImageUrl: string;
+    backImageUrl: string;
+    validity: Date;
+  }
 
 export type {
   DriverDetails,

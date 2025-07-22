@@ -5,14 +5,14 @@ import { useFormik } from 'formik';
 import { toast } from 'sonner';
 import axiosDriver from '@/shared/services/axios/driverAxios';
 import { ResubmissionValidation } from '@/shared/utils/validation';
-import { fetchResubmissionData } from '@/shared/utils/resubmissionHelpers';
+import { fetchResubmissionData, submitResubmissionForm } from '@/shared/services/api/driverAuthApi';
 import ResubmissionHeader from '../../components/auth/resubmission/ResubmissionHeader';
 import ResubmissionForm from '@/features/driver/components/forms/ResubmissionForm';
 import Loader from '@/shared/components/loaders/shimmer';
 import DriverPhotoPage from './DriverIdentificationPage';
 import LoadingSpinner from '@/shared/components/loaders/LoadingSpinner';
 import ApiEndpoints from '@/constants/api-end-pointes';
-import { ResubmissionData, ResubmissionFormValues, Previews } from '../../components/auth/type';
+import { Previews, ResubmissionData, ResubmissionFormValues } from '@/shared/types/commonTypes';
 
 const ResubmissionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,16 +38,25 @@ const ResubmissionPage: React.FC = () => {
 
   const driverId = localStorage.getItem('driverId');
 
-  useEffect(() => {
-    fetchResubmissionData(driverId, dispatch, navigate, setResubmissionData, setLoad);
-    localStorage.removeItem('role');
-  }, [driverId, navigate, dispatch]);
+useEffect(() => {
+  const controller = new AbortController();
+  fetchResubmissionData(
+    driverId,
+    dispatch,
+    navigate,
+    setResubmissionData,
+    setLoad,
+    controller.signal
+  );
+  localStorage.removeItem('role');
+  return () => controller.abort(); 
+}, [driverId, navigate, dispatch]);
 
   const formik = useFormik<ResubmissionFormValues>({
     initialValues: {
       aadharID: '', aadharFrontImage: null, aadharBackImage: null,
       licenseID: '', licenseFrontImage: null, licenseBackImage: null, licenseValidity: '',
-      registerationID: '', model: '', rcFrontImage: null, rcBackImage: null,
+      registrationId: '', model: '', rcFrontImage: null, rcBackImage: null,
       carFrontImage: null, carBackImage: null,
       insuranceImage: null, insuranceStartDate: '', insuranceExpiryDate: '',
       pollutionImage: null, pollutionStartDate: '', pollutionExpiryDate: '',
@@ -60,7 +69,7 @@ const ResubmissionPage: React.FC = () => {
       const fieldMappings: { [key: string]: string[] } = {
         aadhar: ['aadharID', 'aadharFrontImage', 'aadharBackImage'],
         license: ['licenseID', 'licenseFrontImage', 'licenseBackImage', 'licenseValidity'],
-        registerationID: ['registerationID'],
+        registrationId: ['registrationId'],
         model: ['model'],
         rc: ['rcFrontImage', 'rcBackImage'],
         carImage: ['carFrontImage', 'carBackImage'],
@@ -78,26 +87,13 @@ const ResubmissionPage: React.FC = () => {
         });
       });
 
-      try {
-        console.log("========nbhgjhg=======");
-      
-        const response = await axiosDriver(dispatch).post(
-          `${ApiEndpoints.DRIVER_RESUBMISSION}?driverId=${driverId}`,
-          formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        
-        if (response.data.message === 'Success') {
-          toast.success('Resubmission successful');
-          navigate('/driver/login');
-        } else {
-          toast.error(response.data.message || 'Submission failed');
-        }
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || error.message || 'Unknown error');
-      } finally {
-        setSubmitting(false);
-      }
+  try {
+  await submitResubmissionForm(driverId!, formData, dispatch,navigate);
+  } catch (error: any) {
+    toast.error(error.response?.data?.message || error.message || 'Unknown error');
+  } finally {
+    setSubmitting(false);
+  }
     },
   });
 

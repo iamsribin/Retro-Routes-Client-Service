@@ -73,6 +73,7 @@ console.log("data===",data);
             break;
           case "Rejected":
             localStorage.setItem("role", "Resubmission");
+            localStorage.setItem("driverId",data.driverId)
             dispatch(openRejectedModal());
             break;
           default:
@@ -104,7 +105,6 @@ console.log("data===",data);
       toast.success("Login success");
       localStorage.setItem("driverToken", driverData.driverToken);
       localStorage.setItem("DriverRefreshToken", driverData.refreshToken);
-      localStorage.setItem("role", "Driver");
       dispatch(driverLogin({ name: driverData.name, driver_id: driverData.driver_id, role: "Driver" }));
       localStorage.removeItem("driverId");
       navigate("/driver/dashboard");

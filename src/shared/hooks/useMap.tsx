@@ -36,7 +36,7 @@ const useMap = (rideData: DriverRideRequest | null) => {
     }
 
     if (!driverLocation) {
-      toast.error("Driver location is missing.");
+      toast.error("Driver location loading...");
       console.log("Driver location missing..");
       return;
     }

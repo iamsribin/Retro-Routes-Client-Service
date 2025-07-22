@@ -29,36 +29,55 @@ export const signupValidation = yup.object({
 });
 
 export const VehicleValidation = yup.object().shape({
-  registrationID: yup.string()
-    .matches(
-      /^[A-Z]{2}\d{2}\s?[A-Z]{0,2}\s?\d{1,4}$/,
-      "Invalid Indian RC format (e.g., MH04 AB 1234)"
-    )
+  registrationId: yup
+    .string()
+    .matches(/^[A-Z]{2}\d{2}\s?[A-Z]{0,2}\s?\d{1,4}$/, "Invalid Indian RC format (e.g., MH04 AB 1234)")
     .required("Registration ID is required"),
+
+  vehicleNumber: yup
+    .string()
+    .matches(/^[A-Z]{2}\d{2}[A-Z]{2}\d{4}$/, "Invalid vehicle number format (e.g., MH04AB1234)")
+    .required("Vehicle number is required"),
+
+  vehicleColor: yup.string().required("Vehicle color is required"),
+
   model: yup.string().required("Vehicle model is required"),
-  rcFrontImage: yup.mixed()
+
+  rcFrontImage: yup
+    .mixed()
     .required("RC front image is required")
-    .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  rcBackImage: yup.mixed()
+    .test("fileType", "Only image files are allowed", (value: any) => value && value.type.startsWith("image/"))
+    .test("fileSize", "File size must be less than 5MB", (value: any) => value && value.size <= 5 * 1024 * 1024),
+
+  rcBackImage: yup
+    .mixed()
     .required("RC back image is required")
-    .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  carFrontImage: yup.mixed()
+    .test("fileType", "Only image files are allowed", (value: any) => value && value.type.startsWith("image/"))
+    .test("fileSize", "File size must be less than 5MB", (value: any) => value && value.size <= 5 * 1024 * 1024),
+
+  carFrontImage: yup
+    .mixed()
     .required("Vehicle front image is required")
-    .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  carSideImage: yup.mixed()
+    .test("fileType", "Only image files are allowed", (value: any) => value && value.type.startsWith("image/"))
+    .test("fileSize", "File size must be less than 5MB", (value: any) => value && value.size <= 5 * 1024 * 1024),
+
+  carSideImage: yup
+    .mixed()
     .required("Vehicle side image is required")
-    .test("fileType", "Only image files are allowed", (value:any) => value && value.type.startsWith("image/"))
-    .test("fileSize", "File size must be less than 5MB", (value:any) => value && value.size <= 5 * 1024 * 1024),
-  rcStartDate: yup.date()
+    .test("fileType", "Only image files are allowed", (value: any) => value && value.type.startsWith("image/"))
+    .test("fileSize", "File size must be less than 5MB", (value: any) => value && value.size <= 5 * 1024 * 1024),
+
+  rcStartDate: yup
+    .date()
     .max(new Date(), "RC start date cannot be in the future")
     .required("RC start date is required"),
-  rcExpiryDate: yup.date()
+
+  rcExpiryDate: yup
+    .date()
     .min(new Date(), "RC expiry date must be in the future")
     .required("RC expiry date is required"),
 });
+
 
 export const SignupLocationValidation= yup.object({
   latitude: yup.number()
@@ -148,7 +167,7 @@ export const ResubmissionValidation = (fields: string[] = []) =>
           .required('License validity date is required')
       : yup.string().nullable(),
 
-    registrationID: fields.includes('registrationID')
+    registrationId: fields.includes('registrationId')
       ? yup
           .string()
           .matches(

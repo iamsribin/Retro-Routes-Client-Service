@@ -8,6 +8,7 @@ import AppRoutes from '@/constants/app-routes';
 import NotFound from '@/shared/components/NotFound';
 import RideMap from '../pages/RideMap';
 import UserProfile from '../pages/UserProfile';
+import PaymentPage from '../components/ride/PaymentPage';
 
 const ROLE = 'User';
 
@@ -19,6 +20,7 @@ function UserRoutes() {
       <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><SignupPage /></AuthRedirect>} />
       <Route path="ride-tracking" element={<RideMap/>}/>
       <Route path="profile" element={<UserProfile/>}/>
+      <Route path="payment" element={<PaymentPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

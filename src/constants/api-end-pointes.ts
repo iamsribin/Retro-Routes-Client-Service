@@ -32,7 +32,7 @@ enum ApiEndpoints {
   DRIVER_REGISTER = "/registerDriver",
   DRIVER_RESUBMISSION = "/resubmission",
   DRIVER_ONLINE_STATUS = "/driverOnlineStatus",
-
+ ADMIN_VEHICLE_MODELS = "/vehicleModels",
   // Admin APIs - Admin Service
   ADMIN_VERIFIED_DRIVERS = "/verifiedDrivers",
   ADMIN_PENDING_DRIVERS ="/pendingDrivers",

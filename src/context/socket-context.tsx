@@ -9,7 +9,7 @@ import { showNotification } from "@/shared/services/redux/slices/notificationSli
 import { useNavigate } from "react-router-dom";
 import { hideRideMap } from "@/shared/services/redux/slices/rideSlice";
 import { hideRideMap as hideDriverRideMap } from "@/shared/services/redux/slices/driverRideSlice";
-
+import { setPaymentStatus } from "@/shared/services/redux/slices/rideSlice";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -141,6 +141,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
       navigate("/login");
     });
+
+    newSocket.on("rideCompleted",({bookingId,userId,role})=>{ 
+      if(role=="user"){
+       dispatch(setPaymentStatus("pending"))
+       navigate("/payment");
+
+      }
+    })
 
 newSocket.on("canceled", (data) => {
   

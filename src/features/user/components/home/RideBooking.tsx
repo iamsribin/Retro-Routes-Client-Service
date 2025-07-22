@@ -114,7 +114,7 @@ const Ride: React.FC = () => {
           showNotification({
             type: notificationType,
             message: data.message || `Ride status: ${data.status}`,
-            data: { rideId: data.ride_id, driverId: data.driverDetails.driverId },
+            data: { rideId: data.ride_id, driverId: data.status === "Accepted" ?data.driverDetails.driverId : null},
             navigate: navigateTo,
           })
         );

@@ -73,9 +73,9 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
-                      {user.userImage ? (
+                      {user.driverImage ? (
                         <img
-                          src={user.userImage}
+                          src={user.driverImage}
                           alt={user.name}
                           width={40}
                           height={40}
@@ -109,12 +109,12 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                       <p className="text-muted-foreground">Status</p>
                       <p
                         className={`font-medium ${
-                          user.status === "active"
+                          user.accountStatus === "Good"
                             ? "text-green-600"
                             : "text-red-600"
                         }`}
                       >
-                        {user.status}
+                        {user.accountStatus}
                       </p>
                     </div>
                     <div>
@@ -212,9 +212,9 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                 <TableRow key={user._id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      {user.userImage ? (
+                      {user.driverImage ? (
                         <img
-                          src={user.userImage}
+                          src={user.driverImage}
                           alt={user.name}
                           width={40}
                           height={40}
@@ -236,7 +236,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                     {new Date(user.joiningDate).toLocaleDateString()}
                   </TableCell>
                   {type === "driver" && (
-                    <TableCell>{user.vehicle || "N/A"}</TableCell>
+                    <TableCell>{user.vehicle}</TableCell>
                   )}
                   <TableCell>
                     <div className="flex space-x-2">

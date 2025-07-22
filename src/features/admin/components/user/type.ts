@@ -1,16 +1,7 @@
+import { Res_getDriversListByAccountStatus } from "../../pages/type";
 
 interface UserListProps {
-  users: {
-  _id: string;
-  name: string;
-  email: string;
-  status: string;
-  joinDate: string;
-  vehicle?: string;
-  joiningDate: Date;
-  userImage?: string;
-  mobile: string;
-}[];
+  users: Res_getDriversListByAccountStatus[];
   type: "user" | "driver";
   isBlocked: "active" | "block" | "pending";
 }

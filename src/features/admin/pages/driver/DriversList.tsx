@@ -1,63 +1,55 @@
 import { useState, useEffect, useRef } from "react";
-import { axiosAdmin } from "@/shared/services/axios/adminAxios";
-import ApiEndpoints from "@/constants/api-end-pointes";
 import UserList from '../../components/user/UserList';
 import { cn } from "@/shared/lib/utils"; 
 import { useDispatch } from "react-redux";
-import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
+import { Res_getDriversListByAccountStatus } from "../type";
+import { fetchAdminDrivers } from "@/shared/services/api/adminDriverApi";
 
 const Drivers: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'block' | 'pending'>('active');
-  const [verifiedDrivers, setverifiedDrivers] = useState<any[]>([]);
-  const [blockedDrivers, setBlockedDrivers] = useState<any[]>([]);
-  const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
+  const [verifiedDrivers, setverifiedDrivers] = useState<Res_getDriversListByAccountStatus[]>([]);
+  const [blockedDrivers, setBlockedDrivers] = useState<Res_getDriversListByAccountStatus[]>([]);
+  const [pendingDrivers, setPendingDrivers] = useState<Res_getDriversListByAccountStatus[]>([]);
   const dispatch = useDispatch();
   
   const abortControllerRef = useRef<AbortController | null>(null);
 
 const fetchActiveUsers = async () => {
   const controller = new AbortController();
+  abortControllerRef.current = controller;
+
   try {
-    const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_VERIFIED_DRIVERS, {
-      signal: controller.signal
-    });
+    const data = await fetchAdminDrivers.getActiveDrivers(dispatch, controller.signal);
     setverifiedDrivers(data);
-  } catch (error: any) {
-    if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
-      toast.error(error.message || 'Failed to fetch active drivers');
-    }
+  } catch (error) {
+    console.error("Error fetching active drivers", error);
   }
 };
 
 const fetchPendingDrivers = async () => {
   const controller = new AbortController();
+  abortControllerRef.current = controller;
+
   try {
-    const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_PENDING_DRIVERS, {
-      signal: controller.signal
-    });
+    const data = await fetchAdminDrivers.getPendingDrivers(dispatch, controller.signal);
     setPendingDrivers(data);
-  } catch (error: any) {
-    if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
-      toast.error(error.message || 'Failed to fetch pending drivers');
-    }
+  } catch (error) {
+    console.error("Error fetching pending drivers", error);
   }
 };
 
 const fetchBlockedDrivers = async () => {
   const controller = new AbortController();
+  abortControllerRef.current = controller;
+
   try {
-    const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_BLOCKED_DRIVERS, {
-      signal: controller.signal
-    });
+    const data = await fetchAdminDrivers.getBlockedDrivers(dispatch, controller.signal);
     setBlockedDrivers(data);
-  } catch (error: any) {
-    if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
-      toast.error(error.message || 'Failed to fetch blocked drivers');
-    }
+  } catch (error) {
+    console.error("Error fetching blocked drivers", error);
   }
 };
-
 
   useEffect(() => {
     if (activeTab === 'active') {

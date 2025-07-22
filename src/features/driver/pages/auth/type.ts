@@ -7,8 +7,10 @@
     pollutionExpiryDate: string;
   }
 
-   interface VehicleFormValues {
-  registrationID: string;
+ interface VehicleFormValues {
+  registrationId: string;
+  vehicleNumber: string;
+  vehicleColor: string;
   model: string;
   rcFrontImage: File | null;
   rcBackImage: File | null;
@@ -18,4 +20,5 @@
   rcExpiryDate: string;
 }
 
-  export type {InsuranceFormValues,VehicleFormValues}
+
+  export type {InsuranceFormValues,VehicleFormValues, }

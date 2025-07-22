@@ -1,45 +1,9 @@
-import { toast } from 'sonner';
-import axiosDriver from '@/shared/services/axios/driverAxios';
-import { FormikProps } from 'formik';
-import { ResubmissionData, ResubmissionFormValues, Previews } from './types';
-
-export const fetchResubmissionData = async (
-  driverId: string | null,
-  dispatch: any,
-  navigate: (path: string) => void,
-  setResubmissionData: React.Dispatch<React.SetStateAction<ResubmissionData | null>>,
-  setLoad: React.Dispatch<React.SetStateAction<boolean>>
-) => {
-  if (!driverId) {
-    toast.error('Driver ID not found');
-    navigate('/driver/login');
-    return;
-  }
-  try {
-    setLoad(true);
-    const response = await axiosDriver(dispatch).get(`/resubmission/${driverId}`);
-    console.log(response);
-
-    const fields = response.data.data?.fields;
-    if (!Array.isArray(fields)) {
-      throw new Error('Fields is not an array');
-    }
-
-    const fixedData = {
-      ...response.data.data,
-      fields: fields.map((field: string) =>
-        field === 'driverImge' ? 'driverImage' : field === 'pollution' ? 'pollution' : field
-      ),
-    };
-    setResubmissionData(fixedData);
-  } catch (error: any) {
-    console.log(error);
-    toast.error('Failed to fetch resubmission requirements: ' + error.message);
-    navigate('/driver/login');
-  } finally {
-    setLoad(false);
-  }
-};
+import { toast } from "sonner";
+import { FormikProps } from "formik";
+import {
+  ResubmissionFormValues,
+  Previews,
+} from "../types/commonTypes";
 
 export const handleFileInput = (
   fieldName: string,
@@ -49,17 +13,17 @@ export const handleFileInput = (
 ) => {
   const file = e.target.files?.[0] || null;
   if (file) {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Only image files are allowed');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files are allowed");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
+      toast.error("File size must be less than 5MB");
       return;
     }
     formik.setFieldValue(fieldName, file);
     const previewUrl = URL.createObjectURL(file);
-    const previewKey = fieldName.replace('Image', '') as keyof Previews;
+    const previewKey = fieldName.replace("Image", "") as keyof Previews;
     setPreviews((prev) => ({ ...prev, [previewKey]: previewUrl }));
   } else {
     formik.setFieldValue(fieldName, null);
@@ -75,8 +39,8 @@ export const handleGeolocation = (
 ) => {
   setLatitude(lat);
   setLongitude(lng);
-  formik.setFieldValue('latitude', lat);
-  formik.setFieldValue('longitude', lng);
+  formik.setFieldValue("latitude", lat);
+  formik.setFieldValue("longitude", lng);
 };
 
 export const handleGetCurrentLocation = (
@@ -85,7 +49,7 @@ export const handleGetCurrentLocation = (
   setLongitude: React.Dispatch<React.SetStateAction<number>>
 ) => {
   if (!navigator.geolocation) {
-    toast.error('Geolocation is not supported by your browser');
+    toast.error("Geolocation is not supported by your browser");
     return;
   }
 
@@ -101,19 +65,23 @@ export const handleGetCurrentLocation = (
     const accuracy = position.coords.accuracy;
 
     if (accuracy > 100) {
-      toast.info('Waiting for a more accurate location...');
+      toast.info("Waiting for a more accurate location...");
       return;
     }
 
-    formik.setFieldValue('latitude', newLat);
-    formik.setFieldValue('longitude', newLng);
+    formik.setFieldValue("latitude", newLat);
+    formik.setFieldValue("longitude", newLng);
     setLatitude(newLat);
     setLongitude(newLng);
   };
 
   const errorCallback = (error: GeolocationPositionError) => {
-    toast.error('Error getting location: ' + error.message);
+    toast.error("Error getting location: " + error.message);
   };
 
-  navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+  navigator.geolocation.getCurrentPosition(
+    successCallback,
+    errorCallback,
+    options
+  );
 };

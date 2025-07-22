@@ -11,15 +11,10 @@ import { toast } from "@/shared/hooks/use-toast";
 import { useSocket } from "@/context/socket-context";
 import { geocodeLatLng } from "@/shared/utils/locationToAddress";
 import { useJsApiLoader } from "@react-google-maps/api";
-
-interface Location {
-  latitude: number;
-  longitude: number;
-  address: string;
-}
+import { LocationCoordinates } from "../shared/types/commonTypes";
 
 interface DriverLocationContextType {
-  driverLocation: Location | null;
+  driverLocation: LocationCoordinates | null;
 }
 
 const DriverLocationContext = createContext<DriverLocationContextType>({
@@ -33,7 +28,8 @@ interface Props {
 }
 
 export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
-  const [driverLocation, setDriverLocation] = useState<Location | null>(null);
+  const [driverLocation, setDriverLocation] =
+    useState<LocationCoordinates | null>(null);
   const { socket, isConnected } = useSocket();
 
   const libraries: "places"[] = ["places"];
@@ -57,23 +53,27 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
       });
     }
     console.log("isOnline", isOnline);
-            // latitude:11.072035,
-            // longitude: 76.074005,
+    // latitude:11.072035,
+    // longitude: 76.074005,
+    // 11.050994, 76.071157
+    // latitude:11.050994,
+    // longitude: 76.071157,
+
     if (isOnline && navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
           const coords = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+    // latitude:11.050994,
+    // longitude: 76.071157,
+      latitude: 11.2488242,
+       longitude: 75.783924
           };
           if (isLoaded) {
-
-            
             const address = await geocodeLatLng(
               coords.latitude,
               coords.longitude
             );
-            const fullLocation: Location = {
+            const fullLocation: LocationCoordinates = {
               ...coords,
               address,
             };
