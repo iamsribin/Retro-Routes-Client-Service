@@ -98,6 +98,10 @@ interface ResubmissionFormValues {
   longitude: number;
 }
 
+export interface ResponseCom{
+ data :any
+}
+
 interface Previews {
   aadharFront: string | null;
   aadharBack: string | null;

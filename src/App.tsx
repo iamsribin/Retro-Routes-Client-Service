@@ -11,7 +11,7 @@ import NotFound from "@/shared/components/NotFound";
 import NotificationModal from "@/shared/components/NotificationModal";
 import GlobalLoading from "@/shared/components/loaders/GlobalLoading";
 import { useEffect } from "react";
-import { initAxios } from "./shared/services/axios/axiosInstance";
+import { initAxios } from "./shared/services/axios/initAxios";
 import { useDispatch } from "react-redux";
 
 function App() {
@@ -20,7 +20,7 @@ function App() {
   useEffect(() => {
     initAxios(dispatch);
   }, [dispatch]);
-  
+
   return (
     <ChakraProvider>
       <TooltipProvider>

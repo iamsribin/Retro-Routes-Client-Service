@@ -10,14 +10,16 @@ import {
   FaKey,
   FaUsers,
 } from "react-icons/fa";
-import axiosDriver from "@/shared/services/axios/driverAxios";
 import { sendOtp } from "@/shared/hooks/useAuth";
 import { signupValidation } from "@/shared/utils/validation";
 import { auth } from "@/shared/services/firebase";
-import { useDispatch } from "react-redux";
 import ApiEndpoints from "@/constants/api-end-pointes";
 import { DriverSignupFormProps, Res_checkRegisterDriver } from "./type";
 import { StatusCode } from "@/shared/types/enum";
+import { postData } from "@/shared/services/api/api-service";
+import { ResponseCom } from "@/shared/types/commonTypes";
+import { setItem } from "@/shared/utils/localStorage";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 
 const DriverSignupForm = ({
   otpPage,
@@ -33,7 +35,6 @@ const DriverSignupForm = ({
   setStep,
 }: DriverSignupFormProps) => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   useEffect(() => {
     setOtpPage(false);
@@ -71,56 +72,24 @@ const DriverSignupForm = ({
     },
   });
 
-  // const checkDriver = async (formData: typeof formik.values) => {
-  //   const { data } = await axiosDriver(dispatch).post("/checkRegisterDriver", formData);
-  //   switch (data.message) {
-  //     case "Aadhar document pending":
-  //       toast.info("Driver Already registered!\n Please verify the documents");
-  //       localStorage.setItem("driverId", data.driverId);
-  //       setStep("documents");
-  //       break;
-  //     case "Driver login":
-  //    toast.info("Already register");
-  //     break;
-  //     case "Car images pending":
-  //       toast.info("Driver Already registered!\n Please submit your image");
-  //       localStorage.setItem("driverId", data.driverId);
-  //       setStep("driverImage");
-  //       break;
-  //     case "Location data pending":
-  //       toast.info("Driver Already registered!\n Please submit your location");
-  //       localStorage.setItem("driverId", data.driverId);
-  //       setStep("location");
-  //       break;
-  //     case "Insurance/Pollution details pending":
-  //       toast.info("Driver Already registered!\n Please submit your insurance and pollution");
-  //       localStorage.setItem("driverId", data.driverId);
-  //       setStep("insurance");
-  //       break;
-  //     case "Vehicle details pending":
-  //       toast.info("Driver Already registered!\n Please submit your vehicle details");
-  //       localStorage.setItem("driverId", data.driverId);
-  //       setStep("vehicle");
-  //       break;
-  //     default:
-  //       sendOtp(setOtp, auth, formData.mobile, setConfirmationResult);
-  //       setOtpPage(true);
-  //       break;
-  //   }
-  // };
-
   const checkDriver = async (formData: typeof formik.values) => {
     try {
-      const { data }: { data: Res_checkRegisterDriver } = await axiosDriver(
-        dispatch
-      ).post("/checkRegisterDriver", formData);
-      console.log("datadata",data);
+      // const { data }: { data: Res_checkRegisterDriver } = await axiosDriver(
+      //   dispatch
+      // ).post("/checkRegisterDriver", formData);
+
+      const data = await postData<Res_checkRegisterDriver>(
+        DriverApiEndpoints.check_register_driver,
+        "Driver",
+        formData
+      );
+      console.log("datadata", data);
 
       if (data.status === StatusCode.Accepted && data.nextStep) {
         toast.info(
           `Driver Already registered!\n Please submit your ${data.nextStep}`
         );
-        localStorage.setItem("driverId", data.driverId || "");
+        setItem("driverId", data.driverId || "");
         setStep(data.nextStep);
         return;
       }
@@ -173,14 +142,19 @@ const DriverSignupForm = ({
 
   const registerDriver = async () => {
     try {
-      const { data } = await axiosDriver(dispatch).post(
+      // const { data } = await axiosDriver(dispatch).post(
+      //   ApiEndpoints.DRIVER_REGISTER,
+      //   formik.values
+      // );
+      const { data } = await postData<ResponseCom>(
         ApiEndpoints.DRIVER_REGISTER,
+        "Driver",
         formik.values
       );
       if (data.message === "Success") {
         toast.success("OTP verified successfully");
-        localStorage.setItem("driverId", data.id);
-        localStorage.setItem("role", "driverRegistration");
+        setItem("driverId", data.id);
+        setItem("role", "driverRegistration");
         setStep("documents");
       }
     } catch (error) {
