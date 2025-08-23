@@ -2,15 +2,15 @@ import { useFormik } from "formik";
 import { useState, useEffect } from "react";
 import DriverLocationPage from "./DriverLocationPage";
 import Loader from "@/shared/components/loaders/shimmer";
-import { useDispatch } from "react-redux";
 import { InsuranceValidation } from "@/shared/utils/validation";
 import { InsuranceFormValues } from "./type";
-import { submitInsurance } from "@/shared/services/api/driverAuthApi";
+import { postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { toast } from "sonner";
 
 function Insurance() {
   const [locationPage, setLocationPage] = useState(false);
   const [load, setLoad] = useState(false);
-  const dispatch = useDispatch();
   const [previews, setPreviews] = useState({
     pollutionImage: null as string | null,
     insuranceImage: null as string | null,
@@ -29,16 +29,24 @@ function Insurance() {
     initialValues,
     validationSchema: InsuranceValidation,
     onSubmit: async (values) => {
-      const formData = new FormData();
+      try {
+        const formData = new FormData();
 
-      Object.keys(values).forEach((key) => {
-        const value = values[key as keyof InsuranceFormValues];
-        if (value !== null) {
-          formData.append(key, value);
-        }
-      });
-
-      submitInsurance(dispatch, formData, setLoad, setLocationPage);
+        Object.keys(values).forEach((key) => {
+          const value = values[key as keyof InsuranceFormValues];
+          if (value !== null) {
+            formData.append(key, value);
+          }
+        });
+        setLoad(true);
+        postData(DriverApiEndpoints.CHECK_REGISTER_DRIVER, "Driver", formData);
+        setLocationPage(true);
+        toast.success("Insurance details submitted successfully");
+      } catch (error) {
+        toast.error("something went wrong try again");
+      } finally {
+        setLoad(false);
+      }
     },
   });
 

@@ -3,27 +3,28 @@ import { useState, useEffect } from "react";
 import Loader from "@/shared/components/loaders/shimmer";
 import { VehicleValidation } from "@/shared/utils/validation";
 import DriverInsurancePage from "./DriverInsurancePage";
-import { useDispatch } from "react-redux";
 import { VehicleFormValues } from "./type";
-import { submitVehicleData } from "@/shared/services/api/driverAuthApi";
-import { fetchVehicleModels } from "@/shared/services/api/bookingApi";
-import { AdminAllowedVehicleModel } from "@/shared/types/commonTypes";
+import {
+  AdminAllowedVehicleModel,
+} from "@/shared/types/commonTypes";
+import { fetchData, postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { getItem } from "@/shared/utils/localStorage";
+import { toast } from "sonner";
+import { CommonApiEndPoint } from "@/constants/common-api-ent-point";
 
 function Vehicle() {
-  const [locationPage, setLocationPage] = useState(false);
+  const [insurancePage, setInsurancePage] = useState(false);
   const [load, setLoad] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<AdminAllowedVehicleModel | null>(
-    null
-  );
+  const [selectedVehicle, setSelectedVehicle] =
+    useState<AdminAllowedVehicleModel | null>(null);
   const [previews, setPreviews] = useState({
     rcFrontImage: null as string | null,
     rcBackImage: null as string | null,
     carFrontImage: null as string | null,
     carSideImage: null as string | null,
   });
-  const dispatch = useDispatch();
-
   const initialValues: VehicleFormValues = {
     registrationId: "",
     model: "",
@@ -41,14 +42,30 @@ function Vehicle() {
     initialValues,
     validationSchema: VehicleValidation,
     onSubmit: async (values) => {
-      const formData = new FormData();
-      Object.keys(values).forEach((key) => {
-        const value = values[key as keyof VehicleFormValues];
-        if (value !== null) {
-          formData.append(key, value);
+      try {
+        const formData = new FormData();
+        Object.keys(values).forEach((key) => {
+          const value = values[key as keyof VehicleFormValues];
+          if (value !== null) {
+            formData.append(key, value);
+          }
+        });
+        const driverId = getItem("driverId");
+        if (!driverId) {
+          toast.error("Driver ID not found. Please register again.");
+          setLoad(false);
+          return;
         }
-      });
-      submitVehicleData(dispatch, formData, setLoad, setLocationPage);
+        await postData(
+          DriverApiEndpoints.DRIVER_ADD_VEHICLE_DETAILS,
+          "Driver",
+          formData
+        );
+        toast.success("Vehicle details submitted successfully");
+        setInsurancePage(true);
+      } catch (error) {
+        toast.error("Something went worn. Please register again.");
+      }
     },
   });
 
@@ -67,10 +84,19 @@ function Vehicle() {
     }
   };
 
-  const [vehicleModels, setVehicleModels] = useState<AdminAllowedVehicleModel[]>([]);
+  const [vehicleModels, setVehicleModels] = useState<
+    AdminAllowedVehicleModel[]
+  >([]);
 
   useEffect(() => {
- fetchVehicleModels(dispatch,setVehicleModels);
+    const fetchVehicleModels = async () => {
+      const data = await fetchData<AdminAllowedVehicleModel[]>(
+        CommonApiEndPoint.VEHICLE_MODELS,
+        "Driver"
+      );
+      setVehicleModels(data);
+    };
+    fetchVehicleModels();
   }, []);
 
   const handleVehicleSelect = (vehicle: AdminAllowedVehicleModel) => {
@@ -87,7 +113,7 @@ function Vehicle() {
 
   return (
     <>
-      {locationPage ? (
+      {insurancePage ? (
         <DriverInsurancePage />
       ) : (
         <div className="bg-white driver-registration-container h-screen flex justify-center items-center">

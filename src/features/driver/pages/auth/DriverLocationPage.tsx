@@ -3,28 +3,33 @@ import { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
 import ExploreIcon from "@mui/icons-material/Explore";
 import WhereToVoteIcon from "@mui/icons-material/WhereToVote";
 import "mapbox-gl/dist/mapbox-gl.css";
 import SignupMap from "./SignupMap";
 import Loader from "@/shared/components/loaders/shimmer";
-import { submitDriverLocation } from "@/shared/services/api/driverAuthApi";
 import { useJsApiLoader } from "@react-google-maps/api";
+import { geocodeLatLng } from "@/shared/utils/locationToAddress";
+import { getItem } from "@/shared/utils/localStorage";
+import { toast } from "sonner";
+import { postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";
+import { useDispatch } from "react-redux";
 
 function DriverLocation() {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [isGeolocationActive, setIsGeolocationActive] = useState(false);
   const [latitude, setLatitude] = useState(23.22639);
   const [longitude, setLongitude] = useState(79.17271);
   const [load, setLoad] = useState(false);
-    const libraries: "places"[] = ["places"];
-  
-    const { isLoaded } = useJsApiLoader({
-      googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-      libraries,
-    });
+  const libraries: "places"[] = ["places"];
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+    libraries,
+  });
 
   const handleGeolocation = (lat: number, lng: number, status: any) => {
     setLatitude(lat);
@@ -52,14 +57,40 @@ function DriverLocation() {
         .max(97.25, "Choose a valid location in India"),
     }),
     onSubmit: async (values, { setSubmitting }) => {
-      if(isLoaded){
-        await submitDriverLocation(
-          dispatch,
-          navigate,
-          setLoad,
-          setSubmitting,
-          values,
-        );
+      if (isLoaded) {
+        try {
+          setLoad(true);
+          const address = await geocodeLatLng(
+            values.latitude,
+            values.longitude
+          );
+          const driverId = getItem("driverId");
+
+          if (!driverId) {
+            toast.error("Driver ID not found. Please try again.");
+            navigate("/driver/signup");
+            return;
+          }
+
+          setSubmitting(true);
+          const requestData = {
+            ...values,
+            address,
+          };
+          postData(
+            `${DriverApiEndpoints.DRIVER_LOCATION}?driverId=${driverId}`,
+            "Driver",
+            requestData
+          );
+
+          toast.success("Location saved successfully!");
+          localStorage.removeItem("driverId");
+          navigate("/driver/login");
+          dispatch(openPendingModal());
+        } catch (error) {
+          toast.success("something went wrong try again");
+          console.log(error);
+        }
       }
     },
   });

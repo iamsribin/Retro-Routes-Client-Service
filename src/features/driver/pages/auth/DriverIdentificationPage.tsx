@@ -4,14 +4,17 @@ import { toast } from "sonner";
 import DriverPhotoPage from "./DriverPhoto";
 import Loader from "@/shared/components/loaders/shimmer";
 import { Player } from "@lottiefiles/react-lottie-player";
-import { useDispatch } from "react-redux";
+// import { useDispatch } from "react-redux";
 import { DriverIdentificationValidation } from "@/shared/utils/validation";
-import { submitDriverIdentification } from "@/shared/services/api/driverAuthApi";
+// import { submitDriverIdentification } from "@/shared/services/api/driverAuthApi";
+import { postData } from "@/shared/services/api/api-service";
+import { ResponseCom } from "@/shared/types/commonTypes";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 
 function DriverIdentification() {
   const [photoPage, setPhotoPage] = useState(false);
   const [load, setLoad] = useState(false);
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const [previews, setPreviews] = useState({
     aadharFront: null,
     aadharBack: null,
@@ -57,18 +60,25 @@ function DriverIdentification() {
     },
   });
   const handleUpload = async (formData: FormData) => {
-    const driverId = localStorage.getItem("driverId");
-    if (!driverId) {
-      toast.error("Driver ID not found");
-      return;
+    try {
+      const driverId = localStorage.getItem("driverId");
+      if (!driverId) {
+        toast.error("Driver ID not found");
+        return;
+      }
+      setLoad(true);
+       await postData<ResponseCom>(
+        `${DriverApiEndpoints.DRIVER_IDENTIFICATION}?driverId=${driverId}`,
+        "Driver",
+        formData
+      );
+      setPhotoPage(true);
+      toast.success("Identification details submitted successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Submission failed");
+    } finally {
+      setLoad(false);
     }
-    submitDriverIdentification(
-      driverId,
-      formData,
-      dispatch,
-      setLoad,
-      setPhotoPage
-    );
   };
 
   const handleFileInput = (

@@ -9,8 +9,12 @@ import { driverLogin } from "@/shared/services/redux/slices/driverAuthSlice";
 import { sendOtp } from "@/shared/hooks/useAuth";
 import { loginValidation } from "@/shared/utils/validation";
 import { useDispatch } from "react-redux";
-import { DriverData, DriverLoginFormProps } from "./type";
-import { handleLoginDriver } from "@/shared/services/api/driverAuthApi";
+import { DriverLoginFormProps, Res_checkLogin } from "./type";
+import { postData } from "@/shared/services/api/api-service";
+import { openRejectedModal } from "@/shared/services/redux/slices/rejectModalSlice";
+import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { removeItem, setItem } from "@/shared/utils/localStorage";
 
 const DriverLoginForm = ({
   auth,
@@ -41,22 +45,55 @@ const DriverLoginForm = ({
     initialValues: { mobile: "" },
     validationSchema: loginValidation,
     onSubmit: async (values) => {
-      const data: DriverData | undefined = await handleLoginDriver(
-        dispatch,
-        values,
-        setLoad,
-        navigate
-      );
-      if (!data) return;
+      try {
+        setLoad(true);
 
-      sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
-      setDriverData({
-        name: data.name,
-        refreshToken: data.refreshToken,
-        token: data.token,
-        driverId: data.driverId,
-        role: "Driver",
-      });
+        const data = await postData<Res_checkLogin>(
+          DriverApiEndpoints.DRIVER_CHECK_LOGIN,
+          "Driver",
+          values
+        );
+
+        switch (data.message) {
+          case "Success":
+            sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
+            setDriverData({
+              name: data.name,
+              refreshToken: data.refreshToken,
+              token: data.token,
+              driverId: data.driverId,
+              role: "Driver",
+            });
+            break;
+          case "Incomplete":
+            toast.info("Please complete the verification!");
+            navigate("/driver/signup");
+            break;
+
+          case "Blocked":
+            toast.info("Your account is blocked!");
+            break;
+
+          case "Pending":
+            dispatch(openPendingModal());
+            break;
+
+          case "Rejected":
+            localStorage.setItem("role", "Resubmission");
+            localStorage.setItem("driverId", data.driverId || "");
+            dispatch(openRejectedModal());
+            break;
+
+          default:
+            toast.error("Not registered! Please register to continue.");
+        }
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "An unknown error occurred"
+        );
+      } finally {
+        setLoad(false);
+      }
     },
   });
 
@@ -79,8 +116,8 @@ const DriverLoginForm = ({
     try {
       await confirmationResult.confirm(otp.toString());
       toast.success("Login success");
-      localStorage.setItem("driverToken", driverData.token);
-      localStorage.setItem("DriverRefreshToken", driverData.refreshToken);
+      setItem("token", driverData.token);
+      setItem("refreshToken", driverData.refreshToken);
       dispatch(
         driverLogin({
           name: driverData.name,
@@ -88,7 +125,7 @@ const DriverLoginForm = ({
           role: "Driver",
         })
       );
-      localStorage.removeItem("driverId");
+      removeItem("driverId");
       navigate("/driver/dashboard");
     } catch {
       toast.error("Enter a valid OTP");

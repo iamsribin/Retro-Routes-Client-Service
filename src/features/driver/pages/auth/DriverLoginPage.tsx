@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { ConfirmationResult } from "firebase/auth";
 import { CredentialResponse } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import { driverLogin, driverLogout } from "@/shared/services/redux/slices/driverAuthSlice";
+import {
+  driverLogin,
+  driverLogout,
+} from "@/shared/services/redux/slices/driverAuthSlice";
 import DriverLoginHeader from "../../components/auth/LoginHeader";
 import DriverLoginForm from "@/features/driver/components/forms/DriverLoginForm";
 import { auth } from "@/shared/services/firebase";
@@ -12,6 +15,14 @@ import { DriverAuthData } from "@/shared/types/driver/driverType";
 import PendingModal from "@/shared/components/PendingModal";
 import RejectedModal from "@/shared/components/RejectModal";
 import { handleDriverGoogleLogin } from "@/shared/services/api/driverAuthApi";
+import { toast } from "sonner";
+import { openRejectedModal } from "@/shared/services/redux/slices/rejectModalSlice";
+import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";
+import { postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { ResponseCom } from "@/shared/types/commonTypes";
+import { StatusCode } from "@/shared/types/enum";
+import { setItem } from "@/shared/utils/localStorage";
 
 interface DecodedToken {
   email: string;
@@ -26,7 +37,6 @@ const DriverLogin = () => {
   const [counter, setCounter] = useState(40);
   const [confirmationResult, setConfirmationResult] =
     useState<ConfirmationResult | null>(null);
-
 
   const [driverData, setDriverData] = useState<DriverAuthData>({
     name: "",
@@ -49,7 +59,56 @@ const DriverLogin = () => {
     const token = req.credential;
     if (!token) throw new Error("No credential provided");
     const decode = jwtDecode<DecodedToken>(token);
-    handleDriverGoogleLogin(dispatch, decode, driverLogin, navigate);
+    try {
+      const data = await postData<ResponseCom["data"]>(
+        DriverApiEndpoints.DRIVER_CHECK_GOOGLE_LOGIN,
+        "Driver",
+        {
+          email: decode.email,
+        }
+      );
+      if (data.status == StatusCode.OK) {
+        switch (data.message) {
+          case "Success":
+            toast.success("Login success!");
+            setItem("token", data.token);
+            setItem("refreshToken", data.refreshToken);
+            dispatch(
+              driverLogin({
+                name: data.name,
+                driverId: data._id,
+                role: "Driver",
+              })
+            );
+
+            break;
+          case "Incomplete registration":
+            toast.info("Please complete the registration!");
+            navigate("/driver/signup");
+            break;
+          case "Blocked":
+            toast.info("Your account is blocked!");
+            break;
+          case "Not verified":
+            dispatch(openPendingModal());
+            break;
+          case "Rejected":
+            setItem("role", "Resubmission");
+            setItem("driverId", data.driverId);
+            dispatch(openRejectedModal());
+            break;
+          default:
+            toast.error("Not registered! Please register to continue.");
+        }
+      } else {
+        throw new Error("something went wrong");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
+    }
   };
 
   return (

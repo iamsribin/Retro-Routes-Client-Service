@@ -20,18 +20,7 @@ enum ApiEndpoints {
   USER_CHECK_LOGIN = "/checkLoginUser",
 
   // Driver APIs - Driver Service
-  DRIVER_DASHBOARD = '/driver/dashboard',
-  DRIVER_PROFILE = '/driver/profile',
-  DRIVER_IDENTIFICATION = '/identification',
-  DRIVER_INSURANCE = '/insuranceDetails',
-  DRIVER_LOCATION = "/location",
-  DRIVER_CHECK_GOOGLE_LOGIN = "/checkGoogleLoginDriver",
-  DRIVER_CHECK_LOGIN = "/checkLoginDriver",
-  DRIVER_UPLOAD_IMAGE = "/uploadDriverImage",
-  DRIVER_ADD_VEHICLE_DETAILS = "/vehicleDetails",
-  DRIVER_REGISTER = "/registerDriver",
-  DRIVER_RESUBMISSION = "/resubmission",
-  DRIVER_ONLINE_STATUS = "/driverOnlineStatus",
+
   ADMIN_VEHICLE_MODELS = "/vehicleModels",
   // Admin APIs - Admin Service
   ADMIN_GET_DRIVERS = "/get-drivers-list",

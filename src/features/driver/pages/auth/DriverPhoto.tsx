@@ -4,8 +4,9 @@ import Webcam from "react-webcam";
 import DriverVehiclePage from "./DriverVehiclePage";
 import Loader from "@/shared/components/loaders/shimmer";
 import { driverImageValidation } from "@/shared/utils/validation";
-import { useDispatch } from "react-redux";
-import { submitDriverImage } from "@/shared/services/api/driverAuthApi";
+import { postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { toast } from "sonner";
 const videoConstraints = {
   width: 400,
   height: 400,
@@ -16,7 +17,6 @@ function DriverPhoto() {
   const [load, setLoad] = useState(false);
   const [initial, setInitial] = useState(true);
   const [vehiclePage, setVehiclePage] = useState(false);
-  const dispatch = useDispatch();
   const initialValues = {
     driverImage: null,
   };
@@ -27,7 +27,34 @@ function DriverPhoto() {
     initialValues,
     validationSchema,
     onSubmit: async (values) => {
-      submitDriverImage(dispatch, values, setLoad, setVehiclePage);
+      try {
+        setLoad(true);
+        const driverId = localStorage.getItem("driverId");
+        if (!driverId) throw new Error("Driver ID not found");
+
+        if (values.driverImage) {
+          const blob = await fetch(values.driverImage).then((res) =>
+            res.blob()
+          );
+          const file = new File([blob], "driverImage.jpeg", {
+            type: "image/jpeg",
+          });
+
+          const formData = new FormData();
+          formData.append("driverImage", file);
+
+          await postData(
+            `${DriverApiEndpoints.DRIVER_UPLOAD_IMAGE}?driverId=${driverId}`,
+            "Driver"
+          );
+          toast.success("Successfully uploaded image");
+          setVehiclePage(true);
+        }
+      } catch (error) {
+        toast.error("something went wrong try aging");
+      } finally {
+        setLoad(false);
+      }
     },
   });
 

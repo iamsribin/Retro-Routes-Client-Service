@@ -13,7 +13,6 @@ import {
 import { sendOtp } from "@/shared/hooks/useAuth";
 import { signupValidation } from "@/shared/utils/validation";
 import { auth } from "@/shared/services/firebase";
-import ApiEndpoints from "@/constants/api-end-pointes";
 import { DriverSignupFormProps, Res_checkRegisterDriver } from "./type";
 import { StatusCode } from "@/shared/types/enum";
 import { postData } from "@/shared/services/api/api-service";
@@ -79,7 +78,7 @@ const DriverSignupForm = ({
       // ).post("/checkRegisterDriver", formData);
 
       const data = await postData<Res_checkRegisterDriver>(
-        DriverApiEndpoints.check_register_driver,
+        DriverApiEndpoints.CHECK_REGISTER_DRIVER,
         "Driver",
         formData
       );
@@ -147,7 +146,7 @@ const DriverSignupForm = ({
       //   formik.values
       // );
       const { data } = await postData<ResponseCom>(
-        ApiEndpoints.DRIVER_REGISTER,
+        DriverApiEndpoints.DRIVER_REGISTER,
         "Driver",
         formik.values
       );
