@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import ExploreIcon from "@mui/icons-material/Explore";
@@ -11,6 +10,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import SignupMap from "./SignupMap";
 import Loader from "@/shared/components/loaders/shimmer";
 import { submitDriverLocation } from "@/shared/services/api/driverAuthApi";
+import { useJsApiLoader } from "@react-google-maps/api";
 
 function DriverLocation() {
   const dispatch = useDispatch();
@@ -19,6 +19,12 @@ function DriverLocation() {
   const [latitude, setLatitude] = useState(23.22639);
   const [longitude, setLongitude] = useState(79.17271);
   const [load, setLoad] = useState(false);
+    const libraries: "places"[] = ["places"];
+  
+    const { isLoaded } = useJsApiLoader({
+      googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+      libraries,
+    });
 
   const handleGeolocation = (lat: number, lng: number, status: any) => {
     setLatitude(lat);
@@ -46,6 +52,7 @@ function DriverLocation() {
         .max(97.25, "Choose a valid location in India"),
     }),
     onSubmit: async (values, { setSubmitting }) => {
+      if(isLoaded){
         await submitDriverLocation(
           dispatch,
           navigate,
@@ -53,6 +60,7 @@ function DriverLocation() {
           setSubmitting,
           values,
         );
+      }
     },
   });
 

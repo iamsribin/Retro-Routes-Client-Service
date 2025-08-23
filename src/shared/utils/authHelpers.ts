@@ -1,10 +1,9 @@
 import { toast } from 'sonner';
-import axiosUser from '@/shared/services/axios/userAxios';
-import { CheckUserParams } from './types';
+import {userAxios} from '@/shared/services/axios/axiosInstance';
 
-export const checkUser = async ({name, email, mobile, dispatch, navigate, setOtpPage }: CheckUserParams) => {
+export const checkUser = async ({name, email, mobile, navigate, setOtpPage }: any) => {
   try {
-    const { data } = await axiosUser(dispatch).post('/checkUser', {name, email, mobile });
+    const { data } = await userAxios.post('/checkUser', {name, email, mobile });
     if (data.message === 'user already have an account !') {
       toast.info('User already registered. Please login to continue');
       navigate('/login');

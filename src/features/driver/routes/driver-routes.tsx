@@ -12,14 +12,16 @@ import DriverProfile from "../pages/DriverProfile";
 import BookingTransaction from "../pages/BookingTransaction";
 import BookingDetails from "../pages/BookingDetails";
 import DriverRideMap from "../pages/DriverRideMap";
+import DriverDocuments from "../pages/DriverDocument"
 import { DriverLocationProvider } from "@/context/driver-location-context";
-
+import RideNotification from "../components/RideNotification"
 
 const ROLE = "Driver"; 
 
 function DriverRoutes() {
   return (
     <DriverLocationProvider>
+      <RideNotification/>
     <Routes>
       <Route path={AppRoutes.LOGIN} element={<AuthRedirect role={ROLE}><DriverLoginPage /></AuthRedirect>} />
       <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><DriverSignupPage /></AuthRedirect>} />
@@ -28,6 +30,7 @@ function DriverRoutes() {
       <Route path={AppRoutes.PROFILE} element={<ProtectedRoute allowedRole={ROLE}><DriverProfile/></ProtectedRoute>} />
       <Route path="rideTracking" element={<ProtectedRoute allowedRole={ROLE}><DriverRideMap/></ProtectedRoute>} />
       <Route path="trips" element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
+      <Route path="documents" element={<ProtectedRoute allowedRole={ROLE}><DriverDocuments/></ProtectedRoute>} />
       <Route path="getMyTripDetails/:bookingId" element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>

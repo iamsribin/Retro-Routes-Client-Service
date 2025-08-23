@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useFormik } from 'formik';
 import { toast } from 'sonner';
-import axiosDriver from '@/shared/services/axios/driverAxios';
 import { ResubmissionValidation } from '@/shared/utils/validation';
 import { fetchResubmissionData, submitResubmissionForm } from '@/shared/services/api/driverAuthApi';
 import ResubmissionHeader from '../../components/auth/resubmission/ResubmissionHeader';
@@ -11,7 +10,6 @@ import ResubmissionForm from '@/features/driver/components/forms/ResubmissionFor
 import Loader from '@/shared/components/loaders/shimmer';
 import DriverPhotoPage from './DriverIdentificationPage';
 import LoadingSpinner from '@/shared/components/loaders/LoadingSpinner';
-import ApiEndpoints from '@/constants/api-end-pointes';
 import { Previews, ResubmissionData, ResubmissionFormValues } from '@/shared/types/commonTypes';
 
 const ResubmissionPage: React.FC = () => {

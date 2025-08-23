@@ -19,16 +19,16 @@ interface BookingDetails {
   createdAt: string;
 }
 
-interface RideNotificationProps {
-  customer: CustomerDetails;
-  pickup: LocationCoordinates;
-  dropoff: LocationCoordinates;
-  ride: RideDetails;
-  booking: BookingDetails;
-  timeLeft: number;
-  requestTimeout: number;
-  onAccept: () => void;
-  onDecline: () => void;
-}
+// interface RideNotificationProps {
+//   customer: CustomerDetails;
+//   pickup: LocationCoordinates;
+//   dropoff: LocationCoordinates;
+//   ride: RideDetails;
+//   booking: BookingDetails;
+//   timeLeft: number;
+//   requestTimeout: number;
+//   onAccept: () => void;
+//   onDecline: () => void;
+// }
 
-export type {RideNotificationProps,RideDetails}
+export type {RideDetails}

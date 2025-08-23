@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { User, Wallet, MapPin, FileText, LogOut, LayoutDashboard } from 'lucide-react';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/shared/components/ui/navigation-menu";
@@ -9,7 +9,7 @@ import logoutLocalStorage from "@/shared/utils/localStorage";
 const DriverNavbar: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const handleLogout = () => {
     dispatch(driverLogout());
     logoutLocalStorage("Driver");

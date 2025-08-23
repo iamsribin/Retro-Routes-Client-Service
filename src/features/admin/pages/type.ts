@@ -1,6 +1,6 @@
 
 export interface Res_getDriversListByAccountStatus {
-    _id: string;
+    id: string;
     name: string;
     email: string;
     mobile: number;

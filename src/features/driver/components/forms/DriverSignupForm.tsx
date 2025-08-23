@@ -114,6 +114,7 @@ const DriverSignupForm = ({
       const { data }: { data: Res_checkRegisterDriver } = await axiosDriver(
         dispatch
       ).post("/checkRegisterDriver", formData);
+      console.log("datadata",data);
 
       if (data.status === StatusCode.Accepted && data.nextStep) {
         toast.info(

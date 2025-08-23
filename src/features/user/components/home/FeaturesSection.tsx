@@ -1,7 +1,8 @@
 
-import React from 'react';
 import { Feature1, Feature2, Feature3 } from '@/assets';
-
+import React, { useEffect} from "react";
+import axiosUser from "@/shared/services/axios/userAxios"
+import { useDispatch } from 'react-redux';
 const features = [
   {
     icon: Feature1,
@@ -21,6 +22,20 @@ const features = [
 ];
 
 const FeaturesSection: React.FC = () => {
+  const dispatch = useDispatch()
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const response = await axiosUser(dispatch).get("/sample");
+      console.log(response.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+ 
+  fetchData();
+}, []);
+
   return (
     <section className="py-20 bg-white">
       <div className="container mx-auto px-6">

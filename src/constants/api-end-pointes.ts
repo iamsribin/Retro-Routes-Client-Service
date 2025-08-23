@@ -34,9 +34,10 @@ enum ApiEndpoints {
   DRIVER_ONLINE_STATUS = "/driverOnlineStatus",
  ADMIN_VEHICLE_MODELS = "/vehicleModels",
   // Admin APIs - Admin Service
-  ADMIN_VERIFIED_DRIVERS = "/verifiedDrivers",
+  ADMIN_GET_DRIVERS = "/get-drivers-list",
   ADMIN_PENDING_DRIVERS ="/pendingDrivers",
   ADMIN_BLOCKED_DRIVERS ="/blockedDrivers",
+
   ADMIN_UPDATE_DRIVER_STATUS = "/driver/verify/",
   ADMIN_DRIVER_DETAILS = "/driverDetails",
 

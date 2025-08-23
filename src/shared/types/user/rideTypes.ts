@@ -21,6 +21,7 @@ interface Booking {
 
 interface RideStatusData {
   ride_id: string;
+  userId:string;
   status:
     | "searching"
     | "Accepted"
@@ -33,7 +34,7 @@ interface RideStatusData {
   booking: Booking;
   driverCoordinates: Coordinates;
   driverDetails: DriverDetails;
-  userDetails: User;
+  // userDetails: User;
   chatMessages: Message[];
 }
 

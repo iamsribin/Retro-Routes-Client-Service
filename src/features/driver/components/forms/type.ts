@@ -1,9 +1,9 @@
-import { DriverAuthData } from "@/shared/types/driver/driverType";
 import { CredentialResponse } from "@react-oauth/google";
 import { ConfirmationResult } from "firebase/auth";
 import { Previews, ResubmissionData, ResubmissionFormValues  } from "@/shared/types/commonTypes";
 import { FormikProps } from "formik";
 import { StatusCode } from "@/shared/types/enum";
+import { DriverAuthData } from "@/shared/types/driver/driverType";
 export interface Res_checkRegisterDriver{
   status: StatusCode;
   message: string;
@@ -48,6 +48,25 @@ interface DriverSignupFormProps {
       | "vehicle"
       | "insurance"
   ) => void;
+}
+
+export interface Res_checkLogin{
+    status: StatusCode,
+    message: string,
+    navigate?:string,
+    name: string,
+    refreshToken:string,
+    token:string,
+    driverId:string,
+    role:string,
+}
+
+export interface DriverData {
+  name: string;
+  refreshToken: string;
+  token: string;
+  driverId: string;
+  role: string;
 }
 
 interface ResubmissionFormProps {

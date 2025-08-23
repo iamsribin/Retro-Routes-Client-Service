@@ -1,119 +1,119 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import { Switch } from "@/shared/components/ui/switch";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { useToast } from "@chakra-ui/react";
 import DriverNavbar from "../components/DriverNavbar";
-import RideNotification from "../components/RideNotification";
 import { useSocket } from "@/context/socket-context";
-import { showRideMap } from "@/shared/services/redux/slices/driverRideSlice";
 import { RootState } from "@/shared/services/redux/store";
 import { setOnline } from "@/shared/services/redux/slices/driverAuthSlice";
-import { DriverRideRequest } from "@/shared/types/driver/ridetype";
 import { CircleDollarSign, Clock, Navigation2, Star } from "lucide-react";
 import { useJsApiLoader } from "@react-google-maps/api";
+import createAxios from "@/shared/services/axios/driverAxios";
+import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
+import { useLoading } from "@/shared/hooks/useLoading";
 
-const NOTIFICATION_SOUND = "/uber_tune.mp3";
-const libraries: ("places")[] = ["places"];
+const libraries: "places"[] = ["places"];
 
 const DriverDashboard: React.FC = () => {
-  const [showRideRequest, setShowRideRequest] = useState<boolean>(false);
-  const [activeRide, setActiveRide] = useState<DriverRideRequest | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const toast = useToast();
   const { socket, isConnected } = useSocket();
+  const { showLoading, hideLoading } = useLoading();
+
+  const driverId = useSelector((state: RootState) => state.driver.driverId);
   const isOnline = useSelector((state: RootState) => state.driver.isOnline);
+  const isOpen = useSelector((state: RootState) => state.driverRideMap.isOpen);
+
+  const OnlineTimestamp = useSelector(
+    (state: RootState) => state.driver.OnlineTimestamp
+  );
+
+  const axiosDriver = createAxios(dispatch);
+// hideLoading()
+
 
   // Load sound
-  useEffect(() => {
-    audioRef.current = new Audio(NOTIFICATION_SOUND);
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
+  // useEffect(() => {
+  //   audioRef.current = new Audio(NOTIFICATION_SOUND);
+  //   return () => {
+  //     if (audioRef.current) {
+  //       audioRef.current.pause();
+  //       audioRef.current = null;
+  //     }
+  //   };
+  // }, []);
 
-    const { isLoaded } = useJsApiLoader({
-      googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-      libraries,
-    });
+  // const playNotificationSound = useCallback(() => {
+  //   if (audioRef.current) {
+  //     audioRef.current.currentTime = 0;
+  //     audioRef.current
+  //       .play()
+  //       .catch((e) => console.error("Error playing sound:", e));
+  //   }
+  // }, []);
 
-  const playNotificationSound = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch((e) => console.error("Error playing sound:", e));
-    }
-  }, []);
+  // const startCountdown = useCallback((duration: number) => {
+  //   setTimeLeft(Math.floor(duration / 1000));
+  //   if (timeoutRef.current) clearInterval(timeoutRef.current);
 
-  const startCountdown = useCallback((duration: number) => {
-    setTimeLeft(Math.floor(duration / 1000));
-    if (timeoutRef.current) clearInterval(timeoutRef.current);
-
-    timeoutRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (timeoutRef.current) clearInterval(timeoutRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, []);
+  //   timeoutRef.current = setInterval(() => {
+  //     setTimeLeft((prev) => {
+  //       if (prev <= 1) {
+  //         if (timeoutRef.current) clearInterval(timeoutRef.current);
+  //         return 0;
+  //       }
+  //       return prev - 1;
+  //     });
+  //   }, 1000);
+  // }, []);
 
   // Listen for ride requests
-  useEffect(() => {
-    if (!socket) return;
+  // useEffect(() => {
+  //   if (!socket) return;
 
-    socket.on("rideRequest", (rideRequest: DriverRideRequest) => {
-      if (!rideRequest || !rideRequest.booking) {
-        toast({
-          title: "Ride Request Error",
-          description: "Invalid ride request data received.",
-          variant: "destructive",
-        });
-        return;
-      }
+  //   socket.on("rideRequest", (rideRequest: DriverRideRequest) => {
+  //     if (!rideRequest || !rideRequest.booking) {
+  //       toast({
+  //         title: "Ride Request Error",
+  //         description: "Invalid ride request data received.",
+  //         variant: "destructive",
+  //       });
+  //       return;
+  //     }
 
-      try {
-        setActiveRide(rideRequest);
-        setShowRideRequest(true);
-        playNotificationSound();
-        startCountdown(rideRequest.requestTimeout);
-      } catch (error) {
-        console.error("Error processing ride request:", error);
-        toast({
-          title: "Ride Request Error",
-          description: "Failed to process ride request.",
-          variant: "destructive",
-        });
-      }
-    });
+  //     try {
+  //       setActiveRide(rideRequest);
+  //       setShowRideRequest(true);
+  //       playNotificationSound();
+  //       startCountdown(rideRequest.requestTimeout);
+  //     } catch (error) {
+  //       console.error("Error processing ride request:", error);
+  //       toast({
+  //         title: "Ride Request Error",
+  //         description: "Failed to process ride request.",
+  //         variant: "destructive",
+  //       });
+  //     }
+  //   });
 
-    socket.on("error", (error: { message: string; code: string }) => {
-      console.error("Socket error:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    });
+  //   socket.on("error", (error: { message: string; code: string }) => {
+  //     console.error("Socket error:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: error.message,
+  //       variant: "destructive",
+  //     });
+  //   });
 
-    return () => {
-      socket.off("rideRequest");
-      socket.off("error");
-    };
-  }, [socket, playNotificationSound, startCountdown, toast]);
+  //   return () => {
+  //     socket.off("rideRequest");
+  //     socket.off("error");
+  //   };
+  // }, [socket, playNotificationSound, startCountdown, toast]);
 
-  // Show toast based on connection
   useEffect(() => {
     if (!isConnected && isOnline) {
       toast({
@@ -131,78 +131,136 @@ const DriverDashboard: React.FC = () => {
   }, [isConnected, isOnline, toast]);
 
   const handleOnlineChange = useCallback(
-    (checked: boolean) => {
-      dispatch(setOnline({ onlineStatus: checked }));
+    async (checked: boolean) => {
+      showLoading({
+        isLoading: true,
+        loadingMessage: "please wait updating your online status",
+        loadingType: "default",
+      });
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
 
-      if (!checked) {
-        setShowRideRequest(false);
-        setActiveRide(null);
-        if (socket && isConnected) {
-          socket.emit("driverOffline", { driverId: socket.id });
-        }
+            try {
+              const { data } = await axiosDriver.post("/handle-online-change", {
+                online: checked,
+                driverId,
+                onlineTimestamp: OnlineTimestamp,
+                location: {
+                  lat: latitude,
+                  lng: longitude,
+                },
+              });
+
+              if (data.status === 200) {
+                if (!checked) {
+                  if (socket && isConnected) {
+                    socket.emit("driverOffline", { driverId: socket.id });
+                  }
+                }
+                dispatch(setOnline({ onlineStatus: checked }));
+              }
+            } catch (err) {
+              console.error("Failed to update status", err);
+              dispatch(
+                showNotification({
+                  type: "error",
+                  message: "Failed to update driver status",
+                  data: null,
+                  navigate: "",
+                })
+              );
+            } finally {
+              hideLoading();
+            }
+          },
+          (error) => {
+            hideLoading()
+            console.error("Location access denied or error", error);
+            dispatch(
+              showNotification({
+                type: "error",
+                message: "Please enable location access",
+                data: null,
+                navigate: "",
+              })
+            );
+          }
+        );
+      } else {
+        hideLoading();
+        dispatch(
+          showNotification({
+            type: "error",
+            message: "Geolocation is not supported by your browser",
+            data: null,
+            navigate: "",
+          })
+        );
       }
     },
-    [dispatch, socket, isConnected]
+    [dispatch, socket, isConnected, OnlineTimestamp]
   );
 
-  const handleAcceptRide = useCallback(() => {
-    if (socket && activeRide && isConnected) {
-      socket.emit(`rideResponse:${activeRide.ride.rideId}`, {
-        requestId: activeRide.requestId,
-        rideId: activeRide.ride.rideId,
-        accepted: true,
-        bookingId: activeRide.booking.bookingId,
-        estimateTime:activeRide.booking.rideDetails.estimatedDuration,
-        timestamp: new Date().toISOString(),
-      });
+  // const handleAcceptRide = useCallback(() => {
+  //   if (socket && activeRide && isConnected) {
+  //     socket.emit(`rideResponse:${activeRide.ride.rideId}`, {
+  //       requestId: activeRide.requestId,
+  //       rideId: activeRide.ride.rideId,
+  //       accepted: true,
+  //       bookingId: activeRide.booking.bookingId,
+  //       estimateTime: activeRide.booking.rideDetails.estimatedDuration,
+  //       timestamp: new Date().toISOString(),
+  //     });
 
-      activeRide.status = "accepted";
-      setShowRideRequest(false);
-      dispatch(showRideMap(activeRide));
-      navigate("/driver/rideTracking");
+  //     activeRide.status = "accepted";
+  //     setShowRideRequest(false);
+  //     dispatch(showRideMap(activeRide));
+  //     navigate("/driver/rideTracking");
 
-      if (timeoutRef.current) clearInterval(timeoutRef.current);
+  //     if (timeoutRef.current) clearInterval(timeoutRef.current);
 
-      toast({
-        title: "Ride Accepted",
-        description: "Navigate to pickup location.",
-        variant: "default",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Unable to accept ride. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [socket, activeRide, isConnected, dispatch, navigate, toast]);
+  //     toast({
+  //       title: "Ride Accepted",
+  //       description: "Navigate to pickup location.",
+  //       variant: "default",
+  //     });
+  //   } else {
+  //     toast({
+  //       title: "Error",
+  //       description: "Unable to accept ride. Please try again.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // }, [socket, activeRide, isConnected, dispatch, navigate, toast]);
 
-  const handleDeclineRide = useCallback(() => {
-    if (socket && activeRide && isConnected) {
-      socket.emit(`rideResponse:${activeRide.ride.rideId}`, {
-        requestId: activeRide.requestId,
-        rideId: activeRide.ride.rideId,
-        accepted: false,
-        timestamp: new Date().toISOString(),
-      });
+  // const handleDeclineRide = useCallback(() => {
+  //   if (socket && activeRide && isConnected) {
+  //     socket.emit(`rideResponse:${activeRide.ride.rideId}`, {
+  //       requestId: activeRide.requestId,
+  //       rideId: activeRide.ride.rideId,
+  //       accepted: false,
+  //       timestamp: new Date().toISOString(),
+  //     });
 
-      socket.emit("cancelRide", {
-        bookingId: activeRide.booking.bookingId,
-        reason: "Driver declined",
-      });
+  //     socket.emit("cancelRide", {
+  //       bookingId: activeRide.booking.bookingId,
+  //       reason: "Driver declined",
+  //     });
 
-      setShowRideRequest(false);
-      setActiveRide(null);
+  //     setShowRideRequest(false);
+  //     setActiveRide(null);
 
-      if (timeoutRef.current) clearInterval(timeoutRef.current);
+  //     if (timeoutRef.current) clearInterval(timeoutRef.current);
 
-      toast({
-        title: "Ride Declined",
-        description: "You have declined the ride request.",
-        variant: "destructive",
-      });
-    }
-  }, [socket, activeRide, isConnected, toast]);
+  //     toast({
+  //       title: "Ride Declined",
+  //       description: "You have declined the ride request.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // }, [socket, activeRide, isConnected, toast]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -211,35 +269,45 @@ const DriverDashboard: React.FC = () => {
         <div className="bg-white shadow rounded-lg mb-6">
           <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Driver Dashboard</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+                Driver Dashboard
+              </h1>
               <p className="mt-1 text-sm text-gray-500">Welcome back, Driver</p>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`text-sm font-medium ${isOnline ? "text-emerald-500" : "text-gray-500"}`}>
+              <span
+                className={`text-sm font-medium ${
+                  isOnline ? "text-emerald-500" : "text-gray-500"
+                }`}
+              >
                 {isOnline ? "Online" : "Offline"}
               </span>
               <Switch
                 checked={isOnline}
                 onCheckedChange={handleOnlineChange}
                 className="data-[state=checked]:bg-emerald-500"
-                disabled={!isConnected && isOnline}
+                // disabled={!isConnected && isOnline}
               />
             </div>
           </div>
         </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Today's Earnings</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Today's Earnings
+                  </p>
                   <h3 className="text-xl sm:text-2xl font-bold mt-1">₹2,450</h3>
                 </div>
                 <div className="h-10 w-10 sm:h-12 sm:w-12 bg-emerald-50 rounded-full flex items-center justify-center">
-                  <CircleDollarSign className="h-5 w-5 sm:h-
+                  <CircleDollarSign
+                    className="h-5 w-5 sm:h-
 
-6 sm:w-6 text-emerald-500" />
+6 sm:w-6 text-emerald-500"
+                  />
                 </div>
               </div>
             </CardContent>
@@ -248,7 +316,9 @@ const DriverDashboard: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Completed Rides</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Completed Rides
+                  </p>
                   <h3 className="text-xl sm:text-2xl font-bold mt-1">8</h3>
                 </div>
                 <div className="h-10 w-10 sm:h-12 sm:w-12 bg-wasabi-50 rounded-full flex items-center justify-center">
@@ -261,7 +331,9 @@ const DriverDashboard: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Online Hours</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Online Hours
+                  </p>
                   <h3 className="text-xl sm:text-2xl font-bold mt-1">6.5h</h3>
                 </div>
                 <div className="h-10 w-10 sm:h-12 sm:w-12 bg-egyptian-50 rounded-full flex items-center justify-center">
@@ -274,7 +346,9 @@ const DriverDashboard: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Rating</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Rating
+                  </p>
                   <h3 className="text-xl sm:text-2xl font-bold mt-1">4.8</h3>
                 </div>
                 <div className="h-10 w-10 sm:h-12 sm:w-12 bg-khaki-50 rounded-full flex items-center justify-center">
@@ -285,7 +359,7 @@ const DriverDashboard: React.FC = () => {
           </Card>
         </div>
 
-        {showRideRequest && activeRide && (
+        {/* {showRideRequest && activeRide && (
           <RideNotification
             customer={{
               id: activeRide.customer.id,
@@ -301,24 +375,39 @@ const DriverDashboard: React.FC = () => {
             onAccept={handleAcceptRide}
             onDecline={handleDeclineRide}
           />
-        )}
+        )} */}
 
-        {!activeRide && !showRideRequest && isOnline && (
+        {!isOpen && isOnline && (
           <Card className="mb-6">
             <CardContent className="py-8 sm:py-12 text-center">
-              <Badge variant="secondary" className="mb-4 bg-emerald-50 text-emerald-500">Online</Badge>
-              <h3 className="text-lg font-semibold mb-2">Looking for rides...</h3>
-              <p className="text-muted-foreground">Stay online to receive ride requests in your area</p>
+              <Badge
+                variant="secondary"
+                className="mb-4 bg-emerald-50 text-emerald-500"
+              >
+                Online
+              </Badge>
+              <h3 className="text-lg font-semibold mb-2">
+                Looking for rides...
+              </h3>
+              <p className="text-muted-foreground">
+                Stay online to receive ride requests in your area
+              </p>
             </CardContent>
           </Card>
         )}
 
-        {!activeRide && !showRideRequest && !isOnline && (
+        {!isOpen && !isOnline && (
           <Card className="mb-6">
             <CardContent className="py-8 sm:py-12 text-center">
-              <Badge variant="secondary" className="mb-4">Offline</Badge>
-              <h3 className="text-lg font-semibold mb-2">You're currently offline</h3>
-              <p className="text-muted-foreground mb-6">Go online to start receiving ride requests</p>
+              <Badge variant="secondary" className="mb-4">
+                Offline
+              </Badge>
+              <h3 className="text-lg font-semibold mb-2">
+                You're currently offline
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Go online to start receiving ride requests
+              </p>
               <Button
                 onClick={() => handleOnlineChange(true)}
                 className="bg-emerald-500 hover:bg-emerald-600"

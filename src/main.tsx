@@ -14,7 +14,7 @@ import "./index.css";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <ErrorBoundary>
       <ThemeProvider>
         <Provider store={store}>
@@ -30,5 +30,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </Provider>
       </ThemeProvider>
     </ErrorBoundary>
-  </React.StrictMode>
+  // </React.StrictMode>
 );

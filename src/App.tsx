@@ -9,14 +9,25 @@ import DriverRoutes from "@/features/driver/routes/driver-routes";
 import AdminRoutes from "@/features/admin/routes/admin-routes";
 import NotFound from "@/shared/components/NotFound";
 import NotificationModal from "@/shared/components/NotificationModal";
+import GlobalLoading from "@/shared/components/loaders/GlobalLoading";
+import { useEffect } from "react";
+import { initAxios } from "./shared/services/axios/axiosInstance";
+import { useDispatch } from "react-redux";
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    initAxios(dispatch);
+  }, [dispatch]);
+  
   return (
     <ChakraProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <NotificationModal />
+        <GlobalLoading />
         <Routes>
           <Route path="/*" element={<UserRoutes />} />
           <Route path="/driver/*" element={<DriverRoutes />} />

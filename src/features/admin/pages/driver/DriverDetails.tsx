@@ -39,8 +39,8 @@ const PendingDriverDetails = () => {
         console.error("Error fe tch Driver details", error);
       } finally {
         setLoading(false);
-      }
-    };
+      } 
+    }; 
 
     if (id) {
       fetchDriver();

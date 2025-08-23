@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { isAbortError } from "@/shared/utils/checkAbortControllerError";
 import { StatusCode } from "@/shared/types/enum";
 import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";
+import { openRejectedModal } from "../redux/slices/rejectModalSlice";
+import { Res_checkLogin } from "@/features/driver/components/forms/type";
+import { geocodeLatLng } from "@/shared/utils/locationToAddress";
 
 //fetch Resubmission fields
 export const fetchResubmissionData = async (
@@ -82,12 +85,110 @@ export const submitResubmissionForm = async (
     );
   }
 
-  const response = await axiosDriver(dispatch).post(
-    `${ApiEndpoints.DRIVER_RESUBMISSION}?driverId=${driverId}`,
-    formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
-  );
-  return response.data;
+};
+
+export const handleLoginDriver = async (
+  dispatch: Dispatch,
+  values: any,
+  setLoad: any,
+  navigate: any
+): Promise<Res_checkLogin | undefined> => {
+  try {
+    setLoad(true);
+
+    const { data }: { data: Res_checkLogin } = await axiosDriver(dispatch).post(
+      ApiEndpoints.DRIVER_CHECK_LOGIN,
+      values
+    );
+console.log("datadatadata",data);
+
+    switch (data.message) {
+      case "Success":
+        return data;
+
+      case "Incomplete":
+        toast.info("Please complete the verification!");
+        navigate("/driver/signup");
+        break;
+
+      case "Blocked":
+        toast.info("Your account is blocked!");
+        break;
+
+      case "Pending":
+        dispatch(openPendingModal());
+        break;
+
+      case "Rejected":
+        localStorage.setItem("role", "Resubmission");
+        localStorage.setItem("driverId", data.driverId || "");
+        dispatch(openRejectedModal());
+        break;
+
+      default:
+        toast.error("Not registered! Please register to continue.");
+    }
+  } catch (error) {
+    toast.error(
+      error instanceof Error ? error.message : "An unknown error occurred"
+    );
+  } finally {
+    setLoad(false);
+  }
+};
+
+
+export const handleDriverGoogleLogin = async (
+  dispatch: Dispatch,
+  decode: any,
+  driverLogin: any,
+  navigate: any
+) => {
+  try {
+    const { data } = await axiosDriver(dispatch).post(
+      ApiEndpoints.DRIVER_CHECK_GOOGLE_LOGIN,
+      {
+        email: decode.email,
+      }
+    );
+    if (data.status == StatusCode.OK) {
+      switch (data.message) {
+        case "Success":
+          toast.success("Login success!");
+          localStorage.setItem("driverToken", data.token);
+          localStorage.setItem("DriverRefreshToken", data.refreshToken);
+          dispatch(
+            driverLogin({ name: data.name, driverId: data._id, role: "Driver" })
+          );
+
+          break;
+        case "Incomplete registration":
+          toast.info("Please complete the registration!");
+          navigate("/driver/signup");
+          break;
+        case "Blocked":
+          toast.info("Your account is blocked!");
+          break;
+        case "Not verified":
+          dispatch(openPendingModal());
+          break;
+        case "Rejected":
+          localStorage.setItem("role", "Resubmission");
+          localStorage.setItem("driverId", data.driverId);
+          dispatch(openRejectedModal());
+          break;
+        default:
+          toast.error("Not registered! Please register to continue.");
+      }
+    } else {
+      throw new Error("something went wrong");
+    }
+  } catch (error) {
+    console.log(error);
+    toast.error(
+      error instanceof Error ? error.message : "An unknown error occurred"
+    );
+  }
 };
 
 //submit driver identification
@@ -238,7 +339,11 @@ export const submitDriverLocation = async (
 ): Promise<void> => {
   try {
     setLoad(true);
-    const driverId = localStorage.getItem("driverId");
+      const address = await geocodeLatLng(
+                values.latitude,
+                values.longitude
+              );
+   const driverId= localStorage.getItem("driverId");
 
     if (!driverId) {
       toast.error("Driver ID not found. Please try again.");
@@ -247,10 +352,12 @@ export const submitDriverLocation = async (
     }
 
     setIsSubmitting(true);
-
+const requestData ={
+  ...values, address
+}
     const { data } = await axiosDriver(dispatch).post(
       `${ApiEndpoints.DRIVER_LOCATION}?driverId=${driverId}`,
-      values,
+      requestData,
       {
         headers: {
           "Content-Type": "application/json",

@@ -11,13 +11,13 @@ import { Input } from "@/shared/components/ui/input";
 import { PhoneCall } from "lucide-react";
 import { updateRideStatus } from "@/shared/services/redux/slices/driverRideSlice";
 import { toast } from "sonner";
-import { DriverRideRequest } from "@/shared/types/driver/ridetype";
+import { RideRequest } from "@/shared/types/driver/ridetype";
 import { useDriverLocation } from "@/context/driver-location-context";
 import { Toast, useToast } from "@chakra-ui/react";
 import { getDistanceInMeters } from "@/shared/utils/getDistanceInMeters";
 
 interface TripInfoProps {
-  rideData: DriverRideRequest;
+  rideData: RideRequest;
 }
 
 const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
@@ -25,7 +25,7 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
   const { driverLocation } = useDriverLocation();
   const { socket, isConnected } = useSocket();
   const [isTripStarted, setIsTripStarted] = useState<boolean>(
-    rideData.status === "started" || rideData.status === "completed"
+    rideData.bookingDetails.status === "started" || rideData.bookingDetails.status === "completed"
   );
   const [enteredPin, setEnteredPin] = useState<string>("");
   const [pinError, setPinError] = useState<string>("");
@@ -33,7 +33,7 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
   const handlePinSubmit = () => {
     if (!rideData || !socket || !isConnected || !driverLocation) return;
 
-    const correctPin = rideData.ride.securityPin.toString();
+    const correctPin = rideData.bookingDetails.securityPin.toString();
 
     if (enteredPin === correctPin) {
       setPinError("");
@@ -50,15 +50,15 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
 
       dispatch(
         updateRideStatus({
-          requestId: rideData.requestId,
+          bookingId: rideData.bookingDetails.bookingId,
           status: "started",
           driverCoordinates: driverLocation,
         })
       );
 
       socket.emit("rideStarted", {
-        bookingId: rideData.booking.bookingId,
-        userId: rideData.customer.id,
+        bookingId: rideData.bookingDetails.bookingId,
+        userId: rideData.customer.userId,
         driverLocation: driverLocation,
       });
 
@@ -71,8 +71,8 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
 const handleCompleteRide = () => {
   if (!socket || !rideData || !isConnected || !driverLocation) return;
 
-  const dropLat = rideData.dropoff.latitude;
-  const dropLng = rideData.dropoff.longitude;
+  const dropLat = rideData.bookingDetails.dropoffLocation.latitude;
+  const dropLng = rideData.bookingDetails.dropoffLocation.longitude;
   const driverLat = driverLocation.latitude;
   const driverLng = driverLocation.longitude;
 
@@ -86,13 +86,13 @@ const handleCompleteRide = () => {
   }
 
   socket.emit("rideCompleted", {
-    bookingId: rideData.booking.bookingId,
-    userId: rideData.customer.id,
+    bookingId: rideData.bookingDetails.bookingId,
+    userId: rideData.customer.userId,
   });
 
   dispatch(
     updateRideStatus({
-      requestId: rideData.requestId,
+      bookingId: rideData.bookingDetails.bookingId,
       status: "completed",
     })
   );
@@ -101,8 +101,8 @@ const handleCompleteRide = () => {
 };
 
   const handleCallCustomer = () => {
-    if (rideData?.customer?.number) {
-      window.open(`tel:${rideData.customer.number}`);
+    if (rideData?.customer?.userNumber) {
+      window.open(`tel:${rideData.customer.userNumber}`);
     } else {
       toast.error("Customer phone number not available");
     }
@@ -113,19 +113,19 @@ const handleCompleteRide = () => {
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
           <AvatarImage
-            src={rideData.customer.profileImageUrl}
-            alt={rideData.customer.name}
+            src={rideData.customer.userProfile}
+            alt={rideData.customer.userName}
           />
           <AvatarFallback className="text-sm">
-            {rideData.customer.name?.[0] ?? "C"}
+            {rideData.customer.userName?.[0] ?? "C"}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm sm:text-base truncate">
-            {rideData.customer.name ?? "Customer"}
+            {rideData.customer.userName ?? "Customer"}
           </p>
           <p className="text-xs sm:text-sm text-gray-500">
-            Vehicle: {rideData.ride.vehicleType ?? "N/A"}
+            Vehicle: {rideData.bookingDetails.vehicleType ?? "N/A"}
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
@@ -174,19 +174,19 @@ const handleCompleteRide = () => {
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Distance:</span>
           <span className="font-medium">
-            {rideData.ride.estimatedDistance ?? "N/A"}
+            {rideData.bookingDetails.estimatedDistance ?? "N/A"}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Duration:</span>
           <span className="font-medium">
-            {rideData.ride.estimatedDuration ?? "N/A"}
+            {rideData.bookingDetails.estimatedDuration ?? "N/A"}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Fare:</span>
           <span className="font-medium">
-            ₹{rideData.ride.fareAmount ?? "N/A"}
+            ₹{rideData.bookingDetails.fareAmount ?? "N/A"}
           </span>
         </div>
       </div>
@@ -199,7 +199,7 @@ const handleCompleteRide = () => {
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500 font-medium">PICKUP</p>
             <p className="text-sm font-medium leading-tight">
-              {rideData.pickup.address ?? "Pickup Location"}
+              {rideData.bookingDetails.pickupLocation.address ?? "Pickup Location"}
             </p>
           </div>
         </div>
@@ -210,13 +210,13 @@ const handleCompleteRide = () => {
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500 font-medium">DROP-OFF</p>
             <p className="text-sm font-medium leading-tight">
-              {rideData.dropoff.address ?? "Drop-off Location"}
+              {rideData.bookingDetails.dropoffLocation.address ?? "Drop-off Location"}
             </p>
           </div>
         </div>
       </div>
 
-      {isTripStarted && rideData.status !== "completed" && (
+      {isTripStarted && rideData.bookingDetails.status !== "completed" && (
         <div className="flex gap-3 pt-2">
           <Button
             onClick={handleCompleteRide}

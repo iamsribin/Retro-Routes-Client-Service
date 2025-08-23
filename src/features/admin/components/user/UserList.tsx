@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -8,55 +8,129 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { Button } from "@/shared/components/ui/button";
-import { Shield, ShieldOff, MoreHorizontal, Eye } from "lucide-react";
+import { Shield, ShieldOff, MoreHorizontal, Eye, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/shared/components/ui/input";
 import { UserListProps } from "./type";
 
-const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
+// Custom hook for debounced value
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+interface ExtendedUserListProps extends UserListProps {
+  onSearchChange: (search: string, page: number) => void;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
+  loading?: boolean;
+}
+
+const UserList: React.FC<ExtendedUserListProps> = ({ 
+  users, 
+  type, 
+  isBlocked, 
+  onSearchChange,
+  pagination,
+  loading = false
+}) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 6;
+  
+  // Debounce search term with 500ms delay
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [users, searchTerm]);
+  // Handle search change with debouncing
+  useEffect(() => {
+    onSearchChange(debouncedSearchTerm, 1); // Always reset to page 1 on search
+  }, [debouncedSearchTerm, onSearchChange]);
 
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * usersPerPage,
-    currentPage * usersPerPage
-  );
+  const handlePageChange = useCallback((page: number) => {
+    onSearchChange(debouncedSearchTerm, page);
+  }, [debouncedSearchTerm, onSearchChange]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const { currentPage, totalPages } = pagination;
+    
+    // Show max 5 page buttons
+    let startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, startPage + 4);
+    
+    // Adjust start if we're near the end
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(
+        <Button
+          key={i}
+          variant={currentPage === i ? "default" : "outline"}
+          size="sm"
+          onClick={() => handlePageChange(i)}
+          disabled={loading}
+        >
+          {i}
+        </Button>
+      );
+    }
+
+    return buttons;
   };
 
   return (
     <div className="space-y-4">
       {/* Search Input */}
       <div className="flex justify-end">
-        <Input
-          type="text"
-          placeholder="Search by name or email..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1); 
-          }}
-          className="max-w-sm"
-        />
+        <div className="relative max-w-sm">
+          <Input
+            type="text"
+            placeholder="Search by name or email..."
+            value={searchTerm}
+            onChange={handleSearchInputChange}
+            disabled={loading}
+            className="pr-10"
+          />
+          {loading && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Loading state */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Loading users...</span>
+        </div>
+      )}
 
       {/* Mobile view - card based layout */}
       <div className="md:hidden space-y-4">
-        {paginatedUsers.length === 0 ? (
+        {!loading && users.length === 0 ? (
           <p className="text-center py-6">
             No{" "}
             {isBlocked === "block"
@@ -67,8 +141,8 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
             {type}s found.
           </p>
         ) : (
-          paginatedUsers.map((user) => (
-            <Card key={user._id} className="overflow-hidden">
+          users.map((user) => (
+            <Card key={user.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
@@ -103,7 +177,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <p className="text-muted-foreground">ID</p>
-                      <p>{user._id}</p>
+                      <p>{user.id}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Status</p>
@@ -137,10 +211,10 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                       onClick={() =>
                         navigate(
                           type === "user"
-                            ? `/admin/userDetails/${user._id}`
+                            ? `/admin/userDetails/${user.id}`
                             : type === "driver" && isBlocked === "pending"
-                            ? `/admin/PendingDriverDetails/${user._id}`
-                            : `/admin/driverDetails/${user._id}`
+                            ? `/admin/PendingDriverDetails/${user.id}`
+                            : `/admin/driverDetails/${user.id}`
                         )
                       }
                     >
@@ -192,7 +266,7 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedUsers.length === 0 ? (
+            {!loading && users.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={type === "driver" ? 7 : 6}
@@ -208,8 +282,8 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedUsers.map((user) => (
-                <TableRow key={user._id}>
+              users.map((user) => (
+                <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       {user.driverImage ? (
@@ -246,10 +320,10 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
                         onClick={() =>
                           navigate(
                             type === "user"
-                              ? `/admin/userDetails/${user._id}`
+                              ? `/admin/userDetails/${user.id}`
                               : type === "driver" && isBlocked === "pending"
-                              ? `/admin/PendingDriverDetails/${user._id}`
-                              : `/admin/driverDetails/${user._id}`
+                              ? `/admin/PendingDriverDetails/${user.id}`
+                              : `/admin/driverDetails/${user.id}`
                           )
                         }
                       >
@@ -266,37 +340,28 @@ const UserList: React.FC<UserListProps> = ({ users, type, isBlocked }) => {
       </div>
 
       {/* Pagination Controls */}
-      {filteredUsers.length > usersPerPage && (
+      {!loading && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between py-4">
           <div className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * usersPerPage + 1} to{" "}
-            {Math.min(currentPage * usersPerPage, filteredUsers.length)} of{" "}
-            {filteredUsers.length} {type}s
+            Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to{" "}
+            {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of{" "}
+            {pagination.totalItems} {type}s
           </div>
           <div className="flex space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1 || loading}
             >
               Previous
             </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Button>
-            ))}
+            {renderPaginationButtons()}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages || loading}
             >
               Next
             </Button>

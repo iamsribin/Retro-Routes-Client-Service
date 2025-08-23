@@ -61,7 +61,7 @@ const LoginForm = ({
           throw new Error(error || "API request failed");
         }
 
-        if (response.message === "Success") {
+        if (response.message === "Authentication successful") {
           sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
 
           setUserData({
@@ -74,6 +74,7 @@ const LoginForm = ({
             mobile: response.mobile,
             profile: response.profile,
           });
+          
         } else if (response.message === "Blocked") {
           toast.info("Your account is blocked");
         } else {

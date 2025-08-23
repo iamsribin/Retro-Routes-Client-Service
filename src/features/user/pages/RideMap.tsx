@@ -618,7 +618,7 @@ const RideTrackingPage: React.FC = () => {
 
   const handleCancelTrip = () => {
     if (socket && isConnected && rideData) {
-      socket.emit("cancelRide", { userId: rideData.userDetails.user_id, rideId: rideData.ride_id });
+      socket.emit("cancelRide", { userId: rideData.userId, rideId: rideData.ride_id });
       toast.info("Ride cancellation requested");
       setIsCancelDialogOpen(false);
     }

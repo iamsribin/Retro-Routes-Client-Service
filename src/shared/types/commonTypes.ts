@@ -22,14 +22,14 @@ interface NotificationState {
 interface LocationCoordinates {
   latitude: number;
   longitude: number;
-  address: string;
+  address:string;
 }
 
 interface Feedback {
     feedback: string;
     rideId: string;
     rating: number;
-    date: Date;
+    date: string;
   }
 
 interface Transaction {
@@ -52,15 +52,6 @@ interface RideDetailsForBooking {
   securityPin: number;
 }
 
-interface BookingDetails {
-  bookingId: string;
-  userId: string;
-  pickupLocation: LocationCoordinates;
-  dropoffLocation: LocationCoordinates;
-  rideDetails: RideDetailsForBooking;
-  status: "pending" | "accepted" | "declined" | "cancelled";
-  createdAt: string;
-}
 
 interface CustomerDetails {
   id: string;
@@ -142,7 +133,6 @@ export type {
   Wallet,
   Transaction,
   RideDetailsForBooking,
-  BookingDetails,
   CustomerDetails,
   ResubmissionData,
   NotificationDialogProps,

@@ -1,15 +1,33 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useMemo,
+} from "react";
 import { io, Socket } from "socket.io-client";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState, AppDispatch } from "@/shared/services/redux/store";
+import { RootState, AppDispatch, store } from "@/shared/services/redux/store";
 import { userLogout } from "@/shared/services/redux/slices/userAuthSlice";
 import { driverLogout } from "@/shared/services/redux/slices/driverAuthSlice";
 import { adminLogout } from "@/shared/services/redux/slices/adminAuthSlice";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { useNavigate } from "react-router-dom";
-import { hideRideMap } from "@/shared/services/redux/slices/rideSlice";
-import { hideRideMap as hideDriverRideMap } from "@/shared/services/redux/slices/driverRideSlice";
-import { setPaymentStatus } from "@/shared/services/redux/slices/rideSlice";
+import {
+  setPaymentStatus,
+  showRideMap as showRideMapUser,
+} from "@/shared/services/redux/slices/rideSlice";
+import {
+  showRideRequestNotification,
+  hideRideMap as hideRideMapDriver,
+  showRideMap as showRideMapDriver,
+  hideRideRequestNotification,
+} from "@/shared/services/redux/slices/driverRideSlice";
+import {
+  RideRequest,
+} from "@/shared/types/driver/ridetype";
+import { useLoading } from "@/shared/hooks/useLoading";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -27,24 +45,50 @@ interface SocketProviderProps {
   children: ReactNode;
 }
 
-const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL_SOCKET;
+const SOCKET_URL = import.meta.env.VITE_API_REALTIME_SERVICE;
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const { showLoading, hideLoading } = useLoading();
 
-  const { user, driver, admin, role } = useSelector((state: RootState) => ({
-    user: state.user,
-    driver: state.driver,
-    admin: state.admin,
-    role: state.user.role || state.driver.role || state.admin.role,
-  }));
+  const user = useSelector((state: RootState) => state.user);
+  const driver = useSelector((state: RootState) => state.driver);
+  const admin = useSelector((state: RootState) => state.admin);
+  const role = user.role || driver.role || admin.role;
 
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const connectionInfo = useMemo(() => {
+    if (role === "User") {
+      return {
+        id: user.user_id,
+        token: localStorage.getItem("userToken"),
+        refreshToken: localStorage.getItem("refreshToken"),
+      };
+    }
+    if (role === "Driver") {
+      return {
+        id: driver.driverId,
+        token: localStorage.getItem("driverToken"),
+        refreshToken: localStorage.getItem("DriverRefreshToken"),
+      };
+    }
+    if (role === "Admin") {
+      return {
+        id: admin._id,
+        token: localStorage.getItem("adminToken"),
+        refreshToken: localStorage.getItem("adminRefreshToken"),
+      };
+    }
+    return { id: undefined, token: null, refreshToken: null };
+  }, [role, user.user_id, driver.driverId, admin._id]);
 
   useEffect(() => {
-    const activeRoles = [user.role, driver.role, admin.role].filter(Boolean).length;
+    const activeRoles = [user.role, driver.role, admin.role].filter(
+      Boolean
+    ).length;
     if (activeRoles > 1) {
       console.error("Multiple roles detected. Logging out.");
       dispatch(userLogout());
@@ -54,51 +98,43 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    let id: string | undefined;
-    let token: string | null = null;
-    let refreshToken: string | null = null;
-
-    if (role === "User") {
-      id = user.user_id;
-      token = localStorage.getItem("userToken");
-      refreshToken = localStorage.getItem("refreshToken");
-    } else if (role === "Driver") {
-      id = driver.driverId;
-      token = localStorage.getItem("driverToken");
-      refreshToken = localStorage.getItem("DriverRefreshToken");
-    } else if (role === "Admin") {
-      id = admin._id;
-      token = localStorage.getItem("adminToken");
-      refreshToken = localStorage.getItem("adminRefreshToken");
-    }
-
-    if (!id || !role || !SOCKET_URL || !token) {
-      console.warn("Missing id, role, SOCKET_URL, or token. Disconnecting socket.");
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setIsConnected(false);
-      }
+    if (!role || !connectionInfo.id || !SOCKET_URL || !connectionInfo.token) {
+      console.warn("Missing connection details. Disconnecting socket.");
+      socket?.disconnect();
+      setSocket(null);
+      setIsConnected(false);
       return;
     }
+    console.log("SOCKET_URL", SOCKET_URL);
 
-    const newSocket = io(SOCKET_URL, {
-      query: { token, refreshToken },
+    const socketInstance = io(SOCKET_URL, {
+      query: {
+        token: connectionInfo.token,
+        refreshToken: connectionInfo.refreshToken || "",
+      },
       transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
-
-    setSocket(newSocket);
-
-    newSocket.on("connect", () => {
-      console.log(`${role} socket connected: ${id}`);
-      setIsConnected(true);
-      newSocket.emit("register", { userId: id, role });
+    socketInstance.on("connect_error", (err) => {
+      console.error("Socket connect error:", err.message);
     });
+    setSocket(socketInstance);
 
-    newSocket.on("tokens-updated", ({ token, refreshToken }) => {
+    // Event handlers
+    const handleConnect = () => {
+      console.log(`${role} socket connected: ${connectionInfo.id}`);
+      setIsConnected(true);
+    };
+
+    const handleTokensUpdated = ({
+      token,
+      refreshToken,
+    }: {
+      token: string;
+      refreshToken: string;
+    }) => {
       console.log("Tokens updated:", { role, token, refreshToken });
       if (role === "User") {
         localStorage.setItem("userToken", token);
@@ -110,21 +146,25 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         localStorage.setItem("adminToken", token);
         localStorage.setItem("adminRefreshToken", refreshToken);
       }
-    });
+    };
 
-    newSocket.on("error", (error: string) => {
+    const handleError = (error: string) => {
       console.error("Socket error:", error);
       setIsConnected(false);
-      dispatch(showNotification({ type: "error", message: `Socket error: ${error}` }));
-    });
+      dispatch(
+        showNotification({ type: "error", message: `Socket error: ${error}` })
+      );
+    };
 
-    newSocket.on("disconnect", () => {
-      console.log(`${role} socket disconnected: ${id}`);
+    const handleDisconnect = () => {
+      console.log(`${role} socket disconnected: ${connectionInfo.id}`);
       setIsConnected(false);
-    });
+    };
 
-    newSocket.on("user-blocked", () => {
-      console.log(`User-blocked event received for ${role}: ${id}`);
+    const handleUserBlocked = () => {
+      console.log(
+        `User-blocked event received for ${role}: ${connectionInfo.id}`
+      );
       dispatch(
         showNotification({
           type: "admin-blocked",
@@ -132,46 +172,139 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           navigate: "/login",
         })
       );
-      if (role === "User") {
-        dispatch(userLogout());
-      } else if (role === "Driver") {
-        dispatch(driverLogout());
-      } else if (role === "Admin") {
-        dispatch(adminLogout());
-      }
+      if (role === "User") dispatch(userLogout());
+      else if (role === "Driver") dispatch(driverLogout());
+      else if (role === "Admin") dispatch(adminLogout());
       navigate("/login");
-    });
+    };
 
-    newSocket.on("rideCompleted",({bookingId,userId,role})=>{ 
-      if(role=="user"){
-       dispatch(setPaymentStatus("pending"))
-       navigate("/payment");
-
+    const handleRideCompleted = ({
+      bookingId,
+      userId,
+      role: rideRole,
+    }: any) => {
+      if (rideRole === "user") {
+        dispatch(setPaymentStatus("pending"));
+        navigate("/payment");
       }
-    })
+    };
 
-newSocket.on("canceled", (data) => {
-  
-  if (data.user) {
-    dispatch(hideRideMap()); 
-    dispatch(showNotification({ type: "success", message: `Ride canceled` }));
-  } else {
-    dispatch(hideDriverRideMap()); 
-    dispatch(showNotification({ type: "info", message: `Ride canceled by user. You're now offline. Enable online and start ride.` }));
-  }
-});
+    const handleCanceled = (data: any) => {
+      if (data.user) {
+        dispatch(hideRideMapDriver());
+        dispatch(
+          showNotification({ type: "success", message: `Ride canceled` })
+        );
+      } else {
+        dispatch(hideRideMapDriver());
+        dispatch(
+          showNotification({
+            type: "info",
+            message: `Ride canceled by user. You're now offline. Enable online and start ride.`,
+          })
+        );
+      }
+    };
+
+    const handleRideRequestAccept = (data: any) => {
+      hideLoading();
+
+      const latestNotificationData: RideRequest | null =
+        store.getState().driverRideMap.notificationData;
+
+      dispatch(
+        showRideMapDriver({
+          ...latestNotificationData,
+          status: "accepted",
+        } as any)
+      );
+
+      navigate("/driver/rideTracking");
+      dispatch(hideRideRequestNotification());
+    };
+
+    // add inside SocketProvider useEffect after socketInstance created:
+    const handleRideRequest = (rideRequest: RideRequest) => {
+      if (!rideRequest || !rideRequest.bookingDetails.bookingId) {
+        dispatch(
+          showNotification({
+            type: "error",
+            message: "Invalid ride request data",
+            data: null,
+            navigate: "",
+          })
+        );
+        return;
+      }
+
+      dispatch(showRideRequestNotification(rideRequest));
+
+      // you can also trigger sound here globally
+      const audio = new Audio("/uber_tune.mp3");
+      audio.play().catch(() => {});
+    };
+
+    const handleDriverAssigned = (data: any) => {
+      showLoading({
+        isLoading: true,
+        loadingMessage: "driver accept",
+        loadingType: "ride-search",
+        progress: 100,
+      });
+
+      dispatch(
+        showNotification({
+          type: "success",
+          message: data.message || `Ride status: ${data.status}`,
+          data: {
+            rideId: data.ride_id,
+            driverId:
+              data.status === "Accepted" ? data.driverDetails.driverId : null,
+          },
+          navigate: "/ride-tracking",
+        })
+      );
+      dispatch(showRideMapUser(data));
+      hideLoading();
+    };
+
+    const handleNoDriver = (data: any) => {
+      hideLoading();
+      dispatch(
+        showNotification({
+          type: "info",
+          message: data.message,
+        })
+      );
+    };
+
+    // Register events
+    socketInstance.on("connect", handleConnect);
+    socketInstance.on("token_refreshed", handleTokensUpdated);
+    socketInstance.on("error", handleError);
+    socketInstance.on("disconnect", handleDisconnect);
+    socketInstance.on("user-blocked", handleUserBlocked);
+    socketInstance.on("rideCompleted", handleRideCompleted);
+    socketInstance.on("canceled", handleCanceled);
+    socketInstance.on("ride:request", handleRideRequest);
+    socketInstance.on("booking:accept:result", handleRideRequestAccept);
+    socketInstance.on("booking:driver:assigned", handleDriverAssigned);
+    socketInstance.on("booking:no_drivers", handleNoDriver);
+    // Cleanup
     return () => {
-      console.log(`Cleaning up socket for ${role}: ${id}`);
-      newSocket.off("connect");
-      newSocket.off("tokens-updated");
-      newSocket.off("error");
-      newSocket.off("user-blocked");
-      newSocket.off("rideStatus");
-      newSocket.disconnect();
+      console.log(`Cleaning up socket for ${role}: ${connectionInfo.id}`);
+      socketInstance.off("connect", handleConnect);
+      socketInstance.off("tokens-updated", handleTokensUpdated);
+      socketInstance.off("error", handleError);
+      socketInstance.off("disconnect", handleDisconnect);
+      socketInstance.off("user-blocked", handleUserBlocked);
+      socketInstance.off("rideCompleted", handleRideCompleted);
+      socketInstance.off("canceled", handleCanceled);
+      socketInstance.disconnect();
       setSocket(null);
       setIsConnected(false);
     };
-  }, [user.user_id, driver.driverId, admin._id, role, dispatch, navigate]);
+  }, [role, connectionInfo, dispatch, navigate]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

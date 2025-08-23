@@ -15,8 +15,6 @@ import {
   Ban,
 } from "lucide-react";
 import { DriverDetailsTabProps } from "./type";
-import { geocodeLatLng } from "@/shared/utils/locationToAddress";
-import { useJsApiLoader } from "@react-google-maps/api";
 
 const documentGroups = [
   { label: "Driver Image", value: "driverImage" },
@@ -41,13 +39,7 @@ const DriverDetailsTab = ({
   handleVerification,
 }: DriverDetailsTabProps) => {
   const navigate = useNavigate();
-  const [driverAddress, setDriverAddress] = useState("Loading...");
-  const libraries: "places"[] = ["places"];
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-    libraries,
-  });
   const getTodayEarnings = () => {
     if (!driver?.rideDetails?.totalEarnings) return 0;
 
@@ -56,24 +48,7 @@ const DriverDetailsTab = ({
       .filter((earning) => new Date(earning.date).toDateString() === today)
       .reduce((total, earning) => total + earning.amount, 0);
   };
-
-  useEffect(() => {
-    const fetchAddress = async () => {
-      if (isLoaded && driver?.location) {
-        try {
-          const address = await geocodeLatLng(
-            driver.location.latitude,
-            driver.location.longitude
-          );
-          setDriverAddress(address);
-        } catch (error) {
-          console.error(error);
-          setDriverAddress("Address not available");
-        }
-      }
-    };
-    fetchAddress();
-  }, [isLoaded, driver?.location]);
+console.log("driver",driver);
 
   const todayEarnings = getTodayEarnings();
 
@@ -128,7 +103,7 @@ const DriverDetailsTab = ({
                     Address
                   </p>
                   <p className="text-gray-800 text-xs break-words">
-                    {driverAddress}
+                    {driver.location.address}
                   </p>
                 </div>
               </div>

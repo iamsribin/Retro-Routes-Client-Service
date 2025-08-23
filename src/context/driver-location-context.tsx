@@ -11,10 +11,10 @@ import { toast } from "@/shared/hooks/use-toast";
 import { useSocket } from "@/context/socket-context";
 import { geocodeLatLng } from "@/shared/utils/locationToAddress";
 import { useJsApiLoader } from "@react-google-maps/api";
-import { LocationCoordinates } from "../shared/types/commonTypes";
+import { Coordinates, LocationCoordinates } from "../shared/types/commonTypes";
 
 interface DriverLocationContextType {
-  driverLocation: LocationCoordinates | null;
+  driverLocation: Coordinates | null;
 }
 
 const DriverLocationContext = createContext<DriverLocationContextType>({
@@ -28,8 +28,9 @@ interface Props {
 }
 
 export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
-  const [driverLocation, setDriverLocation] =
-    useState<LocationCoordinates | null>(null);
+  const [driverLocation, setDriverLocation] = useState<Coordinates | null>(
+    null
+  );
   const { socket, isConnected } = useSocket();
 
   const libraries: "places"[] = ["places"];
@@ -41,6 +42,7 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
 
   const isOnline = useSelector((state: RootState) => state.driver.isOnline);
   const driverId = useSelector((state: RootState) => state.driver.driverId);
+  const role = useSelector((state: RootState) => state.driver.role);
 
   useEffect(() => {
     let watchId: number;
@@ -63,26 +65,24 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
           const coords = {
-    // latitude:11.050994,
-    // longitude: 76.071157,
-      latitude: 11.2488242,
-       longitude: 75.783924
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
           };
           if (isLoaded) {
-            const address = await geocodeLatLng(
-              coords.latitude,
-              coords.longitude
-            );
-            const fullLocation: LocationCoordinates = {
+            // const address = await geocodeLatLng(
+            //   coords.latitude,
+            //   coords.longitude
+            // );
+            const fullLocation: Coordinates = {
               ...coords,
-              address,
+              // address,
             };
 
             setDriverLocation(fullLocation);
             console.log("driver coords", fullLocation);
 
             if (socket && isConnected) {
-              socket.emit("driverLocation", {
+              socket.emit("location:update", {
                 driverId,
                 ...coords,
               });
@@ -110,6 +110,16 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
   }, [isOnline, socket, driverId, isConnected]);
+
+  useEffect(() => {
+    if (isOnline && socket && role === "Driver") {
+      const interval = setInterval(() => {
+        socket.emit("ping");
+      }, 60 * 1000); // every 1 minute
+
+      return () => clearInterval(interval);
+    }
+  }, [isOnline, socket, role]);
 
   return (
     <DriverLocationContext.Provider value={{ driverLocation }}>

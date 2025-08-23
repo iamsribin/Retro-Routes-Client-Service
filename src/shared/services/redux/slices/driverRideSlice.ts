@@ -1,56 +1,87 @@
-import { LocationCoordinates, Message } from "@/shared/types/commonTypes";
-import { DriverRideRequest } from "@/shared/types/driver/ridetype";
+import { Coordinates, Message } from "@/shared/types/commonTypes";
+import {
+  DriverRideRequestSlice,
+  RideRequest,
+} from "@/shared/types/driver/ridetype";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface RideState {
   isOpen: boolean;
-  rideData: DriverRideRequest | null;
+  isRideNotificationOpen: boolean;
+  notificationData: RideRequest | null;
+  rideData: RideRequest | null;
 }
 
 const initialState: RideState = {
   isOpen: false,
   rideData: null,
+  isRideNotificationOpen: false,
+  notificationData: null,
 };
 
 const RideMapSlice = createSlice({
   name: "DriverRideMap",
   initialState,
   reducers: {
-    showRideMap: (state, action: PayloadAction<DriverRideRequest>) => {
+    showRideMap: (state, action: PayloadAction<RideRequest>) => {
       state.isOpen = true;
       state.rideData = {
         ...action.payload,
         chatMessages: action.payload.chatMessages ?? [],
-        status: action.payload.status ?? 'accepted',
+        // status: action.payload.status ?? "accepted",
       };
+    },
+    showRideRequestNotification: (state, action: PayloadAction<RideRequest>) => {
+      state.isRideNotificationOpen = true;
+      state.notificationData = { ...action.payload };
+    },
+    hideRideRequestNotification: (state) => {
+      state.isRideNotificationOpen = false;
+      state.notificationData = null;
     },
     hideRideMap: (state) => {
       state.isOpen = false;
       state.rideData = null;
     },
-    updateRideStatus: (state, action: PayloadAction<{
-      requestId: string;
-    status: DriverRideRequest['status'];
-      driverCoordinates?: LocationCoordinates;
-    }>) => {
-      if (state.rideData && state.rideData.requestId === action.payload.requestId) {
-        state.rideData.status = action.payload.status;
-        if (action.payload.driverCoordinates) {
-          state.rideData.pickup = action.payload.driverCoordinates;
-        }
+    updateRideStatus: (
+      state,
+      action: PayloadAction<{
+        bookingId: string;
+        status: DriverRideRequestSlice["status"];
+        driverCoordinates?: Coordinates;
+      }>
+    ) => {
+      if (
+        state.rideData &&
+        state.rideData.bookingDetails.bookingId === action.payload.bookingId
+      ) {
+        state.rideData.bookingDetails.status = action.payload.status;
+        // if (action.payload.driverCoordinates) {
+        //   state.rideData.bookingDetails = action.payload.driverCoordinates;
+        // }
         state.rideData.chatMessages = state.rideData.chatMessages ?? [];
       }
     },
-    addChatMessage: (state, action: PayloadAction<{
-      requestId: string;
-      message: Message;
-    }>) => {
-      if (state.rideData && state.rideData.requestId === action.payload.requestId) {
-        state.rideData.chatMessages = [...(state.rideData.chatMessages ?? []), action.payload.message];
+    addChatMessage: (
+      state,
+      action: PayloadAction<{
+        bookingId: string;
+        message: Message;
+      }>
+    ) => {
+      if (
+        state.rideData &&
+        state.rideData.bookingDetails.bookingId === action.payload.bookingId
+      ) {
+        state.rideData.chatMessages = [
+          ...(state.rideData.chatMessages ?? []),
+          action.payload.message,
+        ];
       }
     },
   },
 });
 
-export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage } = RideMapSlice.actions;
+export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage,showRideRequestNotification,hideRideRequestNotification } =
+  RideMapSlice.actions;
 export default RideMapSlice;

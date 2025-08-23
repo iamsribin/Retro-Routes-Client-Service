@@ -9,6 +9,8 @@ import useRideSocket from "@/shared/hooks/useRideSocket";
 
 const DriverRideMap: React.FC = () => {
   const { isOpen, rideData } = useSelector((state: RootState) => state.driverRideMap);
+  console.log("rideData",rideData);
+  
   const [activeSection, setActiveSection] = useState<"info" | "messages">("info");
   const [unreadCount, setUnreadCount] = useState<number>(0);
 
@@ -49,7 +51,7 @@ const DriverRideMap: React.FC = () => {
         <CardHeader className="pb-3 px-4 pt-4">
           <CardTitle className="text-base sm:text-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="truncate">{rideData.status}</span>
+              <span className="truncate">{rideData.bookingDetails.status}</span>
             </div>
           </CardTitle>
           <div className="flex border-b border-gray-200">

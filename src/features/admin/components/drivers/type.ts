@@ -20,7 +20,7 @@ interface Feedback {
 }
 
 interface DriverDetailsTabProps {
-  driver: (Omit<DriverInterface, 'password' | 'referralCode' | '_id'> & { _id: string });
+  driver: (Omit<DriverInterface, 'password' | 'referralCode' | '_id'>);
   note: string;
   setNote: (value: string) => void;
   isRejecting: boolean;

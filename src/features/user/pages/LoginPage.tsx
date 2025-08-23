@@ -14,9 +14,12 @@ import { useUserApi, useUserApiRequest } from "@/shared/hooks/apiHooks";
 import ApiEndpoints from "@/constants/api-end-pointes";
 import { DecodedToken } from "../components/forms/type";
 import { UserAuthData } from "@/shared/types/user/userTypes";
+// import { useLoading } from "@/shared/hooks/useLoading";
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+    //  const {hideLoading} =useLoading()
+    //   hideLoading()
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [userData, setUserData] = useState<UserAuthData>({
     user: "",
@@ -49,7 +52,10 @@ const Login = () => {
         throw new Error(error || "API request failed");
       }
 
-      if (response.message === "Success") {
+      console.log("responseresponse==",response);
+      
+
+      if (response.message === "Authentication successful") {
         const role = response.role as "User" | "Admin";
         localStorage.setItem("role", role);
         localStorage.setItem(role === "Admin" ? "adminToken" : "userToken", response.token);

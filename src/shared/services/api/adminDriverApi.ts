@@ -12,7 +12,7 @@ export const fetchAdminDrivers = {
     signal?: AbortSignal
   ): Promise<Res_getDriversListByAccountStatus[]> => {
     try {
-      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_VERIFIED_DRIVERS, { signal });
+      const { data } = await axiosAdmin(dispatch).get(ApiEndpoints.ADMIN_GET_DRIVERS, { signal });
       return data;
     } catch (error: any) {
       if (!isAbortError(error)) toast.error(error?.message || "Failed to fetch active drivers");

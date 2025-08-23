@@ -6,6 +6,7 @@ interface DriverAuthState {
   loggedIn: boolean;
   role: "Driver" | "";
   isOnline: boolean;
+  OnlineTimestamp: Date | null
 }
 
 const initialState: DriverAuthState = {
@@ -13,7 +14,8 @@ const initialState: DriverAuthState = {
   driverId: "",
   loggedIn: false,
   role: "",
-  isOnline:false
+  isOnline:false,
+  OnlineTimestamp:null,
 };
 
 const driverAuthSlice = createSlice({
@@ -24,12 +26,12 @@ const driverAuthSlice = createSlice({
       state,
       action: PayloadAction<{
         name: string;
-        driver_id: string;
+        driverId: string;
         role: "Driver";
       }>
     ) => {
       state.name = action.payload.name;
-      state.driverId = action.payload.driver_id;
+      state.driverId = action.payload.driverId;
       state.loggedIn = true;
       state.role = action.payload.role;
     },
@@ -38,19 +40,21 @@ const driverAuthSlice = createSlice({
       state.driverId = "";
       state.loggedIn = false;
       state.role = "";
+      state.isOnline = false;
       localStorage.removeItem("role");
       localStorage.removeItem("driverToken");
       localStorage.removeItem("DriverRefreshToken");
       localStorage.removeItem("driverId");
     },
-    setOnline: (
-      state,
-      action: PayloadAction<{
-      onlineStatus:boolean
-      }>
-    ) => {
-        state.isOnline = action.payload.onlineStatus
-    }
+setOnline: (
+  state,
+  action: PayloadAction<{
+    onlineStatus: boolean;
+  }>
+) => {
+  state.isOnline = action.payload.onlineStatus;
+  state.OnlineTimestamp = action.payload.onlineStatus ? new Date() : null;
+}
   },
 });
 
