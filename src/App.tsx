@@ -15,11 +15,10 @@ import { initAxios } from "./shared/services/axios/initAxios";
 import { useDispatch } from "react-redux";
 
 function App() {
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    initAxios(dispatch);
-  }, [dispatch]);
+  // const dispatch = useDispatch();
+  // useEffect(() => {
+  //   initAxios(dispatch);
+  // }, [dispatch]);
 
   return (
     <ChakraProvider>

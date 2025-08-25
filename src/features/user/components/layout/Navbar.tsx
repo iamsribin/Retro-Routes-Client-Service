@@ -4,8 +4,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Logo } from "@/assets";
 import { Menu, X, User, Clock, ChevronDown } from 'lucide-react';
 import { useDispatch, useSelector } from "react-redux";
-import { userLogout } from "@/shared/services/redux/slices/userAuthSlice";
-import logoutLocalStorage from "@/shared/utils/localStorage";
+import { handleLogout } from "@/shared/utils/handleLogout";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -87,8 +86,7 @@ const Navbar: React.FC = () => {
                     <Link to="/driver/login" className="block px-4 py-2 text-sm hover:bg-gray-100 rounded-md smooth-transition">Login as Driver</Link>
                     <Link to="/login" className="block px-4 py-2 text-sm hover:bg-gray-100 rounded-md smooth-transition"
                      onClick={() => {
-                      dispatch(userLogout()); 
-                      logoutLocalStorage("User")
+                      handleLogout("User",dispatch);
                     }}
                      >Logout</Link>
                   </div>

@@ -3,8 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { toast } from "sonner";
 import "./SignupMap.scss";
-mapboxgl.accessToken = import.meta.env.VITE_MPBOX_ACCESS_TOKEN;
-
+mapboxgl.accessToken = import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN;
 interface MapProps {
   latitude: number;
   longitude: number;

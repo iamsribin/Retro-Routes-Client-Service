@@ -4,10 +4,19 @@ import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import {
   PhoneCall,
   MessageSquare,
@@ -20,17 +29,30 @@ import {
   Camera,
 } from "lucide-react";
 import { Feature, LineString } from "geojson";
-import { hideRideMap, updateRideStatus, addChatMessage } from "@/shared/services/redux/slices/rideSlice";
+import {
+  hideRideMap,
+  updateRideStatus,
+  addChatMessage,
+} from "@/shared/services/redux/slices/rideSlice";
 import { RootState } from "@/shared/services/redux/store";
 import { useSocket } from "@/context/socket-context";
-import axiosUser from "@/shared/services/axios/userAxios";
 import { toast } from "sonner";
 import Webcam from "react-webcam";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/shared/components/ui/dialog";
 import { RideStatusData } from "@/shared/types/user/rideTypes";
-import { Coordinates, Message } from "@/shared/types/commonTypes";
+import { Coordinates, Message, ResponseCom } from "@/shared/types/commonTypes";
+import { postData } from "@/shared/services/api/api-service";
+import ApiEndpoints from "@/constants/api-end-pointes";
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOKEN;
+mapboxgl.accessToken = import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN;
 
 const videoConstraints = {
   width: { ideal: 1280 },
@@ -51,13 +73,17 @@ const RideTrackingPage: React.FC = () => {
   const [arrivalTime, setArrivalTime] = useState<string>("Calculating...");
   const [tripDistance, setTripDistance] = useState<string>("");
   const [mapReady, setMapReady] = useState<boolean>(false);
-  const [activeSection, setActiveSection] = useState<"info" | "messages">("info");
+  const [activeSection, setActiveSection] = useState<"info" | "messages">(
+    "info"
+  );
   const [messageInput, setMessageInput] = useState<string>("");
   const [canCancelTrip, setCanCancelTrip] = useState<boolean>(true);
   const [cancelTimeLeft, setCancelTimeLeft] = useState<number>(30);
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [isCameraOpen, setIsCameraOpen] =useState<boolean>(false);
-  const [imageSource, setImageSource] = useState<"camera" | "file" | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+  const [imageSource, setImageSource] = useState<"camera" | "file" | null>(
+    null
+  );
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
 
   const dispatch = useDispatch();
@@ -79,7 +105,9 @@ const RideTrackingPage: React.FC = () => {
         if (typeof values.selectedImage === "string") {
           const response = await fetch(values.selectedImage);
           const blob = await response.blob();
-          file = new File([blob], `capture_${Date.now()}.jpg`, { type: "image/jpeg" });
+          file = new File([blob], `capture_${Date.now()}.jpg`, {
+            type: "image/jpeg",
+          });
         } else {
           file = values.selectedImage;
         }
@@ -87,9 +115,11 @@ const RideTrackingPage: React.FC = () => {
         const formData = new FormData();
         formData.append("file", file);
 
-        const data = await axiosUser(dispatch).post("/uploadChatFile", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const data = await postData<ResponseCom["data"]>(
+          ApiEndpoints.UPLOAD_CHAT_FILE,
+          "User",
+          formData
+        );
 
         if (data.data.fileUrl) {
           const timestamp = new Date().toISOString();
@@ -194,7 +224,11 @@ const RideTrackingPage: React.FC = () => {
 
     const handleRideStatus = (data: RideStatusData) => {
       console.log("Received rideStatus:", data);
-      if (data.status === "cancelled" || data.status === "Failed" || data.status === "RideFinished") {
+      if (
+        data.status === "cancelled" ||
+        data.status === "Failed" ||
+        data.status === "RideFinished"
+      ) {
         dispatch(hideRideMap());
         localStorage.removeItem("cancelTimerStart");
       } else {
@@ -205,7 +239,10 @@ const RideTrackingPage: React.FC = () => {
             driverCoordinates: data.driverCoordinates,
           })
         );
-        if (data.status === "DriverComingToPickup" || data.status === "RideStarted") {
+        if (
+          data.status === "DriverComingToPickup" ||
+          data.status === "RideStarted"
+        ) {
           setCanCancelTrip(false);
           localStorage.removeItem("cancelTimerStart");
         }
@@ -245,7 +282,10 @@ const RideTrackingPage: React.FC = () => {
       }
     };
 
-    const handleDriverLocationUpdate = (data: { driverId: string; coordinates: Coordinates }) => {
+    const handleDriverLocationUpdate = (data: {
+      driverId: string;
+      coordinates: Coordinates;
+    }) => {
       console.log("Received driverLocationUpdate:", data);
       const parsedCoords = parseCoords(data.coordinates);
       if (parsedCoords && driverMarkerRef.current && mapInstanceRef.current) {
@@ -260,7 +300,9 @@ const RideTrackingPage: React.FC = () => {
         adjustMapBounds(mapInstanceRef.current);
         fetchTripRoute(mapInstanceRef.current);
       } else {
-        console.warn("Cannot update driver marker: Invalid coordinates or marker/map not initialized");
+        console.warn(
+          "Cannot update driver marker: Invalid coordinates or marker/map not initialized"
+        );
       }
     };
 
@@ -292,13 +334,21 @@ const RideTrackingPage: React.FC = () => {
     }
   }, [rideData?.chatMessages]);
 
-  const parseCoords = (coords: Coordinates | undefined): [number, number] | null => {
+  const parseCoords = (
+    coords: Coordinates | undefined
+  ): [number, number] | null => {
     if (!coords) {
       console.warn("Coordinates are undefined");
       return null;
     }
-    const lat = typeof coords.latitude === "string" ? parseFloat(coords.latitude) : coords.latitude;
-    const lng = typeof coords.longitude === "string" ? parseFloat(coords.longitude) : coords.longitude;
+    const lat =
+      typeof coords.latitude === "string"
+        ? parseFloat(coords.latitude)
+        : coords.latitude;
+    const lng =
+      typeof coords.longitude === "string"
+        ? parseFloat(coords.longitude)
+        : coords.longitude;
     if (isNaN(lat) || isNaN(lng)) {
       console.warn("Invalid coordinates:", { lat, lng, coords });
       return null;
@@ -330,11 +380,19 @@ const RideTrackingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isOpen || !rideData || !mapContainerRef.current || mapInstanceRef.current) return;
+    if (
+      !isOpen ||
+      !rideData ||
+      !mapContainerRef.current ||
+      mapInstanceRef.current
+    )
+      return;
 
-    if (!import.meta.env.VITE_MAPBOX_ACCESSTOKEN) {
+    if (!import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN) {
       console.error("Mapbox access token is missing");
-      toast.error("Mapbox access token is missing. Please check your environment variables.");
+      toast.error(
+        "Mapbox access token is missing. Please check your environment variables."
+      );
       return;
     }
 
@@ -373,7 +431,10 @@ const RideTrackingPage: React.FC = () => {
           .setLngLat(driverCoords)
           .addTo(map);
 
-        if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
+        if (
+          rideData.status === "Accepted" ||
+          rideData.status === "DriverComingToPickup"
+        ) {
           const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
           if (pickupCoords) {
             pickupMarkerRef.current = new mapboxgl.Marker({
@@ -422,21 +483,31 @@ const RideTrackingPage: React.FC = () => {
   }, [isOpen, rideData]);
 
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapReady || !rideData || !rideData.booking) return;
+    if (!mapInstanceRef.current || !mapReady || !rideData || !rideData.booking)
+      return;
 
     const driverCoords = parseCoords(rideData.driverCoordinates);
     if (driverCoords && driverMarkerRef.current) {
       driverMarkerRef.current.setLngLat(driverCoords);
     } else {
-      console.warn("Cannot update driver marker: Invalid coordinates or marker not initialized");
+      console.warn(
+        "Cannot update driver marker: Invalid coordinates or marker not initialized"
+      );
     }
 
-    if (rideData.status === "RideStarted" || rideData.status === "RideFinished") {
+    if (
+      rideData.status === "RideStarted" ||
+      rideData.status === "RideFinished"
+    ) {
       if (pickupMarkerRef.current) {
         pickupMarkerRef.current.remove();
         pickupMarkerRef.current = null;
       }
-    } else if ((rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") && !pickupMarkerRef.current) {
+    } else if (
+      (rideData.status === "Accepted" ||
+        rideData.status === "DriverComingToPickup") &&
+      !pickupMarkerRef.current
+    ) {
       const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
       if (pickupCoords && mapInstanceRef.current) {
         pickupMarkerRef.current = new mapboxgl.Marker({
@@ -475,7 +546,10 @@ const RideTrackingPage: React.FC = () => {
 
     const bounds = new mapboxgl.LngLatBounds(driverCoords, driverCoords);
 
-    if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
+    if (
+      rideData.status === "Accepted" ||
+      rideData.status === "DriverComingToPickup"
+    ) {
       const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
       if (pickupCoords) {
         bounds.extend(pickupCoords);
@@ -514,10 +588,16 @@ const RideTrackingPage: React.FC = () => {
     let destinationCoords: [number, number] | null = null;
     let routeColor: string = "#10b981"; // Green for pickup
 
-    if (rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") {
+    if (
+      rideData.status === "Accepted" ||
+      rideData.status === "DriverComingToPickup"
+    ) {
       destinationCoords = parseCoords(rideData.booking.pickupCoordinates);
       routeColor = "#10b981";
-    } else if (rideData.status === "RideStarted" || rideData.status === "RideFinished") {
+    } else if (
+      rideData.status === "RideStarted" ||
+      rideData.status === "RideFinished"
+    ) {
       destinationCoords = parseCoords(rideData.booking.dropoffCoordinates);
       routeColor = "#3b82f6"; // Blue for drop-off
     }
@@ -553,7 +633,9 @@ const RideTrackingPage: React.FC = () => {
         const route = data.routes[0];
 
         const durationMinutes = Math.round(route.duration / 60);
-        setArrivalTime(durationMinutes <= 1 ? "1 min" : `${durationMinutes} mins`);
+        setArrivalTime(
+          durationMinutes <= 1 ? "1 min" : `${durationMinutes} mins`
+        );
 
         const distanceKm = (route.distance / 1000).toFixed(1);
         setTripDistance(`${distanceKm} km`);
@@ -618,7 +700,10 @@ const RideTrackingPage: React.FC = () => {
 
   const handleCancelTrip = () => {
     if (socket && isConnected && rideData) {
-      socket.emit("cancelRide", { userId: rideData.userId, rideId: rideData.ride_id });
+      socket.emit("cancelRide", {
+        userId: rideData.userId,
+        rideId: rideData.ride_id,
+      });
       toast.info("Ride cancellation requested");
       setIsCancelDialogOpen(false);
     }
@@ -687,7 +772,10 @@ const RideTrackingPage: React.FC = () => {
   };
 
   const clearImageSelection = () => {
-    if (typeof formik.values.selectedImage !== "string" && formik.values.selectedImage) {
+    if (
+      typeof formik.values.selectedImage !== "string" &&
+      formik.values.selectedImage
+    ) {
       URL.revokeObjectURL(URL.createObjectURL(formik.values.selectedImage));
     }
     formik.setFieldValue("selectedImage", null);
@@ -739,7 +827,9 @@ const RideTrackingPage: React.FC = () => {
                   <p className="text-gray-600">Loading map...</p>
                 </>
               ) : (
-                <p className="text-red-600">Map cannot load: Missing Mapbox access token.</p>
+                <p className="text-red-600">
+                  Map cannot load: Missing Mapbox access token.
+                </p>
               )}
             </div>
           </div>
@@ -751,7 +841,8 @@ const RideTrackingPage: React.FC = () => {
           <CardHeader className="pb-3 px-4 pt-4">
             <CardTitle className="text-base sm:text-lg flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {rideData.status === "RideStarted" || rideData.status === "RideFinished" ? (
+                {rideData.status === "RideStarted" ||
+                rideData.status === "RideFinished" ? (
                   <Car className="h-4 w-4 text-blue-500" />
                 ) : (
                   <Clock className="h-4 w-4 text-emerald-500" />
@@ -856,7 +947,8 @@ const RideTrackingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {(rideData.status === "Accepted" || rideData.status === "DriverComingToPickup") && (
+                {(rideData.status === "Accepted" ||
+                  rideData.status === "DriverComingToPickup") && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h3 className="font-medium text-sm mb-3">Your Ride PIN:</h3>
                     <div className="text-2xl font-bold text-blue-700 tracking-wider mb-2 font-mono">
@@ -921,11 +1013,12 @@ const RideTrackingPage: React.FC = () => {
 
                 {canCancelTrip && rideData.status === "Accepted" && (
                   <div className="flex gap-3 pt-2">
-                    <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                    <Dialog
+                      open={isCancelDialogOpen}
+                      onOpenChange={setIsCancelDialogOpen}
+                    >
                       <DialogTrigger asChild>
-                        <Button
-                          className="flex-1 bg-red-500 hover:bg-red-600 h-12"
-                        >
+                        <Button className="flex-1 bg-red-500 hover:bg-red-600 h-12">
                           <X className="h-4 w-4 mr-2" />
                           Cancel Ride ({cancelTimeLeft}s)
                         </Button>
@@ -934,7 +1027,8 @@ const RideTrackingPage: React.FC = () => {
                         <DialogHeader>
                           <DialogTitle>Cancel Ride</DialogTitle>
                           <DialogDescription>
-                            Are you sure you want to cancel your ride? This action cannot be undone.
+                            Are you sure you want to cancel your ride? This
+                            action cannot be undone.
                           </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
@@ -978,7 +1072,9 @@ const RideTrackingPage: React.FC = () => {
                         className="w-full rounded-lg"
                         onUserMediaError={(error) => {
                           console.error("Webcam error:", error);
-                          toast.error("Failed to access camera. Please check permissions and try again.");
+                          toast.error(
+                            "Failed to access camera. Please check permissions and try again."
+                          );
                           stopCamera();
                         }}
                       />
@@ -1058,7 +1154,8 @@ const RideTrackingPage: React.FC = () => {
                 )}
 
                 <div className="h-40 sm:h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3">
-                  {(!rideData.chatMessages || rideData.chatMessages.length === 0) && (
+                  {(!rideData.chatMessages ||
+                    rideData.chatMessages.length === 0) && (
                     <p className="text-center text-gray-500 text-sm">
                       No messages yet.
                     </p>
@@ -1066,22 +1163,33 @@ const RideTrackingPage: React.FC = () => {
                   {rideData.chatMessages?.map((message, index) => (
                     <div
                       key={index}
-                      className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                      className={`flex ${
+                        message.sender === "user"
+                          ? "justify-end"
+                          : "justify-start"
+                      }`}
                     >
                       <div className="max-w-[70%]">
                         {message.type === "text" && message.content && (
                           <div
                             className={`p-3 rounded-lg text-sm ${
-                              message.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
+                              message.sender === "user"
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-200 text-gray-800"
                             }`}
                           >
                             <p>{message.content}</p>
                             <p
                               className={`text-xs mt-1 ${
-                                message.sender === "user" ? "text-blue-100" : "text-gray-500"
+                                message.sender === "user"
+                                  ? "text-blue-100"
+                                  : "text-gray-500"
                               }`}
                             >
-                              {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {new Date(message.timestamp).toLocaleTimeString(
+                                [],
+                                { hour: "2-digit", minute: "2-digit" }
+                              )}
                             </p>
                           </div>
                         )}
@@ -1091,14 +1199,21 @@ const RideTrackingPage: React.FC = () => {
                               src={message.fileUrl}
                               alt="Shared content"
                               className="max-w-[200px] h-auto rounded-lg"
-                              onError={(e) => console.log("Image load failed:", e)}
+                              onError={(e) =>
+                                console.log("Image load failed:", e)
+                              }
                             />
                             <p
                               className={`text-xs mt-1 text-right ${
-                                message.sender === "user" ? "text-blue-500" : "text-gray-500"
+                                message.sender === "user"
+                                  ? "text-blue-500"
+                                  : "text-gray-500"
                               }`}
                             >
-                              {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {new Date(message.timestamp).toLocaleTimeString(
+                                [],
+                                { hour: "2-digit", minute: "2-digit" }
+                              )}
                             </p>
                           </div>
                         )}

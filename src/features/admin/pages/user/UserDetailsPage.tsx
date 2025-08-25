@@ -1,29 +1,30 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { axiosAdmin } from "@/shared/services/axios/adminAxios";
 import { toast } from "sonner";
 import { useFormik } from "formik";
-import { UserInterface } from "@/shared/types/types";
-import { useDispatch } from "react-redux";
 import { Eye } from "lucide-react";
 import { Button } from "@chakra-ui/react";
 import { userBlockUnblockValidation } from "@/shared/utils/validation";
 import ApiEndpoints from "@/constants/api-end-pointes";
 import { useSocket } from "@/context/socket-context";
+import { ResponseCom } from "@/shared/types/commonTypes";
+import {
+  fetchData,
+  patchData,
+} from "@/shared/services/api/api-service";
 
 const UserDetails = () => {
   const [statusModal, setStatusModal] = useState(false);
   const [reasonModal, setReasonModal] = useState(false);
-  const [userData, setUserData] = useState<UserInterface | null>(null);
+  const [userData, setUserData] = useState<ResponseCom["data"] | null>(null);
   const { id } = useParams();
-  const dispatch = useDispatch();
   const { socket, isConnected } = useSocket();
-  const adminAxios = axiosAdmin(dispatch);
 
   const getData = async () => {
     try {
-      const { data } = await adminAxios.get(
-        ApiEndpoints.ADMIN_USER_DETAILS + `?id=${id}`
+      const data = await fetchData<ResponseCom["data"]>(
+        ApiEndpoints.ADMIN_USER_DETAILS + `?id=${id}`,
+        "Admin"
       );
       setUserData(data);
     } catch (error) {
@@ -42,39 +43,39 @@ const UserDetails = () => {
       status: "",
     },
     validationSchema: userBlockUnblockValidation,
-onSubmit: async (values, { setSubmitting }) => {
-  try {
-    console.log('Admin updating user status:', values);
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
 
-    const { data } = await adminAxios.patch(
-      ApiEndpoints.ADMIN_UPDATE_USER_STATUS + `?id=${id}`,
-      values
-    );
+        const data = await patchData<ResponseCom["data"]>(
+          ApiEndpoints.ADMIN_UPDATE_USER_STATUS + `?id=${id}`,
+          "Admin",
+          values
+        );
 
-    console.log('Update user status response:', data);
+        if (data.message === "Success") {
+          setStatusModal(false);
+          toast.success("Status updated successfully!");
+          getData();
+          console.log("Socket status:", { socket, isConnected });
 
-    if (data.message === 'Success') {
-      setStatusModal(false);
-      toast.success('Status updated successfully!');
-      getData();
-      console.log('Socket status:', { socket, isConnected });
-
-      if (socket && isConnected && values.status === 'Block') {
-        console.log(`Emitting block-user event for userId: ${data.userId}`);
-        socket.emit('block-user', { userId: data.userId });
-      } else {
-        console.warn('Socket not connected or status is not Block. Cannot emit block-user event.');
+          if (socket && isConnected && values.status === "Block") {
+            console.log(`Emitting block-user event for userId: ${data.userId}`);
+            socket.emit("block-user", { userId: data.userId });
+          } else {
+            console.warn(
+              "Socket not connected or status is not Block. Cannot emit block-user event."
+            );
+          }
+        } else {
+          toast.error("Something went wrong");
+        }
+      } catch (error) {
+        console.error("Error updating user status:", error);
+        toast.error((error as Error).message);
+      } finally {
+        setSubmitting(false);
       }
-    } else {
-      toast.error('Something went wrong');
-    }
-  } catch (error) {
-    console.error('Error updating user status:', error);
-    toast.error((error as Error).message);
-  } finally {
-    setSubmitting(false);
-  }
-},
+    },
   });
 
   return (

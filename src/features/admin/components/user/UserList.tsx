@@ -13,23 +13,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/shared/components/ui/input";
 import { UserListProps } from "./type";
-
-// Custom hook for debounced value
-const useDebounce = (value: string, delay: number) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
+import { useDebounce } from "@/shared/hooks/useDebounce";
 
 interface ExtendedUserListProps extends UserListProps {
   onSearchChange: (search: string, page: number) => void;
@@ -56,9 +40,8 @@ const UserList: React.FC<ExtendedUserListProps> = ({
   // Debounce search term with 500ms delay
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Handle search change with debouncing
   useEffect(() => {
-    onSearchChange(debouncedSearchTerm, 1); // Always reset to page 1 on search
+    onSearchChange(debouncedSearchTerm, 1); 
   }, [debouncedSearchTerm, onSearchChange]);
 
   const handlePageChange = useCallback((page: number) => {

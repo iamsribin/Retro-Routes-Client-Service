@@ -5,13 +5,17 @@ enum AppRoutes {
     USER_HOME = '',
     DASHBOARD = 'dashboard',
     PROFILE = 'profile',
+    PAYMENT = "payment",
 
     // Authentication Routes - Driver
     DRIVER_IDENTIFICATION = 'identification',
     DRIVER_RESUBMISSION = 'resubmission',
+    TRIPS = "trips",
+    DOCUMENTS = "documents",
+    GET_MY_TRIP_DETAILS = "getMyTripDetails",
 
     // Driver Routes
-
+    RIDE_TRACKING="ride-tracking",
     // Admin Routes
     ADMIN_USERS = 'users',
     ADMIN_USER_DETAILS = 'userDetails',

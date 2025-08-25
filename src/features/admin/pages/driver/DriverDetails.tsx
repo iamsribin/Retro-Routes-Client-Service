@@ -12,17 +12,26 @@ import DriverDetailsTab from "@/features/admin/components/drivers/DriverDetailsT
 import DriverDocumentsTab from "@/features/admin/components/drivers/DriverDocumentsTab";
 import DriverAccountTab from "@/features/admin/components/drivers/DriverAccountTab";
 import { DriverInterface } from "@/shared/types/driver/driverType";
-import { fetchAdminDrivers } from "@/shared/services/api/adminDriverApi";
 import { isAbortError } from "@/shared/utils/checkAbortControllerError";
+import { fetchData, postData } from "@/shared/services/api/api-service";
+import ApiEndpoints from "@/constants/api-end-pointes";
+import { ResponseCom } from "@/shared/types/commonTypes";
 
 const PendingDriverDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [driver, setDriver] = useState<(Omit<DriverInterface, 'password' | 'referralCode' | '_id'> & { _id: string }) | null>(null);
+  const [driver, setDriver] = useState<
+    | (Omit<DriverInterface, "password" | "referralCode" | "_id"> & {
+        _id: string;
+      })
+    | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
+  const [selectedImage, setSelectedImage] = useState<string | undefined>(
+    undefined
+  );
   const [isRejecting, setIsRejecting] = useState(false);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
 
@@ -32,15 +41,21 @@ const PendingDriverDetails = () => {
 
     const fetchDriver = async () => {
       try {
-        const data = await fetchAdminDrivers.fetchDriverDetails(dispatch, id!, signal);
-        setDriver(data);        
+        setLoading(true);
+        const data = await fetchData<ResponseCom["data"]>(
+          `${ApiEndpoints.ADMIN_DRIVER_DETAILS}/${id}`,
+          "Admin",
+          signal
+        );
+        setDriver(data);
       } catch (error: any) {
-     if (!isAbortError(error)) toast.error(error?.message || "Failed to update driver status");
+        if (!isAbortError(error))
+          toast.error(error?.message || "Failed to update driver status");
         console.error("Error fe tch Driver details", error);
       } finally {
         setLoading(false);
-      } 
-    }; 
+      }
+    };
 
     if (id) {
       fetchDriver();
@@ -63,15 +78,24 @@ const PendingDriverDetails = () => {
       return;
     }
 
-    const payload = status === "Rejected"
-      ? { status: "Rejected", note: note.trim(), fields }
-      : { status, note: note.trim() };
+    const payload =
+      status === "Rejected"
+        ? { status: "Rejected", note: note.trim(), fields }
+        : { status, note: note.trim() };
 
     try {
-      const response = await fetchAdminDrivers.updateDriverStatus(dispatch, id!, payload);
+       const response = await postData<ResponseCom["data"]>(
+        `${ApiEndpoints.ADMIN_UPDATE_DRIVER_STATUS}${id}`,
+        "Admin",
+        payload
+      );
 
       if (response.status === 200 || response.status === 202) {
-        toast.success(`Driver ${status === "Rejected" ? "rejected and set to Pending" : status} successfully`);
+        toast.success(
+          `Driver ${
+            status === "Rejected" ? "rejected and set to Pending" : status
+          } successfully`
+        );
         navigate("/admin/drivers");
       } else {
         toast.error(response.data || "Something went wrong");
@@ -119,36 +143,38 @@ const PendingDriverDetails = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="text-right">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{driver.name || 'Unknown Driver'}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+                {driver.name || "Unknown Driver"}
+              </h1>
               <p className="text-sm text-gray-500 capitalize">
-                Status: {driver.accountStatus || 'Unknown'}
+                Status: {driver.accountStatus || "Unknown"}
               </p>
             </div>
           </div>
-          
+
           <Card className="bg-white border border-gray-200 shadow-md rounded-2xl overflow-hidden">
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="grid grid-cols-3 bg-gray-100 p-2 rounded-t-2xl">
-                <TabsTrigger 
-                  value="details" 
+                <TabsTrigger
+                  value="details"
                   className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm"
                 >
                   Details
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="documents" 
+                <TabsTrigger
+                  value="documents"
                   className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm"
                 >
                   Documents
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="account" 
+                <TabsTrigger
+                  value="account"
                   className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm"
                 >
                   Account
                 </TabsTrigger>
               </TabsList>
-              
+
               <DriverDetailsTab
                 driver={driver}
                 note={note}
@@ -159,30 +185,31 @@ const PendingDriverDetails = () => {
                 setSelectedFields={setSelectedFields}
                 handleVerification={handleVerification}
               />
-              
-              <DriverDocumentsTab 
-                driver={driver} 
-                setSelectedImage={setSelectedImage} 
-              />
-              
-              <DriverAccountTab 
+
+              <DriverDocumentsTab
                 driver={driver}
+                setSelectedImage={setSelectedImage}
               />
+
+              <DriverAccountTab driver={driver} />
             </Tabs>
           </Card>
         </div>
       </div>
-      
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(undefined)}>
+
+      <Dialog
+        open={!!selectedImage}
+        onOpenChange={() => setSelectedImage(undefined)}
+      >
         <DialogContent className="max-w-4xl bg-white border-none rounded-2xl p-0">
           {selectedImage && (
-            <img 
-              src={selectedImage} 
-              alt="Zoomed document" 
+            <img
+              src={selectedImage}
+              alt="Zoomed document"
               className="w-full h-auto rounded-2xl"
               onError={(e) => {
-                e.currentTarget.src = '/placeholder-image.png';
-                console.error('Error loading image:', selectedImage);
+                e.currentTarget.src = "/placeholder-image.png";
+                console.error("Error loading image:", selectedImage);
               }}
             />
           )}

@@ -1,27 +1,36 @@
-import React, { useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { User, Wallet, MapPin, FileText, LogOut, LayoutDashboard } from 'lucide-react';
-import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/shared/components/ui/navigation-menu";
+import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import {
+  User,
+  Wallet,
+  MapPin,
+  FileText,
+  LogOut,
+  LayoutDashboard,
+} from "lucide-react";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuList,
+} from "@/shared/components/ui/navigation-menu";
 import { useDispatch } from "react-redux";
-import { driverLogout } from "@/shared/services/redux/slices/driverAuthSlice";
-import logoutLocalStorage from "@/shared/utils/localStorage";
+import { handleLogout } from "@/shared/utils/handleLogout";
 
 const DriverNavbar: React.FC = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const handleLogout = () => {
-    dispatch(driverLogout());
-    logoutLocalStorage("Driver");
-    navigate('/login');
+  const logoutHandle = () => {
+    handleLogout("Driver", dispatch);
   };
 
   // Define common link styles
   const linkStyles = (isActive: boolean) => `
     flex items-center p-3 w-full rounded-lg transition-colors
-    ${isActive 
-      ? 'bg-blue-100 text-blue-600 font-semibold' 
-      : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'}
+    ${
+      isActive
+        ? "bg-blue-100 text-blue-600 font-semibold"
+        : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+    }
   `;
 
   return (
@@ -29,8 +38,8 @@ const DriverNavbar: React.FC = () => {
       <NavigationMenu orientation="vertical" className="w-full">
         <NavigationMenuList className="flex flex-row sm:flex-col justify-around sm:justify-start sm:space-y-2 w-full">
           <NavigationMenuItem className="w-full">
-            <NavLink 
-              to="/driver/dashboard" 
+            <NavLink
+              to="/driver/dashboard"
               className={({ isActive }) => linkStyles(isActive)}
             >
               <LayoutDashboard className="mr-0 sm:mr-3 h-5 w-5" />
@@ -38,8 +47,8 @@ const DriverNavbar: React.FC = () => {
             </NavLink>
           </NavigationMenuItem>
           <NavigationMenuItem className="w-full">
-            <NavLink 
-              to="/driver/profile" 
+            <NavLink
+              to="/driver/profile"
               className={({ isActive }) => linkStyles(isActive)}
             >
               <User className="mr-0 sm:mr-3 h-5 w-5" />
@@ -47,8 +56,8 @@ const DriverNavbar: React.FC = () => {
             </NavLink>
           </NavigationMenuItem>
           <NavigationMenuItem className="w-full">
-            <NavLink 
-              to="/driver/wallet" 
+            <NavLink
+              to="/driver/wallet"
               className={({ isActive }) => linkStyles(isActive)}
             >
               <Wallet className="mr-0 sm:mr-3 h-5 w-5" />
@@ -56,8 +65,8 @@ const DriverNavbar: React.FC = () => {
             </NavLink>
           </NavigationMenuItem>
           <NavigationMenuItem className="w-full">
-            <NavLink 
-              to="/driver/trips" 
+            <NavLink
+              to="/driver/trips"
               className={({ isActive }) => linkStyles(isActive)}
             >
               <MapPin className="mr-0 sm:mr-3 h-5 w-5" />
@@ -65,8 +74,8 @@ const DriverNavbar: React.FC = () => {
             </NavLink>
           </NavigationMenuItem>
           <NavigationMenuItem className="w-full">
-            <NavLink 
-              to="/driver/documents" 
+            <NavLink
+              to="/driver/documents"
               className={({ isActive }) => linkStyles(isActive)}
             >
               <FileText className="mr-0 sm:mr-3 h-5 w-5" />
@@ -74,8 +83,8 @@ const DriverNavbar: React.FC = () => {
             </NavLink>
           </NavigationMenuItem>
           <NavigationMenuItem className="w-full hidden sm:block">
-            <button 
-              onClick={handleLogout}
+            <button
+              onClick={logoutHandle}
               className="flex items-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors text-left text-gray-600 hover:text-gray-900"
             >
               <LogOut className="mr-3 h-5 w-5" />

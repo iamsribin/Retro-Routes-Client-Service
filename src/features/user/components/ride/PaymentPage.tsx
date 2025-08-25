@@ -13,7 +13,8 @@ import { CreditCard, Wallet, Banknote, MapPin, Clock, Route, Star, CheckCircle, 
 import { RootState } from '@/shared/services/redux/store';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import userAxios from '@/shared/services/axios/userAxios';
+import { postData } from '@/shared/services/api/api-service';
+import { ResponseCom } from '@/shared/types/commonTypes';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
 
@@ -27,14 +28,13 @@ const CheckoutForm: React.FC<{ bookingId: string; userId: string; driverId: stri
   const elements = useElements();
   const dispatch = useDispatch();
   const { toast } = useToast();
-  const axiosUser = userAxios(dispatch)
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!stripe || !elements) return;
 
     dispatch(setPaymentStatus('pending'));
     try {
-      const { data } = await axiosUser.post('/payments/create-checkout-session', {
+      const data  = await postData<ResponseCom["data"]>('/payments/create-checkout-session',"User", {
         bookingId,
         userId,
         driverId,
@@ -66,7 +66,6 @@ const PaymentPage: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const axiosUser = userAxios(dispatch)
 
   const { paymentStatus, rideData } = useSelector((state: RootState) => state.RideMap);
   const { user } = useSelector((state: RootState) => state.user);
@@ -117,19 +116,19 @@ const PaymentPage: React.FC = () => {
 
     try {
       if (selectedPaymentMethod === 'cash') {
-        await axiosUser.post('/payments/cash-payment', {
-          bookingId: rideData?.booking.ride_id,
-          userId: rideData?.userDetails.user_id,
-          driverId: rideData?.driverDetails.driverId,
-          amount: rideData?.booking.price,
-        });
+        // await axiosUser.post('/payments/cash-payment', {
+        //   bookingId: rideData?.booking.ride_id,
+        //   userId: rideData?.userDetails.user_id,
+        //   driverId: rideData?.driverDetails.driverId,
+        //   amount: rideData?.booking.price,
+        // });
       } else if (selectedPaymentMethod === 'wallet') {
-        await axiosUser.post('/payments/wallet-payment', {
-          bookingId: rideData?.booking.ride_id,
-          userId: rideData?.userDetails.user_id,
-          driverId: rideData?.driverDetails.driverId,
-          amount: rideData?.booking.price,
-        });
+        // await axiosUser.post('/payments/wallet-payment', {
+        //   bookingId: rideData?.booking.ride_id,
+        //   userId: rideData?.userDetails.user_id,
+        //   driverId: rideData?.driverDetails.driverId,
+        //   amount: rideData?.booking.price,
+        // });
       }
     } catch (error) {
       // dispatch(setPaymentStatus('failed'));

@@ -13,11 +13,13 @@ import {
   SimpleGrid,
 } from "@chakra-ui/react";
 import { format } from "date-fns";
-import driverAxios from "@/shared/services/axios/driverAxios";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/shared/services/redux/store";
 import { ArrowLeft } from "lucide-react";
 import { Booking } from "@/shared/types/ride/ride";
+import { fetchData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { ResponseCom } from "@/shared/types/commonTypes";
 
 const BookingDetail: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -37,10 +39,12 @@ const BookingDetail: React.FC = () => {
       try {
         setLoading(true);
         console.log("Fetching booking with ID:", bookingId);
-        const response = await driverAxios(dispatch).get(
-          `/getMyTripDetails/${bookingId}`
+        // const response = await driverAxios(dispatch).get(`${bookingId}`);
+        const data = await fetchData<ResponseCom["data"]>(
+          `${DriverApiEndpoints.GET_MY_TRIP_DETAILS}/${bookingId}`,
+          "Driver"
         );
-        setBooking(response.data.data);
+        setBooking(data.data);
         setError(null);
       } catch (err: any) {
         console.error("Error fetching booking:", err);
@@ -91,7 +95,7 @@ const BookingDetail: React.FC = () => {
     const path = `path=${pickupCoordinates.latitude},${pickupCoordinates.longitude}|${dropoffCoordinates.latitude},${dropoffCoordinates.longitude}`;
     const url = `https://maps.googleapis.com/maps/api/staticmap?size=400x300&${path}&markers=color:red|${pickupCoordinates.latitude},${pickupCoordinates.longitude}&markers=color:blue|${dropoffCoordinates.latitude},${dropoffCoordinates.longitude}&key=${apiKey}`;
 
-    console.log("Generated Map URL:", url); 
+    console.log("Generated Map URL:", url);
     return url;
   };
 

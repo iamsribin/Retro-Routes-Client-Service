@@ -45,9 +45,11 @@ const ResubmissionPage: React.FC = () => {
   useEffect(() => {
     const controller = new AbortController();
     const fetchResubmissionData = async () => {
+      
       const data = await fetchData<ResponseCom>(
         DriverApiEndpoints.DRIVER_RESUBMISSION + `/${driverId}`,
-        "Driver"
+        "Driver",
+        controller.signal
       );
 
       const fields: string[] = data.data?.fields;

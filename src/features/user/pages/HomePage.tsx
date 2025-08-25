@@ -7,8 +7,11 @@ import Testimonials from '../components/home/Testimonials';
 import CTA from '../components/home/CTA';
 import RideBooking from '../components/home/RideBooking';
 import HowItWorks from '../components/home/HowItWorks';
+import { useLoading } from '@/shared/hooks/useLoading';
 
 const Index: React.FC = () => {
+// const  {showLoading,hideLoading} = useLoading()
+// hideLoading()
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />

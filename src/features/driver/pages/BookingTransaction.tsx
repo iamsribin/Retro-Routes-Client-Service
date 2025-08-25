@@ -1,42 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  Table, 
-  Thead, 
-  Tbody, 
-  Tr, 
-  Th, 
-  Td, 
-  Button, 
-  Select, 
-  Input, 
-  Flex, 
-  Text, 
-  Spinner, 
-  Alert, 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Button,
+  Select,
+  Input,
+  Flex,
+  Text,
+  Spinner,
+  Alert,
   AlertIcon,
   HStack,
-} from '@chakra-ui/react';
-import { format, subDays } from 'date-fns';
+} from "@chakra-ui/react";
+import { format, subDays } from "date-fns";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/shared/services/redux/store";
-import driverAxios from "@/shared/services/axios/driverAxios";
-import DriverNavbar from '../components/DriverNavbar';
-import { Calendar } from 'lucide-react';
-import { BookingListType } from './type';
+import DriverNavbar from "../components/DriverNavbar";
+import { Calendar } from "lucide-react";
+import { BookingListType } from "./type";
+import { fetchData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { ResponseCom } from "@/shared/types/commonTypes";
 
 const BookingList: React.FC = () => {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<BookingListType[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<BookingListType[]>([]);
+  const [filteredBookings, setFilteredBookings] = useState<BookingListType[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState<string>("All");
   const [startDate, setStartDate] = useState<string>(
-    format(subDays(new Date(), 30), 'yyyy-MM-dd')
+    format(subDays(new Date(), 30), "yyyy-MM-dd")
   );
-  const [endDate, setEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState<string>(
+    format(new Date(), "yyyy-MM-dd")
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const bookingsPerPage = 10;
 
@@ -49,14 +55,17 @@ const BookingList: React.FC = () => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        const response = await driverAxios(dispatch).get(`/getMyTrips`);
-        console.log("getBookingHistory",response.data);
+        // const response = await driverAxios(dispatch).get();
+        const data = await fetchData<ResponseCom["data"]>(
+          DriverApiEndpoints.GET_MY_TRIPS,
+          "Driver"
+        );
         
-        setBookings(response.data.data);
-        setFilteredBookings(response.data.data);
+        setBookings(data);
+        setFilteredBookings(data);
         setError(null);
       } catch (err) {
-        setError('Failed to fetch bookings');
+        setError("Failed to fetch bookings");
         console.error(err);
       } finally {
         setLoading(false);
@@ -67,15 +76,17 @@ const BookingList: React.FC = () => {
 
   useEffect(() => {
     let filtered = bookings;
-    
-    if (statusFilter !== 'All') {
-      filtered = filtered.filter(booking => booking.status === statusFilter);
+
+    if (statusFilter !== "All") {
+      filtered = filtered.filter((booking) => booking.status === statusFilter);
     }
 
     if (startDate && endDate) {
-      filtered = filtered.filter(booking => {
+      filtered = filtered.filter((booking) => {
         const bookingDate = new Date(booking.date);
-        return bookingDate >= new Date(startDate) && bookingDate <= new Date(endDate);
+        return (
+          bookingDate >= new Date(startDate) && bookingDate <= new Date(endDate)
+        );
       });
     }
 
@@ -85,7 +96,10 @@ const BookingList: React.FC = () => {
 
   const indexOfLastBooking = currentPage * bookingsPerPage;
   const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
-  const currentBookings = filteredBookings.slice(indexOfFirstBooking, indexOfLastBooking);
+  const currentBookings = filteredBookings.slice(
+    indexOfFirstBooking,
+    indexOfLastBooking
+  );
   const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
 
   const handlePageChange = (page: number) => {
@@ -93,44 +107,56 @@ const BookingList: React.FC = () => {
   };
 
   const handleView = (bookingId: string) => {
-    console.log("bookingId",bookingId);
-    
+    console.log("bookingId", bookingId);
+
     navigate(`/driver/getMyTripDetails/${bookingId}`);
   };
 
   return (
     <Box minH="100vh" w="full">
-      <Flex 
-        direction={{ base: 'column', sm: 'row' }} 
-        h="full"
-        w="full"
-      >
-        <Box 
-          w={{ base: '100%', sm: '60' }} 
+      <Flex direction={{ base: "column", sm: "row" }} h="full" w="full">
+        <Box
+          w={{ base: "100%", sm: "60" }}
           flexShrink={0}
           p={0}
           className="bg-white shadow-lg"
         >
           <DriverNavbar />
         </Box>
-        <Box 
-          flex="1" 
-          p={{ base: 2, sm: 4 }} 
-          ml={{ sm: 0 }} 
-          pl={{ sm: '60px' }}
+        <Box
+          flex="1"
+          p={{ base: 2, sm: 4 }}
+          ml={{ sm: 0 }}
+          pl={{ sm: "60px" }}
           w="full"
         >
-          <Text fontSize={{ base: 'xl', sm: '2xl' }} mb={4} fontWeight="bold" display="flex" alignItems="center">
+          <Text
+            fontSize={{ base: "xl", sm: "2xl" }}
+            mb={4}
+            fontWeight="bold"
+            display="flex"
+            alignItems="center"
+          >
             <Calendar className="mr-2 h-5 w-5 sm:h-6 sm:w-6" /> Booking List
           </Text>
 
-          <Flex mb={4} wrap="wrap" gap={2} direction={{ base: 'column', sm: 'row' }}>
-            <Box flex={{ base: '1', sm: '1' }} minW={{ base: 'full', sm: '200px' }}>
-              <Text mb={1} fontSize={{ base: 'sm', sm: 'md' }}>Filter by Status</Text>
-              <Select 
-                value={statusFilter} 
+          <Flex
+            mb={4}
+            wrap="wrap"
+            gap={2}
+            direction={{ base: "column", sm: "row" }}
+          >
+            <Box
+              flex={{ base: "1", sm: "1" }}
+              minW={{ base: "full", sm: "200px" }}
+            >
+              <Text mb={1} fontSize={{ base: "sm", sm: "md" }}>
+                Filter by Status
+              </Text>
+              <Select
+                value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                size={{ base: 'sm', sm: 'md' }}
+                size={{ base: "sm", sm: "md" }}
               >
                 <option value="All">All</option>
                 <option value="Completed">Completed</option>
@@ -140,22 +166,32 @@ const BookingList: React.FC = () => {
                 <option value="Confirmed">Confirmed</option>
               </Select>
             </Box>
-            <Box flex={{ base: '1', sm: '1' }} minW={{ base: 'full', sm: '200px' }}>
-              <Text mb={1} fontSize={{ base: 'sm', sm: 'md' }}>Start Date</Text>
+            <Box
+              flex={{ base: "1", sm: "1" }}
+              minW={{ base: "full", sm: "200px" }}
+            >
+              <Text mb={1} fontSize={{ base: "sm", sm: "md" }}>
+                Start Date
+              </Text>
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                size={{ base: 'sm', sm: 'md' }}
+                size={{ base: "sm", sm: "md" }}
               />
             </Box>
-            <Box flex={{ base: '1', sm: '1' }} minW={{ base: 'full', sm: '200px' }}>
-              <Text mb={1} fontSize={{ base: 'sm', sm: 'md' }}>End Date</Text>
+            <Box
+              flex={{ base: "1", sm: "1" }}
+              minW={{ base: "full", sm: "200px" }}
+            >
+              <Text mb={1} fontSize={{ base: "sm", sm: "md" }}>
+                End Date
+              </Text>
               <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                size={{ base: 'sm', sm: 'md' }}
+                size={{ base: "sm", sm: "md" }}
               />
             </Box>
           </Flex>
@@ -171,7 +207,7 @@ const BookingList: React.FC = () => {
           {!loading && !error && (
             <>
               <Box overflowX="auto">
-                <Table variant="simple" size={{ base: 'sm', sm: 'md' }}>
+                <Table variant="simple" size={{ base: "sm", sm: "md" }}>
                   <Thead>
                     <Tr>
                       <Th>Pickup</Th>
@@ -188,14 +224,14 @@ const BookingList: React.FC = () => {
                       <Tr key={booking._id}>
                         <Td>{booking.pickupLocation}</Td>
                         <Td>{booking.dropoffLocation}</Td>
-                        <Td>{booking.distance || 'N/A'}</Td>
-                        <Td>${booking.price?.toFixed(2) || 'N/A'}</Td>
-                        <Td>{format(new Date(booking.date), 'PPp')}</Td>
+                        <Td>{booking.distance || "N/A"}</Td>
+                        <Td>${booking.price?.toFixed(2) || "N/A"}</Td>
+                        <Td>{format(new Date(booking.date), "PPp")}</Td>
                         <Td>{booking.status}</Td>
                         <Td>
-                          <Button 
-                            size={{ base: 'xs', sm: 'sm' }} 
-                            colorScheme="blue" 
+                          <Button
+                            size={{ base: "xs", sm: "sm" }}
+                            colorScheme="blue"
                             onClick={() => handleView(booking._id)}
                           >
                             View
@@ -209,24 +245,26 @@ const BookingList: React.FC = () => {
 
               <HStack mt={4} justify="center" spacing={2}>
                 <Button
-                  size={{ base: 'sm', sm: 'md' }}
+                  size={{ base: "sm", sm: "md" }}
                   onClick={() => handlePageChange(currentPage - 1)}
                   isDisabled={currentPage === 1}
                 >
                   Previous
                 </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    size={{ base: 'sm', sm: 'md' }}
-                    onClick={() => handlePageChange(page)}
-                    colorScheme={currentPage === page ? 'blue' : 'gray'}
-                  >
-                    {page}
-                  </Button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <Button
+                      key={page}
+                      size={{ base: "sm", sm: "md" }}
+                      onClick={() => handlePageChange(page)}
+                      colorScheme={currentPage === page ? "blue" : "gray"}
+                    >
+                      {page}
+                    </Button>
+                  )
+                )}
                 <Button
-                  size={{ base: 'sm', sm: 'md' }}
+                  size={{ base: "sm", sm: "md" }}
                   onClick={() => handlePageChange(currentPage + 1)}
                   isDisabled={currentPage === totalPages}
                 >

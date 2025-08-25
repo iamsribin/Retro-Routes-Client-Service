@@ -10,12 +10,12 @@ import { useSocket } from "@/context/socket-context";
 import { RootState } from "@/shared/services/redux/store";
 import { setOnline } from "@/shared/services/redux/slices/driverAuthSlice";
 import { CircleDollarSign, Clock, Navigation2, Star } from "lucide-react";
-import { useJsApiLoader } from "@react-google-maps/api";
-import createAxios from "@/shared/services/axios/driverAxios";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { useLoading } from "@/shared/hooks/useLoading";
+import { postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { ResponseCom } from "@/shared/types/commonTypes";
 
-const libraries: "places"[] = ["places"];
 
 const DriverDashboard: React.FC = () => {
   const dispatch = useDispatch();
@@ -31,7 +31,7 @@ const DriverDashboard: React.FC = () => {
     (state: RootState) => state.driver.OnlineTimestamp
   );
 
-  const axiosDriver = createAxios(dispatch);
+  // const axiosDriver = createAxios(dispatch);
 // hideLoading()
 
 
@@ -141,17 +141,26 @@ const DriverDashboard: React.FC = () => {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             const { latitude, longitude } = position.coords;
-
-            try {
-              const { data } = await axiosDriver.post("/handle-online-change", {
-                online: checked,
+            const request = {
+                       online: checked,
                 driverId,
                 onlineTimestamp: OnlineTimestamp,
                 location: {
                   lat: latitude,
                   lng: longitude,
                 },
-              });
+            }
+            try {
+              const data = await postData<ResponseCom["data"]>(DriverApiEndpoints.HANDLE_ONLINE_CHANGE,"Driver",request)
+              // const { data } = await axiosDriver.post("/handle-online-change", {
+                //            online: checked,
+                // driverId,
+                // onlineTimestamp: OnlineTimestamp,
+                // location: {
+                //   lat: latitude,
+                //   lng: longitude,
+                // }
+              // });
 
               if (data.status === 200) {
                 if (!checked) {

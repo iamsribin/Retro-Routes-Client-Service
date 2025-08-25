@@ -6,9 +6,10 @@ enum ApiEndpoints {
   USER_REFRESH_TOKEN = '/user/refresh-token',
   USER_LOGOUT = '/user/logout',
   USER_CHECK_GOOGLE_LOGIN ="/checkGoogleLoginUser",
-
+  CHECK_USER ='/checkUser',
   RESENT_OTP = "/resendOtp",
 
+  UPLOAD_CHAT_FILE = "/uploadChatFile",
   // Authentication APIs - Driver Service
   DRIVER_LOGIN = '/driver/login',
   DRIVER_SIGNUP = '/driver/signup',
@@ -18,6 +19,7 @@ enum ApiEndpoints {
   USER_PROFILE = '/user/profile',
   USER_HOME = '/user/home',
   USER_CHECK_LOGIN = "/checkLoginUser",
+  BOOK_MY_CAB="/book-my-cab",
 
   // Driver APIs - Driver Service
 

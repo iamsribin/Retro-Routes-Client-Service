@@ -126,6 +126,8 @@ const DriverLoginForm = ({
         })
       );
       removeItem("driverId");
+      console.log("enthign dashboard");
+      
       navigate("/driver/dashboard");
     } catch {
       toast.error("Enter a valid OTP");

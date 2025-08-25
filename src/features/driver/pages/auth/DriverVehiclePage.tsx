@@ -57,7 +57,7 @@ function Vehicle() {
           return;
         }
         await postData(
-          DriverApiEndpoints.DRIVER_ADD_VEHICLE_DETAILS,
+          `${DriverApiEndpoints.DRIVER_ADD_VEHICLE_DETAILS}?driverId=${driverId}`,
           "Driver",
           formData
         );

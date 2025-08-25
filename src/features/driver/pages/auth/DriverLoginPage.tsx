@@ -14,7 +14,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { DriverAuthData } from "@/shared/types/driver/driverType";
 import PendingModal from "@/shared/components/PendingModal";
 import RejectedModal from "@/shared/components/RejectModal";
-import { handleDriverGoogleLogin } from "@/shared/services/api/driverAuthApi";
 import { toast } from "sonner";
 import { openRejectedModal } from "@/shared/services/redux/slices/rejectModalSlice";
 import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";

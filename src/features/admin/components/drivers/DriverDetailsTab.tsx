@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TabsContent } from "@/shared/components/ui/tabs";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -41,10 +40,10 @@ const DriverDetailsTab = ({
   const navigate = useNavigate();
 
   const getTodayEarnings = () => {
-    if (!driver?.rideDetails?.totalEarnings) return 0;
+    if (!driver?.rideDetails?.Earnings) return 0;
 
     const today = new Date().toDateString();
-    return driver.rideDetails.totalEarnings
+    return driver.rideDetails.Earnings
       .filter((earning) => new Date(earning.date).toDateString() === today)
       .reduce((total, earning) => total + earning.amount, 0);
   };

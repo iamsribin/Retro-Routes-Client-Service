@@ -9,7 +9,6 @@ import useRideSocket from "@/shared/hooks/useRideSocket";
 
 const DriverRideMap: React.FC = () => {
   const { isOpen, rideData } = useSelector((state: RootState) => state.driverRideMap);
-  console.log("rideData",rideData);
   
   const [activeSection, setActiveSection] = useState<"info" | "messages">("info");
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -35,7 +34,7 @@ const DriverRideMap: React.FC = () => {
         {!mapReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="text-center">
-              {import.meta.env.VITE_MAPBOX_ACCESSTOKEN ? (
+              {import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN ? (
                 <>
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading map...</p>

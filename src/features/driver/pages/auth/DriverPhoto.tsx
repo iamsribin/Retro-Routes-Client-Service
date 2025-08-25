@@ -45,7 +45,8 @@ function DriverPhoto() {
 
           await postData(
             `${DriverApiEndpoints.DRIVER_UPLOAD_IMAGE}?driverId=${driverId}`,
-            "Driver"
+            "Driver",
+            formData
           );
           toast.success("Successfully uploaded image");
           setVehiclePage(true);

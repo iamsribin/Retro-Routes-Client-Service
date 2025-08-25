@@ -39,14 +39,18 @@ import {
 } from "@/shared/components/ui/dialog";
 import DriverNavbar from "@/features/driver/components/DriverNavbar";
 import { Alert, AlertDescription } from "@chakra-ui/react";
-import driverAxios from "@/shared/services/axios/driverAxios";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import * as yup from "yup";
 import { RootState } from "@/shared/services/redux/store";
-import { submitUpdatedDriverProfile } from "@/shared/services/api/driverApi";
 import { DriverProfileData } from "./type";
+import { fetchData, updateData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { ResponseCom } from "@/shared/types/commonTypes";
+import { handleLogout } from "@/shared/utils/handleLogout";
+import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
+import { StatusCode } from "@/shared/types/enum";
 
 interface EditValues {
   name: string;
@@ -122,9 +126,7 @@ const DriverProfile: React.FC = () => {
 
       try {
         setLoading(true);
-        const { data } = await driverAxios(dispatch).get<DriverProfileData>(
-          "/get-driver-profile"
-        );
+        const data = await fetchData<ResponseCom["data"]>(DriverApiEndpoints.GET_MY_PROFILE,"Driver")
         setDriverData(data);
         setEditValues({ name: data.name, profilePhoto: null });
       } catch (error) {
@@ -172,38 +174,50 @@ const DriverProfile: React.FC = () => {
     }
   };
 
-  const validateForm = async (
-    field: "name" | "profilePhoto"
-  ): Promise<boolean> => {
-    try {
-      await profileSchema.validate(
-        { [field]: editValues[field] },
-        { abortEarly: false }
-      );
-
-      setValidationErrors({});
-      return true;
-    } catch (err) {
-      if (err instanceof yup.ValidationError) {
-        const errors: { [key: string]: string } = {};
-        err.inner.forEach((error) => {
-          if (error.path) {
-            errors[error.path] = error.message;
-          }
-        });
-        setValidationErrors(errors);
-        return false;
-      }
-      return false;
-    }
-  };
-
   const handleSave = async (field: "name" | "profilePhoto") => {
     if (!driverId) {
       toast.error("Driver ID not found. Please log in again.");
       return;
     }
-     submitUpdatedDriverProfile(field,editValues,dispatch,setLoading)
+     try {
+             setLoading(true);
+         const formData = new FormData();
+         formData.append("field", field);
+         if (field === "name") {
+           formData.append("name", editValues.name);
+         } else if (field === "profilePhoto" && editValues.profilePhoto) {
+           formData.append("profilePhoto", editValues.profilePhoto);
+         }
+     
+         const data  = await updateData<ResponseCom["data"]>(
+           DriverApiEndpoints.UPDATE_DRIVER_PROFILE,"Driver",
+           formData,
+         );
+     
+         if (data.status == StatusCode.OK) {
+           handleLogout("Driver",dispatch);
+           dispatch(
+             showNotification({
+               type: "info",
+               message:
+                 "Profile updated successfully! Logging out for admin verification.",
+               data: null,
+               navigate: "/driver/login",
+             })
+           );
+         } else {
+           toast.error("something went wrong try later");
+         }
+       } catch (error: any) {
+         console.error("Error updating profile:", error);
+         toast.error(
+           error.response?.data?.message ||
+             "Failed to update profile. Please try again."
+         );
+       } finally {
+         setLoading(false);
+       }
+
   };
 
   const renderStars = (rating: number) => {

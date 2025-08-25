@@ -28,6 +28,8 @@ import {
   RideRequest,
 } from "@/shared/types/driver/ridetype";
 import { useLoading } from "@/shared/hooks/useLoading";
+import { getItem, setItem } from "@/shared/utils/localStorage";
+import { handleLogout } from "@/shared/utils/handleLogout";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -64,22 +66,22 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     if (role === "User") {
       return {
         id: user.user_id,
-        token: localStorage.getItem("userToken"),
-        refreshToken: localStorage.getItem("refreshToken"),
+        token: getItem("token"),
+        refreshToken: getItem("refreshToken"),
       };
     }
     if (role === "Driver") {
       return {
         id: driver.driverId,
-        token: localStorage.getItem("driverToken"),
-        refreshToken: localStorage.getItem("DriverRefreshToken"),
+        token: getItem("token"),
+        refreshToken: getItem("refreshToken"),
       };
     }
     if (role === "Admin") {
       return {
         id: admin._id,
-        token: localStorage.getItem("adminToken"),
-        refreshToken: localStorage.getItem("adminRefreshToken"),
+        token: getItem("token"),
+        refreshToken: getItem("refreshToken"),
       };
     }
     return { id: undefined, token: null, refreshToken: null };
@@ -105,7 +107,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsConnected(false);
       return;
     }
-    console.log("SOCKET_URL", SOCKET_URL);
 
     const socketInstance = io(SOCKET_URL, {
       query: {
@@ -135,17 +136,16 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       token: string;
       refreshToken: string;
     }) => {
-      console.log("Tokens updated:", { role, token, refreshToken });
-      if (role === "User") {
-        localStorage.setItem("userToken", token);
-        localStorage.setItem("refreshToken", refreshToken);
-      } else if (role === "Driver") {
-        localStorage.setItem("driverToken", token);
-        localStorage.setItem("DriverRefreshToken", refreshToken);
-      } else if (role === "Admin") {
-        localStorage.setItem("adminToken", token);
-        localStorage.setItem("adminRefreshToken", refreshToken);
-      }
+      setItem("token", token);
+      setItem("refreshToken", refreshToken);
+      // if (role === "User") {
+      // } else if (role === "Driver") {
+      //   setItem("token", token);
+      //   setItem("refreshToken", refreshToken);
+      // } else if (role === "Admin") {
+      //   setItem("token", token);
+      //   setItem("refreshToken", refreshToken);
+      // }
     };
 
     const handleError = (error: string) => {
@@ -172,9 +172,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           navigate: "/login",
         })
       );
-      if (role === "User") dispatch(userLogout());
-      else if (role === "Driver") dispatch(driverLogout());
-      else if (role === "Admin") dispatch(adminLogout());
+      if (role === "User") handleLogout("User",dispatch)
+      else if (role === "Driver") handleLogout("Driver",dispatch)
+      else if (role === "Admin") handleLogout("Admin",dispatch)
       navigate("/login");
     };
 
@@ -219,7 +219,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         } as any)
       );
 
-      navigate("/driver/rideTracking");
+      navigate("/driver/ride-tracking");
       dispatch(hideRideRequestNotification());
     };
 

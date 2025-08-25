@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-
 import DriverLoginPage from "../pages/auth/DriverLoginPage";
 import DriverSignupPage from "../pages/auth/DriverSignupPage";
 import ResubmissionPage from "../pages/auth/ResubmissionPage";
@@ -28,10 +27,10 @@ function DriverRoutes() {
       <Route path={AppRoutes.DRIVER_IDENTIFICATION} element={<ProtectedRoute allowedRole="Resubmission"><ResubmissionPage /></ProtectedRoute>} />
       <Route path={AppRoutes.DASHBOARD} element={<ProtectedRoute allowedRole={ROLE}><Dashboard/></ProtectedRoute>} />
       <Route path={AppRoutes.PROFILE} element={<ProtectedRoute allowedRole={ROLE}><DriverProfile/></ProtectedRoute>} />
-      <Route path="rideTracking" element={<ProtectedRoute allowedRole={ROLE}><DriverRideMap/></ProtectedRoute>} />
-      <Route path="trips" element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
-      <Route path="documents" element={<ProtectedRoute allowedRole={ROLE}><DriverDocuments/></ProtectedRoute>} />
-      <Route path="getMyTripDetails/:bookingId" element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
+      <Route path={AppRoutes.RIDE_TRACKING} element={<ProtectedRoute allowedRole={ROLE}><DriverRideMap/></ProtectedRoute>} />
+      <Route path={AppRoutes.TRIPS} element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
+      <Route path={AppRoutes.DOCUMENTS} element={<ProtectedRoute allowedRole={ROLE}><DriverDocuments/></ProtectedRoute>} />
+      <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
     </DriverLocationProvider>

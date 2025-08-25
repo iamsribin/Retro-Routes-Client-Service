@@ -3,13 +3,13 @@ import { useFormik } from "formik";
 import Webcam from "react-webcam";
 import { Button } from "@/shared/components/ui/button";
 import { Camera, X, Image } from "lucide-react";
-import driverAxios from "@/shared/services/axios/driverAxios";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 import { addChatMessage } from "@/shared/services/redux/slices/driverRideSlice";
 import { useSocket } from "@/context/socket-context";
-import { Message } from "@/shared/types/commonTypes";
-import { DriverRideRequest } from "@/shared/types/driver/ridetype";
+import { Message, ResponseCom } from "@/shared/types/commonTypes";
+import { postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 
 const videoConstraints = {
   width: { ideal: 1280 },
@@ -18,7 +18,7 @@ const videoConstraints = {
 };
 
 interface ImageCaptureProps {
-  rideData: DriverRideRequest;
+  rideData: ResponseCom["data"];
 }
 
 const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
@@ -27,7 +27,9 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
   const webcamRef = useRef<Webcam | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
-  const [imageSource, setImageSource] = useState<"camera" | "file" | null>(null);
+  const [imageSource, setImageSource] = useState<"camera" | "file" | null>(
+    null
+  );
 
   const formik = useFormik<{
     selectedImage: string | File | null;
@@ -43,7 +45,9 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
         if (typeof values.selectedImage === "string") {
           const response = await fetch(values.selectedImage);
           const blob = await response.blob();
-          file = new File([blob], `capture_${Date.now()}.jpg`, { type: "image/jpeg" });
+          file = new File([blob], `capture_${Date.now()}.jpg`, {
+            type: "image/jpeg",
+          });
         } else {
           file = values.selectedImage;
         }
@@ -51,9 +55,11 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
         const formData = new FormData();
         formData.append("file", file);
 
-        const data = await driverAxios(dispatch).post("/uploadChatFile", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const data = await postData<ResponseCom["data"]>(
+          DriverApiEndpoints.UPLOAD_CHAT_FILE,
+          "Driver",
+          formData
+        );
 
         if (data.data.fileUrl) {
           const timestamp = new Date().toISOString();
@@ -77,7 +83,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
 
           dispatch(
             addChatMessage({
-              requestId: rideData.requestId,
+              bookingId: rideData.bookingId,
               message,
             })
           );
@@ -126,7 +132,10 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
   };
 
   const clearImageSelection = () => {
-    if (typeof formik.values.selectedImage !== "string" && formik.values.selectedImage) {
+    if (
+      typeof formik.values.selectedImage !== "string" &&
+      formik.values.selectedImage
+    ) {
       URL.revokeObjectURL(URL.createObjectURL(formik.values.selectedImage));
     }
     formik.setFieldValue("selectedImage", null);
@@ -160,7 +169,9 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
               className="w-full rounded-lg"
               onUserMediaError={(error) => {
                 console.error("Webcam error:", error);
-                toast.error("Failed to access camera. Please check permissions and try again.");
+                toast.error(
+                  "Failed to access camera. Please check permissions and try again."
+                );
                 stopCamera();
               }}
             />

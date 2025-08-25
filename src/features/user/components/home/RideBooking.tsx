@@ -22,21 +22,19 @@ import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
-// import NotificationDialog from "@/shared/hooks/useNotificationDialog";
-import axiosUser from "@/shared/services/axios/userAxios";
 import { useDispatch, useSelector } from "react-redux";
 import { useSocket } from "@/context/socket-context";
-import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
-import { showRideMap } from "@/shared/services/redux/slices/rideSlice";
 import { RootState } from "@/shared/services/redux/store";
 import { RideStatusData } from "@/shared/types/user/rideTypes";
 import { BackendVehicle, VehicleOption } from "./type";
-import { NotificationState } from "@/shared/types/commonTypes";
+import { NotificationState, ResponseCom } from "@/shared/types/commonTypes";
 import { geocodeLatLng } from "@/shared/utils/locationToAddress";
 import { useNotification } from "@/shared/hooks/useNotificatiom";
 import { toast } from "sonner";
 import { useLoading } from "@/shared/hooks/useLoading";
 import { StatusCode } from "@/shared/types/enum";
+import { fetchData, postData } from "@/shared/services/api/api-service";
+import ApiEndpoints from "@/constants/api-end-pointes";
 
 const libraries: "places"[] = ["places"];
 const mapContainerStyle = {
@@ -68,7 +66,7 @@ const Ride: React.FC = () => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [directions, setDirections] =
     useState<google.maps.DirectionsResult | null>(null);
-    const {showLoading,hideLoading} = useLoading()
+  const { showLoading, hideLoading } = useLoading();
   const [distanceInfo, setDistanceInfo] = useState<{
     distance: string;
     duration: string;
@@ -87,7 +85,6 @@ const Ride: React.FC = () => {
     title: "",
     message: "",
   });
-  
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -103,58 +100,9 @@ const Ride: React.FC = () => {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_API_KEY,
     libraries,
   });
-              
-// hideLoading()
+
+  // hideLoading()
   useEffect(() => {
-    // const setupSocketListeners = () => {
-    //   if (!socket || !isConnected) return;
-
-    //   socket.on("rideStatus", (data: RideStatusData) => {
-    //     console.log("RideStatusData", data);
-
-    //     setIsSearching(false);
-    //     setShowVehicleSheet(false);
-    //     setRideStatus(data);
-    //     const notificationType = getNotificationType(data.status);
-    //     const navigateTo =
-    //       data.status === "Accepted" ? "/ride-tracking" : undefined;
-
-    //     dispatch(
-    //       showNotification({
-    //         type: notificationType,
-    //         message: data.message || `Ride status: ${data.status}`,
-    //         data: {
-    //           rideId: data.ride_id,
-    //           driverId:
-    //             data.status === "Accepted" ? data.driverDetails.driverId : null,
-    //         },
-    //         navigate: navigateTo,
-    //       })
-    //     );
-
-    //     if (
-    //       data.status === "Accepted" &&
-    //       data.driverCoordinates &&
-    //       data.booking?.pickupCoordinates
-    //     ) {
-    //       dispatch(showRideMap(data));
-    //       // fetchDriverRoute(data.driverCoordinates, {
-    //       //   lat: data.booking.pickupCoordinates.latitude,
-    //       //   lng: data.booking.pickupCoordinates.longitude,
-    //       // });
-    //     }
-    //   });
-
-    //   socket.on("error", (error: { message: string; code: string }) => {
-    //     setNotification({
-    //       open: true,
-    //       type: "error",
-    //       title: "Error",
-    //       message: error.message,
-    //     });
-    //   });
-    // };
-
     const getUserLocation = () => {
       if (!navigator.geolocation) return;
 
@@ -203,15 +151,14 @@ const Ride: React.FC = () => {
     }
   }, [useCurrentLocationAsPickup, userLocation]);
 
-
-
   const fetchVehicles = async (distanceInKm: number) => {
     try {
-      const response = await axiosUser(dispatch).get("/vehicles");
-      if (response.data.message === "Failed") {
-        throw new Error("Could not fetch vehicle options");
-      }
-      const data: BackendVehicle[] = response.data;
+      // const response = await axiosUser(dispatch).get();
+      const data = await fetchData<BackendVehicle[]>(
+        ApiEndpoints.ADMIN_VEHICLE_MODELS,
+        "User"
+      );
+
       const fetchedVehicles: VehicleOption[] = data.map((vehicle) => ({
         id: vehicle.vehicleModel.toLowerCase(),
         name: vehicle.vehicleModel,
@@ -303,17 +250,17 @@ const Ride: React.FC = () => {
       return;
     }
     setIsSearching(true);
-  
+
     try {
       if (!socket || !isConnected) {
         throw new Error("Socket not connected");
       }
       showLoading({
-        isLoading:true,
-        loadingMessage:"Searching nearby Drivers",
-        loadingType:"ride-search",
-        progress:30
-      })
+        isLoading: true,
+        loadingMessage: "Searching nearby Drivers",
+        loadingType: "ride-search",
+        progress: 30,
+      });
 
       const pickupLat =
         directions?.routes[0]?.legs[0]?.start_location?.lat() ??
@@ -374,28 +321,33 @@ const Ride: React.FC = () => {
         profile: user.profile,
       };
 
-       const{data} = await axiosUser(dispatch).post("/book-my-cab",bookingData);
-        setIsSearching(false);
-        setShowVehicleSheet(false);
-       if(data.status == StatusCode.Created){
-                showLoading({
-                  isLoading:true,
-                  loadingMessage:"Searching nearby Drivers",
-                  loadingType:"ride-search",
-                  progress:60
-                })
-              }
+      //  const{data} = await axiosUser(dispatch).post("/book-my-cab",bookingData);
+      const data = await postData<ResponseCom["data"]>(
+        ApiEndpoints.BOOK_MY_CAB,
+        "User",
+        bookingData
+      );
+      setIsSearching(false);
+      setShowVehicleSheet(false);
+      if (data.status == StatusCode.Created) {
+        showLoading({
+          isLoading: true,
+          loadingMessage: "Searching nearby Drivers",
+          loadingType: "ride-search",
+          progress: 60,
+        });
+      }
       // socket.emit("requestRide", bookingData);
     } catch (error) {
       console.log("booking error", error);
-       toast.error("Failed to send ride request. Please try again.")
+      toast.error("Failed to send ride request. Please try again.");
       setNotification({
         open: true,
         type: "error",
         title: "Booking Error",
         message: "Failed to send ride request. Please try again.",
       });
-      hideLoading()
+      hideLoading();
       setIsSearching(false);
       handleClear();
     }

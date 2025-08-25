@@ -1,4 +1,3 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { Provider } from "react-redux";
@@ -10,8 +9,10 @@ import { PersistGate } from "redux-persist/integration/react";
 import { SocketProvider } from "@/context/socket-context";
 import ErrorBoundary from "@/shared/components/ErrorBoundaries";
 import "./index.css";
+import { initAxios } from "./shared/services/axios/initAxios";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+initAxios(store.dispatch);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   // <React.StrictMode>

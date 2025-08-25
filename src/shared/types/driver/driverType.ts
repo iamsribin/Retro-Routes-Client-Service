@@ -1,4 +1,3 @@
-import { Feedback, LocationCoordinates } from "../commonTypes";
 
 interface DriverDetails {
   color: string;
@@ -49,9 +48,9 @@ export enum AccountStatus {
   Incomplete = "Incomplete",
 }
 
+ interface DriverInterface {
+  _id: string;
 
- interface DriverInterface  {
-  id: string;
   name: string;
   email: string;
   mobile: number;
@@ -74,7 +73,6 @@ export enum AccountStatus {
     validity: Date;
   };
 
-  
   vehicleDetails: {
     registrationId: string;
     vehicleNumber: string;
@@ -93,14 +91,15 @@ export enum AccountStatus {
     pollutionStartDate: Date;
     pollutionExpiryDate: Date;
   };
-  
+
   location: {
     longitude: string;
     latitude: string;
     address: string;
   };
-  
+
   accountStatus: AccountStatus;
+  onlineStatus: boolean;
 
   wallet?: {
     balance: number;
@@ -108,7 +107,7 @@ export enum AccountStatus {
       date: Date;
       details: string;
       amount: number;
-      status: "credit" | "debit" | "failed"; 
+      status: "credit" | "debit" | "failed";
       rideId: string;
     }[];
   };
@@ -138,6 +137,7 @@ export enum AccountStatus {
   createdAt: Date;
   updatedAt: Date;
 }
+
 
 
 

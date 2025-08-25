@@ -1,5 +1,5 @@
 import { useFormik } from "formik";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 
@@ -9,10 +9,12 @@ import { sendOtp } from "@/shared/hooks/useAuth";
 import { userLogin } from "@/shared/services/redux/slices/userAuthSlice";
 import { adminLogin } from "@/shared/services/redux/slices/adminAuthSlice";
 import { loginValidation } from "@/shared/utils/validation";
-import { useUserApi, useUserApiRequest } from "@/shared/hooks/apiHooks";
 import { toast } from "sonner";
 import ApiEndpoints from "@/constants/api-end-pointes";
 import { LoginFormProps } from "./type";
+import { postData } from "@/shared/services/api/api-service";
+import { ResponseCom } from "@/shared/types/commonTypes";
+import { setItem } from "@/shared/utils/localStorage";
 
 declare global {
   interface Window {
@@ -37,9 +39,7 @@ const LoginForm = ({
 }: LoginFormProps) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  const api = useUserApi();
-  const { request, loading, error } = useUserApiRequest<any>();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (otpInput && counter > 0) {
@@ -53,13 +53,15 @@ const LoginForm = ({
     validationSchema: loginValidation,
     onSubmit: async (values) => {
       try {
-        const response = await request(() =>
-          api.post(ApiEndpoints.USER_CHECK_LOGIN, values)
+        // const response = await request(() =>
+        //   api.post(ApiEndpoints.USER_CHECK_LOGIN, values)
+        // );
+        setLoading(true);
+        const response = await postData<ResponseCom["data"]>(
+          ApiEndpoints.USER_CHECK_LOGIN,
+          "User",
+          values
         );
-
-        if (!response) {
-          throw new Error(error || "API request failed");
-        }
 
         if (response.message === "Authentication successful") {
           sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
@@ -74,7 +76,6 @@ const LoginForm = ({
             mobile: response.mobile,
             profile: response.profile,
           });
-          
         } else if (response.message === "Blocked") {
           toast.info("Your account is blocked");
         } else {
@@ -82,7 +83,11 @@ const LoginForm = ({
         }
       } catch (err) {
         console.error(err);
-        toast.error(err instanceof Error ? err.message : "An unknown error occurred");
+        toast.error(
+          err instanceof Error ? err.message : "An unknown error occurred"
+        );
+      } finally {
+        setLoading(false);
       }
     },
   });
@@ -93,7 +98,9 @@ const LoginForm = ({
     setOtp(parseInt(newOtp.join("")) || 0);
   };
 
-  const handleOtpVerify = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleOtpVerify = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     event.preventDefault();
     if (!otp || !confirmationResult) {
       toast.error("Enter a valid OTP");
@@ -102,16 +109,30 @@ const LoginForm = ({
 
     try {
       await confirmationResult.confirm(otp.toString());
-      localStorage.setItem("role", userData.role);
+      setItem("role", userData.role);
       if (userData.role === "Admin") {
-        localStorage.setItem("adminToken", userData.userToken);
-        localStorage.setItem("adminRefreshToken", userData.refreshToken);
-        dispatch(adminLogin({ name: userData.user, role: userData.role, _id: userData.user_id }));
+        setItem("token", userData.userToken);
+        setItem("refreshToken", userData.refreshToken);
+        dispatch(
+          adminLogin({
+            name: userData.user,
+            role: userData.role,
+            _id: userData.user_id,
+          })
+        );
         navigate("/admin/dashboard");
       } else {
-        localStorage.setItem("userToken", userData.userToken);
-        localStorage.setItem("refreshToken", userData.refreshToken);
-        dispatch(userLogin({ user: userData.user, user_id: userData.user_id, role: userData.role, mobile: userData.mobile, profile: userData.profile }));
+        setItem("token", userData.userToken);
+        setItem("refreshToken", userData.refreshToken);
+        dispatch(
+          userLogin({
+            user: userData.user,
+            user_id: userData.user_id,
+            role: userData.role,
+            mobile: userData.mobile,
+            profile: userData.profile,
+          })
+        );
         navigate("/");
       }
       toast.success("Login Success");
@@ -146,7 +167,9 @@ const LoginForm = ({
                   {[...Array(6)].map((_, index) => (
                     <PinInputField
                       key={index}
-                      onChange={(e) => handleOtpChange(index, parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleOtpChange(index, parseInt(e.target.value))
+                      }
                       disabled={loading || parentLoading}
                     />
                   ))}
@@ -172,7 +195,12 @@ const LoginForm = ({
                     onClick={() => {
                       setCounter(40);
                       setOtp(0);
-                      sendOtp(setOtpInput, auth, formik.values.mobile, setConfirmationResult);
+                      sendOtp(
+                        setOtpInput,
+                        auth,
+                        formik.values.mobile,
+                        setConfirmationResult
+                      );
                     }}
                   >
                     Resend OTP
@@ -196,7 +224,11 @@ const LoginForm = ({
               <div className="flex-grow border-t border-gray-300" />
             </div>
             <div className="flex justify-center items-center mt-5">
-              <GoogleLogin shape="circle" ux_mode="popup" onSuccess={onGoogleLogin} />
+              <GoogleLogin
+                shape="circle"
+                ux_mode="popup"
+                onSuccess={onGoogleLogin}
+              />
             </div>
           </div>
           <div className="text-center mt-3">

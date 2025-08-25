@@ -12,6 +12,14 @@ enum DriverApiEndpoints {
   DRIVER_RESUBMISSION = "/resubmission",
   DRIVER_ONLINE_STATUS = "/driverOnlineStatus",
   DRIVER_INSURANCE = "/insuranceDetails",
+  HANDLE_ONLINE_CHANGE = "/handle-online-change",
+  GET_MY_PROFILE = "/get-driver-profile",
+  UPDATE_DRIVER_PROFILE = `/update-driver-profile`,
+  GET_MY_DOCUMENTS = "/get-my-documents",
+  UPDATE_DRIVER_DOCUMENTS = "/update-driver-documents",
+  GET_MY_TRIPS = `/getMyTrips`,
+  GET_MY_TRIP_DETAILS = "/getMyTripDetails",
+  UPLOAD_CHAT_FILE ="/uploadChatFile"
 }
 
 export default DriverApiEndpoints;

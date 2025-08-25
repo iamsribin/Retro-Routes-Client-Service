@@ -59,30 +59,11 @@ const DriverSignupForm = ({
     onSubmit: async (values, { setSubmitting }) => {
       setLoad(true);
       try {
-        await checkDriver(values);
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "An unknown error occurred"
-        );
-      } finally {
-        setSubmitting(false);
-        setLoad(false);
-      }
-    },
-  });
-
-  const checkDriver = async (formData: typeof formik.values) => {
-    try {
-      // const { data }: { data: Res_checkRegisterDriver } = await axiosDriver(
-      //   dispatch
-      // ).post("/checkRegisterDriver", formData);
-
-      const data = await postData<Res_checkRegisterDriver>(
+        const data = await postData<Res_checkRegisterDriver>(
         DriverApiEndpoints.CHECK_REGISTER_DRIVER,
         "Driver",
-        formData
+        values
       );
-      console.log("datadata", data);
 
       if (data.status === StatusCode.Accepted && data.nextStep) {
         toast.info(
@@ -100,17 +81,20 @@ const DriverSignupForm = ({
 
       // New registration
       if (data.status === StatusCode.OK) {
-        sendOtp(setOtp, auth, formData.mobile, setConfirmationResult);
+        sendOtp(setOtp, auth, values.mobile, setConfirmationResult);
         setOtpPage(true);
         return;
       }
-
-      toast.error(data.message || "Something went wrong");
-    } catch (err) {
-      console.error("Error checking driver:", err);
-      toast.error("Server error while checking driver");
-    }
-  };
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "An unknown error occurred"
+        );
+      } finally {
+        setSubmitting(false);
+        setLoad(false);
+      }
+    },
+  });
 
   const handleOtpChange = (index: number, newValue: string) => {
     const parsedValue = parseInt(newValue) || 0;

@@ -37,10 +37,10 @@ const DriverAccountTab = ({
 
   // Helper function to calculate total earnings
   const getTotalEarnings = () => {
-    if (!driver?.rideDetails?.totalEarnings || !Array.isArray(driver.rideDetails.totalEarnings)) {
+    if (!driver?.rideDetails || !Array.isArray(driver.rideDetails)) {
       return 0;
     }
-    return driver.rideDetails.totalEarnings.reduce((total, earning) => {
+    return driver.rideDetails.Earnings.reduce((total, earning) => {
       return total + (earning?.amount || 0);
     }, 0);
   };
@@ -55,8 +55,8 @@ const DriverAccountTab = ({
   const adminCommission = driver?.adminCommission || 0;
   const totalRatings = driver?.totalRatings || 0;
   const totalEarnings = getTotalEarnings();
-  const completedRides = driver?.rideDetails?.completedRides || 0;
-  const cancelledRides = driver?.rideDetails?.cancelledRides || 0;
+  const completedRides = driver?.totalCompletedRides || 0;
+  const cancelledRides = driver?.totalCancelledRides || 0;
   const transactionCount = driver?.wallet?.transactions?.length || 0;
   const feedbackCount = driver?.feedbacks?.length || 0;
 

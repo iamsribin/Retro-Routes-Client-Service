@@ -11,7 +11,7 @@ import { ConfirmationResult } from "firebase/auth";
 const DriverSignup = () => {
   const [step, setStep] = useState<
     "credentials" | "documents" | "location" | "driverImage" | "vehicle" | "insurance"
-  >("credentials");
+  >("location");
   const [otpPage, setOtpPage] = useState(false);
   const [counter, setCounter] = useState(40);
   const [load, setLoad] = useState(false);
