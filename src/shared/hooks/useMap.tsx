@@ -3,13 +3,13 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { toast } from "sonner";
 import { parseCoords, createVehicleIcon } from "@/shared/utils/mapUtils";
-import { DriverRideRequest } from "../types/driver/ridetype";
+import { RideRequest } from "../types/driver/ridetype";
 import { useDriverLocation } from "@/context/driver-location-context";
 import { Feature, LineString } from "geojson"; 
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOKEN;
+mapboxgl.accessToken = import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN;
 
-const useMap = (rideData: DriverRideRequest | null) => {
+const useMap = (rideData: RideRequest | null) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -23,17 +23,18 @@ const useMap = (rideData: DriverRideRequest | null) => {
   useEffect(() => {
     if (!rideData) return;
     setIsTripStarted(
-      rideData.status === "started" || rideData.status === "completed"
+      rideData.bookingDetails.status === "started" || rideData.bookingDetails.status === "completed"
     );
   }, [rideData]);
 
   useEffect(() => {
     if (!mapContainerRef.current || !rideData || mapInstanceRef.current) return;
 
-    if (!import.meta.env.VITE_MAPBOX_ACCESSTOKEN) {
+    if (!import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN) {
       toast.error("Mapbox access token is missing.");
       return;
     }
+console.log("driverLocation",driverLocation);
 
     if (!driverLocation) {
       toast.error("Driver location loading...");
@@ -43,7 +44,7 @@ const useMap = (rideData: DriverRideRequest | null) => {
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/navigation-day-v1",
+      style: "mapbox://styles/mapbox/streets-v12",
       center: [driverLocation.longitude, driverLocation.latitude],
       zoom: 12,
       attributionControl: false,
@@ -63,7 +64,9 @@ const useMap = (rideData: DriverRideRequest | null) => {
         .addTo(map);
 
       if (!isTripStarted) {
-        const pickupCoords = parseCoords(rideData.pickup);
+        const pickupCoords = parseCoords(rideData.bookingDetails.pickupLocation);
+        console.log("pickupCoords",pickupCoords);
+        
         if (pickupCoords) {
           pickupMarkerRef.current = new mapboxgl.Marker({
             color: "#ef4444",
@@ -74,7 +77,7 @@ const useMap = (rideData: DriverRideRequest | null) => {
         }
       }
 
-      const dropoffCoords = parseCoords(rideData.dropoff);
+      const dropoffCoords = parseCoords(rideData.bookingDetails.dropoffLocation);
       if (dropoffCoords) {
         dropoffMarkerRef.current = new mapboxgl.Marker({
           color: "#3b82f6",
@@ -113,7 +116,7 @@ const useMap = (rideData: DriverRideRequest | null) => {
       pickupMarkerRef.current.remove();
       pickupMarkerRef.current = null;
     } else if (!isTripStarted && !pickupMarkerRef.current) {
-      const pickupCoords = parseCoords(rideData.pickup);
+      const pickupCoords = parseCoords(rideData.bookingDetails.pickupLocation);
       if (pickupCoords) {
         pickupMarkerRef.current = new mapboxgl.Marker({
           color: "#ef4444",
@@ -133,7 +136,7 @@ const useMap = (rideData: DriverRideRequest | null) => {
 
 const adjustMapBounds = (
   map: mapboxgl.Map,
-  rideData: DriverRideRequest,
+  rideData: RideRequest,
   isTripStarted: boolean,
   driverLocation: { latitude: number; longitude: number }
 ) => {
@@ -145,11 +148,11 @@ const adjustMapBounds = (
   );
 
   if (!isTripStarted) {
-    const pickupCoords = parseCoords(rideData.pickup);
+    const pickupCoords = parseCoords(rideData.bookingDetails.pickupLocation);
     if (pickupCoords) bounds.extend(pickupCoords);
   }
 
-  const dropoffCoords = parseCoords(rideData.dropoff);
+  const dropoffCoords = parseCoords(rideData.bookingDetails.dropoffLocation);
   if (dropoffCoords) bounds.extend(dropoffCoords);
 
   try {
@@ -165,15 +168,15 @@ const adjustMapBounds = (
 
 const fetchTripRoute = async (
   map: mapboxgl.Map,
-  rideData: DriverRideRequest,
+  rideData: RideRequest,
   isTripStarted: boolean,
   driverLocation: { latitude: number; longitude: number }
 ) => {
   let destinationCoords: [number, number] | null = null;
   if (!isTripStarted) {
-    destinationCoords = parseCoords(rideData.pickup);
+    destinationCoords = parseCoords(rideData.bookingDetails.pickupLocation);
   } else {
-    destinationCoords = parseCoords(rideData.dropoff);
+    destinationCoords = parseCoords(rideData.bookingDetails.dropoffLocation);
   }
 
   if (!destinationCoords) {

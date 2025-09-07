@@ -19,7 +19,8 @@ enum DriverApiEndpoints {
   UPDATE_DRIVER_DOCUMENTS = "/update-driver-documents",
   GET_MY_TRIPS = `/getMyTrips`,
   GET_MY_TRIP_DETAILS = "/getMyTripDetails",
-  UPLOAD_CHAT_FILE ="/uploadChatFile"
+  UPLOAD_CHAT_FILE ="/uploadChatFile",
+  CHECK_SECURITY_PIN ="/check-security-pin"
 }
 
 export default DriverApiEndpoints;

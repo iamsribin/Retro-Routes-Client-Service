@@ -30,6 +30,7 @@ const RideMapSlice = createSlice({
       state.rideData = null;
     },
     updateRideStatus: (state, action: PayloadAction<{ ride_id: string; status: RideStatusData["status"]; driverCoordinates?: Coordinates }>) => {
+      
       if (state.rideData && state.rideData.ride_id === action.payload.ride_id) {
         state.rideData.status = action.payload.status;
         if (action.payload.driverCoordinates) {

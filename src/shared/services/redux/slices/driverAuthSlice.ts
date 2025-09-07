@@ -42,8 +42,8 @@ const driverAuthSlice = createSlice({
       state.role = "";
       state.isOnline = false;
       localStorage.removeItem("role");
-      localStorage.removeItem("driverToken");
-      localStorage.removeItem("DriverRefreshToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("driverId");
     },
 setOnline: (

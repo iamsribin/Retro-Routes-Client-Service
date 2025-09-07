@@ -2,7 +2,7 @@
 interface DriverDetails {
   color: string;
   driverId: string;
-  driverImage: string;
+  driverPhoto: string;
   driverName: string;
   mobile: number;
   number: string;

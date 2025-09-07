@@ -15,6 +15,9 @@ import { RideRequest } from "@/shared/types/driver/ridetype";
 import { useDriverLocation } from "@/context/driver-location-context";
 import { Toast, useToast } from "@chakra-ui/react";
 import { getDistanceInMeters } from "@/shared/utils/getDistanceInMeters";
+import { patchData, postData } from "@/shared/services/api/api-service";
+import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import ApiEndpoints from "@/constants/api-end-pointes";
 
 interface TripInfoProps {
   rideData: RideRequest;
@@ -22,29 +25,47 @@ interface TripInfoProps {
 
 const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
   const dispatch = useDispatch();
+
+  // dispatch(
+  //       updateRideStatus({
+  //         bookingId: rideData.bookingDetails.bookingId,
+  //         status: "accepted",
+  //       })
+  //     )
   const { driverLocation } = useDriverLocation();
   const { socket, isConnected } = useSocket();
   const [isTripStarted, setIsTripStarted] = useState<boolean>(
-    rideData.bookingDetails.status === "started" || rideData.bookingDetails.status === "completed"
+    rideData.bookingDetails.status === "started" ||
+      rideData.bookingDetails.status === "completed"
   );
   const [enteredPin, setEnteredPin] = useState<string>("");
   const [pinError, setPinError] = useState<string>("");
 
-  const handlePinSubmit = () => {
+  const handlePinSubmit = async () => {
     if (!rideData || !socket || !isConnected || !driverLocation) return;
-
-    const correctPin = rideData.bookingDetails.securityPin.toString();
-
-    if (enteredPin === correctPin) {
+   
+    const payload = {
+      securityPin: enteredPin,
+      bookingId: rideData.bookingDetails.bookingId,
+      rideId: rideData.bookingDetails.rideId
+    };
+    
+    const data = await postData(
+      DriverApiEndpoints.CHECK_SECURITY_PIN,
+      "Driver",
+      payload
+    );
+    
+    if (data) {
       setPinError("");
       setIsTripStarted(true);
 
       if (!driverLocation) {
         Toast({
-        title: "Error",
-        description: "your location have issue",
-        variant: "default",
-      });
+          title: "Error",
+          description: "your location have issue",
+          variant: "default",
+        });
         return;
       }
 
@@ -68,37 +89,49 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
     }
   };
 
-const handleCompleteRide = () => {
-  if (!socket || !rideData || !isConnected || !driverLocation) return;
+  const handleCompleteRide = async() => {
+    if (!socket || !rideData || !isConnected || !driverLocation) return;
 
-  const dropLat = rideData.bookingDetails.dropoffLocation.latitude;
-  const dropLng = rideData.bookingDetails.dropoffLocation.longitude;
-  const driverLat = driverLocation.latitude;
-  const driverLng = driverLocation.longitude;
+    const dropLat = rideData.bookingDetails.dropoffLocation.latitude;
+    const dropLng = rideData.bookingDetails.dropoffLocation.longitude;
+    const driverLat = driverLocation.latitude;
+    const driverLng = driverLocation.longitude;
 
-  const distance = getDistanceInMeters(driverLat, driverLng, dropLat, dropLng);
+    const distance = getDistanceInMeters(
+      driverLat,
+      driverLng,
+      dropLat,
+      dropLng
+    );
 
-  const ALLOWED_DISTANCE = 100; 
+    const ALLOWED_DISTANCE = 100;
 
-  if (distance > ALLOWED_DISTANCE) {
-    toast.error("You are too far from the drop-off location to complete the ride.");
-    return;
-  }
+    if (distance > ALLOWED_DISTANCE) {
+      toast.error(
+        "You are too far from the drop-off location to complete the ride."
+      );
+      return;
+    }
 
-  socket.emit("rideCompleted", {
-    bookingId: rideData.bookingDetails.bookingId,
-    userId: rideData.customer.userId,
-  });
-
-  dispatch(
-    updateRideStatus({
+    const data = await patchData(ApiEndpoints.COMPLETE_RIDE,"Driver",{
       bookingId: rideData.bookingDetails.bookingId,
-      status: "completed",
+      userId: rideData.customer.userId,
     })
-  );
 
-  toast.success("Ride completed successfully");
-};
+    // socket.emit("rideCompleted", {
+    //   bookingId: rideData.bookingDetails.bookingId,
+    //   userId: rideData.customer.userId,
+    // });
+
+    dispatch(
+      updateRideStatus({
+        bookingId: rideData.bookingDetails.bookingId,
+        status: "completed",
+      })
+    );
+
+    toast.success("Ride completed successfully");
+  };
 
   const handleCallCustomer = () => {
     if (rideData?.customer?.userNumber) {
@@ -199,7 +232,8 @@ const handleCompleteRide = () => {
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500 font-medium">PICKUP</p>
             <p className="text-sm font-medium leading-tight">
-              {rideData.bookingDetails.pickupLocation.address ?? "Pickup Location"}
+              {rideData.bookingDetails.pickupLocation.address ??
+                "Pickup Location"}
             </p>
           </div>
         </div>
@@ -210,7 +244,8 @@ const handleCompleteRide = () => {
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500 font-medium">DROP-OFF</p>
             <p className="text-sm font-medium leading-tight">
-              {rideData.bookingDetails.dropoffLocation.address ?? "Drop-off Location"}
+              {rideData.bookingDetails.dropoffLocation.address ??
+                "Drop-off Location"}
             </p>
           </div>
         </div>

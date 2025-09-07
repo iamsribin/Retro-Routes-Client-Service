@@ -8,12 +8,13 @@ enum ApiEndpoints {
   USER_CHECK_GOOGLE_LOGIN ="/checkGoogleLoginUser",
   CHECK_USER ='/checkUser',
   RESENT_OTP = "/resendOtp",
-
+  CANCEL_RIDE ="/cancel-ride",
+  COMPLETE_RIDE = "/ride-completed",
   UPLOAD_CHAT_FILE = "/uploadChatFile",
   // Authentication APIs - Driver Service
   DRIVER_LOGIN = '/driver/login',
   DRIVER_SIGNUP = '/driver/signup',
-
+  
 
   // User APIs - User Service
   USER_PROFILE = '/user/profile',
@@ -37,6 +38,8 @@ enum ApiEndpoints {
   ADMIN_UPDATE_USER_STATUS = "/updateUserStatus",
   ADMIN_ACTIVE_USERS = "/getActiveUserData",
   ADMIN_BLOCKED_USERS = "/blockedUserData",
+
+
 
   ADMIN_USER_DETAILS = '/userData',
   ADMIN_DRIVERS = '/admin/drivers',

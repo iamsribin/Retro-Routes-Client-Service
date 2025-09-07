@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
@@ -27,6 +33,7 @@ import {
   X,
   Image,
   Camera,
+  MapPin,
 } from "lucide-react";
 import { Feature, LineString } from "geojson";
 import {
@@ -47,18 +54,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/components/ui/dialog";
-import { RideStatusData } from "@/shared/types/user/rideTypes";
+import { Booking, RideStatusData } from "@/shared/types/user/rideTypes";
 import { Coordinates, Message, ResponseCom } from "@/shared/types/commonTypes";
-import { postData } from "@/shared/services/api/api-service";
+import { postData, patchData } from "@/shared/services/api/api-service";
 import ApiEndpoints from "@/constants/api-end-pointes";
-
-mapboxgl.accessToken = import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN;
+import debounce from "lodash/debounce";
+import { useNotification } from "@/shared/hooks/useNotificatiom";
 
 const videoConstraints = {
   width: { ideal: 1280 },
   height: { ideal: 720 },
   facingMode: "environment",
 };
+
+const DEFAULT_CENTER: [number, number] = [78.9629, 20.5937]; // Center of India
+const DEFAULT_ZOOM = 4;
 
 const RideTrackingPage: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -69,9 +79,12 @@ const RideTrackingPage: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const webcamRef = useRef<Webcam | null>(null);
+  const {onNotification} = useNotification()
+
+  mapboxgl.accessToken = import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN;
 
   const [arrivalTime, setArrivalTime] = useState<string>("Calculating...");
-  const [tripDistance, setTripDistance] = useState<string>("");
+  const [tripDistance, setTripDistance] = useState<string>("Calculating...");
   const [mapReady, setMapReady] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<"info" | "messages">(
     "info"
@@ -85,11 +98,20 @@ const RideTrackingPage: React.FC = () => {
     null
   );
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { socket, isConnected } = useSocket();
   const { isOpen, rideData } = useSelector((state: RootState) => state.RideMap);
+
+
+      //  dispatch(
+      //     updateRideStatus({
+      //       ride_id: rideData.ride_id,
+      //       status: "RideStarted",
+      //     })
+      //   );
 
   const formik = useFormik<{
     selectedImage: string | File | null;
@@ -121,14 +143,14 @@ const RideTrackingPage: React.FC = () => {
           formData
         );
 
-        if (data.data.fileUrl) {
+        if (data.fileUrl) {
           const timestamp = new Date().toISOString();
           const message: Message = {
             sender: "user",
             content: "",
             timestamp,
             type: "image",
-            fileUrl: data.data.fileUrl,
+            fileUrl: data.fileUrl,
           };
 
           socket.emit("sendMessage", {
@@ -138,7 +160,7 @@ const RideTrackingPage: React.FC = () => {
             timestamp,
             driverId: rideData.driverDetails.driverId,
             type: "image",
-            fileUrl: data.data.fileUrl,
+            fileUrl: data.fileUrl,
           });
 
           dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
@@ -165,38 +187,27 @@ const RideTrackingPage: React.FC = () => {
     const CANCELLATION_WINDOW = 30 * 1000;
     const savedStartTime = localStorage.getItem("cancelTimerStart");
 
+    let startTime: number;
     if (savedStartTime) {
-      const startTime = parseInt(savedStartTime, 10);
-      const elapsedTime = Date.now() - startTime;
-
-      if (elapsedTime >= CANCELLATION_WINDOW) {
-        setCanCancelTrip(false);
-        setCancelTimeLeft(0);
-        localStorage.removeItem("cancelTimerStart");
-        return;
-      }
-
-      const remainingTime = CANCELLATION_WINDOW - elapsedTime;
-      setCancelTimeLeft(Math.ceil(remainingTime / 1000));
-      setCanCancelTrip(true);
+      startTime = parseInt(savedStartTime, 10);
     } else {
-      if (canCancelTrip) {
-        const newStartTime = Date.now();
-        localStorage.setItem("cancelTimerStart", newStartTime.toString());
-        setCancelTimeLeft(30);
-        setCanCancelTrip(true);
-      }
+      startTime = Date.now();
+      localStorage.setItem("cancelTimerStart", startTime.toString());
     }
 
-    const timer = setInterval(() => {
-      const currentStartTime = localStorage.getItem("cancelTimerStart");
-      if (!currentStartTime) {
-        clearInterval(timer);
-        setCanCancelTrip(false);
-        return;
-      }
+    const elapsedTime = Date.now() - startTime;
+    if (elapsedTime >= CANCELLATION_WINDOW) {
+      setCanCancelTrip(false);
+      setCancelTimeLeft(0);
+      localStorage.removeItem("cancelTimerStart");
+      return;
+    }
 
-      const elapsed = Date.now() - parseInt(currentStartTime, 10);
+    setCancelTimeLeft(Math.ceil((CANCELLATION_WINDOW - elapsedTime) / 1000));
+    setCanCancelTrip(true);
+
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
       const remaining = CANCELLATION_WINDOW - elapsed;
 
       if (remaining <= 0) {
@@ -211,7 +222,7 @@ const RideTrackingPage: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, rideData?.status, canCancelTrip]);
+  }, [isOpen, rideData?.status]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -222,45 +233,43 @@ const RideTrackingPage: React.FC = () => {
   useEffect(() => {
     if (!socket || !isConnected || !rideData) return;
 
-    const handleRideStatus = (data: RideStatusData) => {
-      console.log("Received rideStatus:", data);
-      if (
-        data.status === "cancelled" ||
-        data.status === "Failed" ||
-        data.status === "RideFinished"
-      ) {
-        dispatch(hideRideMap());
-        localStorage.removeItem("cancelTimerStart");
-      } else {
-        dispatch(
-          updateRideStatus({
-            ride_id: data.ride_id,
-            status: data.status,
-            driverCoordinates: data.driverCoordinates,
-          })
-        );
-        if (
-          data.status === "DriverComingToPickup" ||
-          data.status === "RideStarted"
-        ) {
-          setCanCancelTrip(false);
-          localStorage.removeItem("cancelTimerStart");
-        }
-      }
-    };
+    // const handleRideStatus = (data: RideStatusData) => {
+    //   if (
+    //     data.status === "cancelled" ||
+    //     data.status === "Failed" ||
+    //     data.status === "RideFinished"
+    //   ) {
+    //     dispatch(hideRideMap());
+    //     localStorage.removeItem("cancelTimerStart");
+    //   } else {
+    //     dispatch(
+    //       updateRideStatus({
+    //         ride_id: data.ride_id,
+    //         status: data.status,
+    //         driverCoordinates: data.driverCoordinates,
+    //       })
+    //     );
+    //     if (
+    //       data.status === "DriverComingToPickup" ||
+    //       data.status === "RideStarted"
+    //     ) {
+    //       setCanCancelTrip(false);
+    //       localStorage.removeItem("cancelTimerStart");
+    //     }
+    //   }
+    // };
 
-    const handleDriverStartRide = (driverLocation: Coordinates) => {
-      console.log("Received driverStartRide:", driverLocation);
-      dispatch(
-        updateRideStatus({
-          ride_id: rideData.ride_id,
-          status: "RideStarted",
-          driverCoordinates: driverLocation,
-        })
-      );
-      setCanCancelTrip(false);
-      localStorage.removeItem("cancelTimerStart");
-    };
+    // const handleDriverStartRide = (driverLocation: Coordinates) => {
+    //   dispatch(
+    //     updateRideStatus({
+    //       ride_id: rideData.ride_id,
+    //       status: "RideStarted",
+    //       driverCoordinates: driverLocation,
+    //     })
+    //   );
+    //   setCanCancelTrip(false);
+    //   localStorage.removeItem("cancelTimerStart");
+    // };
 
     const handleReceiveMessage = (data: {
       sender: "driver" | "user";
@@ -282,49 +291,45 @@ const RideTrackingPage: React.FC = () => {
       }
     };
 
+    const debouncedLocationUpdate = debounce(
+      (data: { driverId: string; coordinates: Coordinates }) => {
+        const parsedCoords = parseCoords(data.coordinates);
+        if (parsedCoords && driverMarkerRef.current && mapInstanceRef.current) {
+          driverMarkerRef.current.setLngLat(parsedCoords);
+          dispatch(
+            updateRideStatus({
+              ride_id: rideData.ride_id,
+              status: rideData.status,
+              driverCoordinates: data.coordinates,
+            })
+          );
+          adjustMapBounds(mapInstanceRef.current!);
+          fetchTripRoute(mapInstanceRef.current!);
+        }
+      },
+      1000
+    ); 
+
     const handleDriverLocationUpdate = (data: {
       driverId: string;
       coordinates: Coordinates;
     }) => {
-      console.log("Received driverLocationUpdate:", data);
-      const parsedCoords = parseCoords(data.coordinates);
-      if (parsedCoords && driverMarkerRef.current && mapInstanceRef.current) {
-        driverMarkerRef.current.setLngLat(parsedCoords);
-        dispatch(
-          updateRideStatus({
-            ride_id: rideData.ride_id,
-            status: rideData.status,
-            driverCoordinates: data.coordinates,
-          })
-        );
-        adjustMapBounds(mapInstanceRef.current);
-        fetchTripRoute(mapInstanceRef.current);
-      } else {
-        console.warn(
-          "Cannot update driver marker: Invalid coordinates or marker/map not initialized"
-        );
-      }
+      console.log("handleDriverLocationUpdate", data);
+
+      debouncedLocationUpdate(data);
     };
 
-    const handleDisconnect = () => {
-      console.log("Socket disconnected");
-      if (rideData) {
-        toast.error("Lost connection to server. Please check your network.");
-      }
-    };
-
-    socket.on("rideStatus", handleRideStatus);
-    socket.on("driverStartRide", handleDriverStartRide);
+    // socket.on("rideStatus", handleRideStatus);
+    // socket.on("driverStartRide", handleDriverStartRide);
     socket.on("receiveMessage", handleReceiveMessage);
-    socket.on("driverLocationUpdate", handleDriverLocationUpdate);
-    socket.on("disconnect", handleDisconnect);
+    socket.on("driver:location:change", handleDriverLocationUpdate);
 
     return () => {
-      socket.off("rideStatus", handleRideStatus);
-      socket.off("driverStartRide", handleDriverStartRide);
+      // socket.off("rideStatus", handleRideStatus);
+      // socket.off("driverStartRide", handleDriverStartRide);
       socket.off("receiveMessage", handleReceiveMessage);
       socket.off("driverLocationUpdate", handleDriverLocationUpdate);
-      socket.off("disconnect", handleDisconnect);
+      debouncedLocationUpdate.cancel();
     };
   }, [socket, isConnected, activeSection, dispatch, rideData]);
 
@@ -334,29 +339,41 @@ const RideTrackingPage: React.FC = () => {
     }
   }, [rideData?.chatMessages]);
 
-  const parseCoords = (
-    coords: Coordinates | undefined
-  ): [number, number] | null => {
-    if (!coords) {
-      console.warn("Coordinates are undefined");
-      return null;
-    }
-    const lat =
-      typeof coords.latitude === "string"
-        ? parseFloat(coords.latitude)
-        : coords.latitude;
-    const lng =
-      typeof coords.longitude === "string"
-        ? parseFloat(coords.longitude)
-        : coords.longitude;
-    if (isNaN(lat) || isNaN(lng)) {
-      console.warn("Invalid coordinates:", { lat, lng, coords });
-      return null;
-    }
-    return [lng, lat];
-  };
+  const parseCoords = useCallback(
+    (
+      coords: Coordinates | undefined,
+      type: string = "unknown"
+    ): [number, number] | null => {
+      if (!coords) {
+        console.warn(`No coordinates provided for ${type}`);
+        toast.error(`No coordinates available for ${type}`);
+        return null;
+      }
+      console.log(`Parsing ${type} coords:`, coords);
+      const lat =
+        typeof coords.latitude === "string"
+          ? parseFloat(coords.latitude)
+          : coords.latitude;
+      const lng =
+        typeof coords.longitude === "string"
+          ? parseFloat(coords.longitude)
+          : coords.longitude;
+      if (
+        isNaN(lat) ||
+        isNaN(lng) ||
+        Math.abs(lat) > 90 ||
+        Math.abs(lng) > 180
+      ) {
+        console.warn(`Invalid ${type} coordinates:`, { lat, lng });
+        toast.error(`Invalid coordinates for ${type}. Please check data.`);
+        return null;
+      }
+      return [lng, lat];
+    },
+    []
+  );
 
-  const createVehicleIcon = (): HTMLElement => {
+  const createVehicleIcon = useCallback((): HTMLElement => {
     const el = document.createElement("div");
     el.className = "vehicle-marker";
     el.innerHTML = `
@@ -377,7 +394,7 @@ const RideTrackingPage: React.FC = () => {
       </div>
     `;
     return el;
-  };
+  }, []);
 
   useEffect(() => {
     if (
@@ -388,33 +405,32 @@ const RideTrackingPage: React.FC = () => {
     )
       return;
 
-    if (!import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN) {
-      console.error("Mapbox access token is missing");
+    if (!mapboxgl.accessToken) {
       toast.error(
-        "Mapbox access token is missing. Please check your environment variables."
+        "Mapbox access token is missing or invalid. Please check your environment variables or generate a new token from mapbox.com."
       );
       return;
     }
 
     if (!rideData.booking) {
-      console.error("rideData.booking is undefined");
-      toast.error("Ride data is incomplete");
+      toast.error("Ride data is incomplete.");
       return;
     }
 
-    const driverCoords = parseCoords(rideData.driverCoordinates);
+    const driverCoords = parseCoords(rideData.driverCoordinates, "driver");
+    const initialCenter = driverCoords || DEFAULT_CENTER;
+    const initialZoom = driverCoords ? 12 : DEFAULT_ZOOM;
+
     if (!driverCoords) {
-      console.error("Invalid driver coordinates on map initialization");
-      toast.error("Cannot initialize map: Invalid driver coordinates");
-      return;
+      toast.warning("Invalid driver coordinates. Using default India view.");
     }
 
     try {
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/navigation-day-v1",
-        center: driverCoords,
-        zoom: 12,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: initialCenter,
+        zoom: initialZoom,
         attributionControl: false,
         interactive: true,
       });
@@ -423,32 +439,93 @@ const RideTrackingPage: React.FC = () => {
 
       map.on("load", () => {
         setMapReady(true);
-
-        driverMarkerRef.current = new mapboxgl.Marker({
-          element: createVehicleIcon(),
-          anchor: "center",
-        })
-          .setLngLat(driverCoords)
-          .addTo(map);
-
-        if (
-          rideData.status === "Accepted" ||
-          rideData.status === "DriverComingToPickup"
-        ) {
-          const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
-          if (pickupCoords) {
-            pickupMarkerRef.current = new mapboxgl.Marker({
-              color: "#ef4444",
-              scale: 0.8,
-            })
-              .setLngLat(pickupCoords)
-              .addTo(map);
-          } else {
-            console.warn("Invalid pickup coordinates");
-          }
+        map.addControl(new mapboxgl.NavigationControl());
+        if (driverCoords) {
+          driverMarkerRef.current = new mapboxgl.Marker({
+            element: createVehicleIcon(),
+            anchor: "center",
+          })
+            .setLngLat(driverCoords)
+            .addTo(map);
         }
 
-        const dropoffCoords = parseCoords(rideData.booking.dropoffCoordinates);
+        updateMarkers(map, rideData);
+        adjustMapBounds(map);
+        fetchTripRoute(map);
+      });
+
+      map.on("error", (e) => {
+        console.error("Mapbox error:", e);
+        toast.error(
+          "Failed to load map. This may be due to an invalid access token or network issues. Verify your token at mapbox.com."
+        );
+        setArrivalTime("N/A");
+        setTripDistance("N/A");
+      });
+    } catch (error) {
+      console.error("Error initializing map:", error);
+      toast.error(
+        "Error initializing map. Please ensure your Mapbox token is valid and has the necessary scopes."
+      );
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        setMapReady(false);
+      }
+    };
+  }, [isOpen, rideData, parseCoords, createVehicleIcon]);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current || !mapReady || !rideData || !rideData.booking)
+      return;
+
+    const driverCoords = parseCoords(rideData.driverCoordinates, "driver");
+    if (driverCoords && driverMarkerRef.current) {
+      driverMarkerRef.current.setLngLat(driverCoords);
+    } else if (!driverCoords && driverMarkerRef.current) {
+      driverMarkerRef.current.remove();
+      driverMarkerRef.current = null;
+    }
+
+    updateMarkers(mapInstanceRef.current, rideData);
+    adjustMapBounds(mapInstanceRef.current);
+    fetchTripRoute(mapInstanceRef.current);
+  }, [rideData?.driverCoordinates, rideData?.status, mapReady, parseCoords]);
+
+  const updateMarkers = useCallback(
+    (map: mapboxgl.Map, data: RideStatusData) => {
+      if (data.status === "RideStarted" || data.status === "RideFinished") {
+        if (pickupMarkerRef.current) {
+          pickupMarkerRef.current.remove();
+          pickupMarkerRef.current = null;
+        }
+      } else if (
+        (data.status === "Accepted" ||
+          data.status === "DriverComingToPickup") &&
+        !pickupMarkerRef.current
+      ) {
+        const pickupCoords = parseCoords(
+          data.booking.pickupCoordinates,
+          "pickup"
+        );
+        if (pickupCoords) {
+          pickupMarkerRef.current = new mapboxgl.Marker({
+            color: "#ef4444",
+            scale: 0.8,
+          })
+            .setLngLat(pickupCoords)
+            .addTo(map);
+        }
+      }
+
+      if (!dropoffMarkerRef.current) {
+        const dropoffCoords = parseCoords(
+          data.booking.dropoffCoordinates,
+          "dropoff"
+        );
         if (dropoffCoords) {
           dropoffMarkerRef.current = new mapboxgl.Marker({
             color: "#3b82f6",
@@ -456,262 +533,207 @@ const RideTrackingPage: React.FC = () => {
           })
             .setLngLat(dropoffCoords)
             .addTo(map);
-        } else {
-          console.warn("Invalid drop-off coordinates");
         }
+      }
+    },
+    [parseCoords]
+  );
 
-        adjustMapBounds(map);
-        fetchTripRoute(map);
-      });
+  const adjustMapBounds = useCallback(
+    (map: mapboxgl.Map) => {
+      if (!rideData || !rideData.booking) return;
 
-      map.on("error", (e) => {
-        console.error("Mapbox error:", e);
-        toast.error("Failed to load map");
-      });
-
-      return () => {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.remove();
-          mapInstanceRef.current = null;
-          setMapReady(false);
-        }
-      };
-    } catch (error) {
-      console.error("Error initializing map:", error);
-      toast.error("Error initializing map");
-    }
-  }, [isOpen, rideData]);
-
-  useEffect(() => {
-    if (!mapInstanceRef.current || !mapReady || !rideData || !rideData.booking)
-      return;
-
-    const driverCoords = parseCoords(rideData.driverCoordinates);
-    if (driverCoords && driverMarkerRef.current) {
-      driverMarkerRef.current.setLngLat(driverCoords);
-    } else {
-      console.warn(
-        "Cannot update driver marker: Invalid coordinates or marker not initialized"
+      const driverCoords = parseCoords(rideData.driverCoordinates, "driver");
+      const pickupCoords = parseCoords(
+        rideData.booking.pickupCoordinates,
+        "pickup"
       );
-    }
+      const dropoffCoords = parseCoords(
+        rideData.booking.dropoffCoordinates,
+        "dropoff"
+      );
 
-    if (
-      rideData.status === "RideStarted" ||
-      rideData.status === "RideFinished"
-    ) {
-      if (pickupMarkerRef.current) {
-        pickupMarkerRef.current.remove();
-        pickupMarkerRef.current = null;
+      const validPoints = [driverCoords, pickupCoords, dropoffCoords].filter(
+        Boolean
+      ) as [number, number][];
+
+      if (validPoints.length === 0) {
+        map.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+        toast.warning("No valid coordinates available. Showing default view.");
+        return;
       }
-    } else if (
-      (rideData.status === "Accepted" ||
-        rideData.status === "DriverComingToPickup") &&
-      !pickupMarkerRef.current
-    ) {
-      const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
-      if (pickupCoords && mapInstanceRef.current) {
-        pickupMarkerRef.current = new mapboxgl.Marker({
-          color: "#ef4444",
-          scale: 0.8,
-        })
-          .setLngLat(pickupCoords)
-          .addTo(mapInstanceRef.current);
-      }
-    }
 
-    if (!dropoffMarkerRef.current) {
-      const dropoffCoords = parseCoords(rideData.booking.dropoffCoordinates);
-      if (dropoffCoords && mapInstanceRef.current) {
-        dropoffMarkerRef.current = new mapboxgl.Marker({
-          color: "#3b82f6",
-          scale: 0.8,
-        })
-          .setLngLat(dropoffCoords)
-          .addTo(mapInstanceRef.current);
-      }
-    }
+      const bounds = validPoints.reduce(
+        (b, coord) => b.extend(coord),
+        new mapboxgl.LngLatBounds(validPoints[0], validPoints[0])
+      );
 
-    adjustMapBounds(mapInstanceRef.current);
-    fetchTripRoute(mapInstanceRef.current);
-  }, [rideData?.driverCoordinates, rideData?.status, mapReady]);
-
-  const adjustMapBounds = (map: mapboxgl.Map) => {
-    if (!rideData || !rideData.booking) return;
-
-    const driverCoords = parseCoords(rideData.driverCoordinates);
-    if (!driverCoords) {
-      console.warn("Cannot adjust map bounds: Invalid driver coordinates");
-      return;
-    }
-
-    const bounds = new mapboxgl.LngLatBounds(driverCoords, driverCoords);
-
-    if (
-      rideData.status === "Accepted" ||
-      rideData.status === "DriverComingToPickup"
-    ) {
-      const pickupCoords = parseCoords(rideData.booking.pickupCoordinates);
-      if (pickupCoords) {
-        bounds.extend(pickupCoords);
-      }
-    }
-
-    const dropoffCoords = parseCoords(rideData.booking.dropoffCoordinates);
-    if (dropoffCoords) {
-      bounds.extend(dropoffCoords);
-    }
-
-    try {
-      map.fitBounds(bounds, {
-        padding: { top: 80, bottom: 320, left: 50, right: 50 },
-        maxZoom: 15,
-        duration: 1000,
-      });
-    } catch (error) {
-      console.error("Error adjusting map bounds:", error);
-    }
-  };
-
-  const fetchTripRoute = async (map: mapboxgl.Map) => {
-    if (!rideData || !mapReady || !rideData.booking) {
-      console.warn("Cannot fetch route: rideData, map, or booking not ready");
-      return;
-    }
-
-    const driverCoords = parseCoords(rideData.driverCoordinates);
-    if (!driverCoords) {
-      console.warn("Cannot fetch route: Invalid driver coordinates");
-      toast.error("Cannot display route: Invalid driver location");
-      return;
-    }
-
-    let destinationCoords: [number, number] | null = null;
-    let routeColor: string = "#10b981"; // Green for pickup
-
-    if (
-      rideData.status === "Accepted" ||
-      rideData.status === "DriverComingToPickup"
-    ) {
-      destinationCoords = parseCoords(rideData.booking.pickupCoordinates);
-      routeColor = "#10b981";
-    } else if (
-      rideData.status === "RideStarted" ||
-      rideData.status === "RideFinished"
-    ) {
-      destinationCoords = parseCoords(rideData.booking.dropoffCoordinates);
-      routeColor = "#3b82f6"; // Blue for drop-off
-    }
-
-    if (!destinationCoords) {
-      console.warn("Cannot fetch route: Invalid destination coordinates");
-      const routeSource = map.getSource("route");
-      if (routeSource) {
-        (routeSource as mapboxgl.GeoJSONSource).setData({
-          type: "Feature",
-          properties: {},
-          geometry: { type: "LineString", coordinates: [] },
+      try {
+        map.fitBounds(bounds, {
+          padding: { top: 100, bottom: 400, left: 40, right: 40 },
+          maxZoom: 15,
+          duration: 800,
         });
+      } catch (error) {
+        console.error("Error adjusting bounds:", error);
+        toast.error("Error adjusting map view.");
       }
-      setArrivalTime("N/A");
-      setTripDistance("N/A");
-      return;
-    }
+    },
+    [rideData, parseCoords]
+  );
 
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${driverCoords[0]},${driverCoords[1]};${destinationCoords[0]},${destinationCoords[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`
+  const getDestinationCoords = useCallback(
+    (status: RideStatusData["status"], booking: Booking) => {
+      if (status === "Accepted" || status === "DriverComingToPickup") {
+        return parseCoords(booking.pickupCoordinates, "pickup");
+      } else if (status === "RideStarted" || status === "RideFinished") {
+        return parseCoords(booking.dropoffCoordinates, "dropoff");
+      }
+      return null;
+    },
+    [parseCoords]
+  );
+
+  const fetchTripRoute = useCallback(
+    async (map: mapboxgl.Map) => {
+      if (!rideData || !mapReady || !rideData.booking) return;
+
+      const driverCoords = parseCoords(rideData.driverCoordinates, "driver");
+      if (!driverCoords) {
+        setArrivalTime(rideData.booking.duration || "N/A");
+        setTripDistance(rideData.booking.distance || "N/A");
+        clearRoute(map);
+        return;
+      }
+
+      const destinationCoords = getDestinationCoords(
+        rideData.status,
+        rideData.booking
       );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!destinationCoords) {
+        setArrivalTime(rideData.booking.duration || "N/A");
+        setTripDistance(rideData.booking.distance || "N/A");
+        clearRoute(map);
+        return;
       }
 
-      const data = await response.json();
-      console.log("Mapbox API response:", data);
+      console.log("Coords for route:", { driverCoords, destinationCoords });
 
-      if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
+      const routeColor =
+        rideData.status === "Accepted" ||
+        rideData.status === "DriverComingToPickup"
+          ? "#10b981" // Green
+          : "#3b82f6"; // Blue
 
-        const durationMinutes = Math.round(route.duration / 60);
-        setArrivalTime(
-          durationMinutes <= 1 ? "1 min" : `${durationMinutes} mins`
-        );
+      try {
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${driverCoords[0]},${driverCoords[1]};${destinationCoords[0]},${destinationCoords[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
+        console.log("Fetching route from:", url);
+        const response = await fetch(url);
 
-        const distanceKm = (route.distance / 1000).toFixed(1);
-        setTripDistance(`${distanceKm} km`);
-
-        const routeData: Feature<LineString> = {
-          type: "Feature",
-          properties: {},
-          geometry: route.geometry,
-        };
-
-        const routeSource = map.getSource("route");
-        if (routeSource) {
-          (routeSource as mapboxgl.GeoJSONSource).setData(routeData);
-        } else {
-          map.addSource("route", {
-            type: "geojson",
-            data: routeData,
-          });
-
-          map.addLayer({
-            id: "route",
-            type: "line",
-            source: "route",
-            layout: {
-              "line-join": "round",
-              "line-cap": "round",
-            },
-            paint: {
-              "line-color": routeColor,
-              "line-width": 5,
-              "line-opacity": 0.8,
-            },
-          });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Directions API error:", response.status, errorText);
+          throw new Error(`API error: ${response.status} - ${errorText}`);
         }
-      } else {
-        console.warn("No routes found");
-        const routeSource = map.getSource("route");
-        if (routeSource) {
-          (routeSource as mapboxgl.GeoJSONSource).setData({
+
+        const data = await response.json();
+        console.log("Directions API response:", data);
+
+        if (data.routes?.length > 0) {
+          const route = data.routes[0];
+          const durationMinutes = Math.round(route.duration / 60);
+          setArrivalTime(
+            durationMinutes <= 1 ? "1 min" : `${durationMinutes} mins`
+          );
+
+          const distanceKm = (route.distance / 1000).toFixed(1);
+          setTripDistance(`${distanceKm} km`);
+
+          const routeData: Feature<LineString> = {
             type: "Feature",
             properties: {},
-            geometry: { type: "LineString", coordinates: [] },
-          });
+            geometry: route.geometry,
+          };
+
+          const source = map.getSource("route") as
+            | mapboxgl.GeoJSONSource
+            | undefined;
+          if (source) {
+            source.setData(routeData);
+          } else {
+            map.addSource("route", { type: "geojson", data: routeData });
+            map.addLayer({
+              id: "route",
+              type: "line",
+              source: "route",
+              layout: { "line-join": "round", "line-cap": "round" },
+              paint: {
+                "line-color": routeColor,
+                "line-width": 5,
+                "line-opacity": 0.85,
+              },
+            });
+          }
+        } else {
+          console.warn("No routes found in API response:", data);
+          toast.warning(
+            "No route found between points. Using booking estimates. Verify coordinates are correct and within driving distance."
+          );
+          setArrivalTime(rideData.booking.duration || "N/A");
+          setTripDistance(rideData.booking.distance || "N/A");
+          clearRoute(map);
         }
-        setArrivalTime("N/A");
-        setTripDistance("N/A");
+      } catch (error) {
+        console.error("Route fetch error:", error);
+        toast.error(
+          "Failed to fetch route. This may be due to invalid coordinates, token issues, or API limits. Falling back to booking estimates."
+        );
+        setArrivalTime(rideData.booking.duration || "N/A");
+        setTripDistance(rideData.booking.distance || "N/A");
+        clearRoute(map);
       }
-    } catch (error) {
-      console.error("Error fetching route:", error);
-      const routeSource = map.getSource("route");
-      if (routeSource) {
-        (routeSource as mapboxgl.GeoJSONSource).setData({
-          type: "Feature",
-          properties: {},
-          geometry: { type: "LineString", coordinates: [] },
-        });
-      }
-      setArrivalTime("N/A");
-      setTripDistance("N/A");
+    },
+    [rideData, mapReady, parseCoords, getDestinationCoords]
+  );
+
+  const clearRoute = (map: mapboxgl.Map) => {
+    const source = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData({
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: [] },
+      });
     }
   };
 
-  const handleCancelTrip = () => {
-    if (socket && isConnected && rideData) {
-      socket.emit("cancelRide", {
+  const handleCancelTrip = async () => {
+    if (rideData) {
+      const data = await patchData(ApiEndpoints.CANCEL_RIDE, "User", {
         userId: rideData.userId,
         rideId: rideData.ride_id,
       });
       toast.info("Ride cancellation requested");
-      setIsCancelDialogOpen(false);
+      onNotification("success","your ride cancelled successfully")
+      dispatch(hideRideMap())
     }
+
+
+    // if (socket && isConnected && rideData) {
+    //   socket.emit("cancelRide", {
+    //     userId: rideData.userId,
+    //     rideId: rideData.ride_id,
+    //   });
+    //   toast.info("Ride cancellation requested");
+    //   setIsCancelDialogOpen(false);
+    // }
   };
 
   const handleCallDriver = () => {
     if (rideData?.driverDetails.number) {
-      window.open(`tel:${rideData?.driverDetails.number}`);
+      window.open(`tel:${rideData.driverDetails.number}`);
+    } else {
+      toast.error("Driver phone number unavailable.");
     }
   };
 
@@ -736,17 +758,11 @@ const RideTrackingPage: React.FC = () => {
     });
 
     dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
-
     setMessageInput("");
   };
 
   const startCamera = () => {
     setIsCameraOpen(true);
-    toast.info("Camera opened successfully");
-  };
-
-  const stopCamera = () => {
-    setIsCameraOpen(false);
   };
 
   const captureImage = useCallback(() => {
@@ -757,14 +773,13 @@ const RideTrackingPage: React.FC = () => {
         setImageSource("camera");
         setIsCameraOpen(false);
       } else {
-        toast.error("Failed to capture image. Please try again.");
+        toast.error("Failed to capture image.");
       }
     }
   }, [formik]);
 
   const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-
+    if (!event.target.files?.length) return;
     const file = event.target.files[0];
     formik.setFieldValue("selectedImage", file);
     setImageSource("file");
@@ -772,36 +787,47 @@ const RideTrackingPage: React.FC = () => {
   };
 
   const clearImageSelection = () => {
-    if (
-      typeof formik.values.selectedImage !== "string" &&
-      formik.values.selectedImage
-    ) {
-      URL.revokeObjectURL(URL.createObjectURL(formik.values.selectedImage));
-    }
     formik.setFieldValue("selectedImage", null);
     setImageSource(null);
   };
 
   const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-      fileInputRef.current.click();
-    }
+    fileInputRef.current?.click();
   };
 
-  if (!rideData || !isOpen) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-          <p>Loading ride data...</p>
-        </div>
-      </div>
-    );
-  }
+  const getStatusBanner = useMemo(() => {
+    switch (rideData?.status) {
+      case "Accepted":
+        return (
+          <div className="bg-green-100 text-green-800 p-2 text-center text-sm">
+            Driver has accepted your ride!
+          </div>
+        );
+      case "DriverComingToPickup":
+        return (
+          <div className="bg-blue-100 text-blue-800 p-2 text-center text-sm">
+            Driver is on the way to pickup.
+          </div>
+        );
+      case "RideStarted":
+        return (
+          <div className="bg-indigo-100 text-indigo-800 p-2 text-center text-sm">
+            Ride has started!
+          </div>
+        );
+      case "RideFinished":
+        return (
+          <div className="bg-purple-100 text-purple-800 p-2 text-center text-sm">
+            Ride completed. Rate your driver?
+          </div>
+        );
+      default:
+        return null;
+    }
+  }, [rideData?.status]);
 
-  const getTripTitle = () => {
-    switch (rideData.status) {
+  const getTripTitle = useCallback(() => {
+    switch (rideData?.status) {
       case "Accepted":
       case "DriverComingToPickup":
         return `Driver to Pickup: ${arrivalTime}`;
@@ -812,49 +838,56 @@ const RideTrackingPage: React.FC = () => {
       default:
         return "Ride Status";
     }
-  };
+  }, [rideData?.status, arrivalTime]);
+
+  if (!rideData || !isOpen) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="text-center space-y-2">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+          <p className="text-gray-600">Loading ride data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      {getStatusBanner}
       <div className="relative flex-1 min-h-0">
         <div ref={mapContainerRef} className="w-full h-full" />
         {!mapReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-center">
-              {import.meta.env.VITE_MAPBOX_ACCESSTOKEN ? (
-                <>
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading map...</p>
-                </>
-              ) : (
-                <p className="text-red-600">
-                  Map cannot load: Missing Mapbox access token.
-                </p>
-              )}
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90">
+            <div className="text-center space-y-2">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+              <p className="text-gray-600 font-medium">
+                Loading map and route...
+              </p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex-shrink-0 bg-white shadow-lg max-h-[50vh] overflow-y-auto">
-        <Card className="border-0 rounded-t-xl shadow-none">
-          <CardHeader className="pb-3 px-4 pt-4">
+      <div className="flex-shrink-0 bg-white shadow-lg max-h-[50vh] overflow-y-auto rounded-t-xl">
+        <Card className="border-0 shadow-none">
+          <CardHeader className="pb-3 px-4 pt-4 space-y-2">
             <CardTitle className="text-base sm:text-lg flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 truncate">
                 {rideData.status === "RideStarted" ||
                 rideData.status === "RideFinished" ? (
-                  <Car className="h-4 w-4 text-blue-500" />
+                  <Car className="h-4 w-4 text-blue-500 flex-shrink-0" />
                 ) : (
-                  <Clock className="h-4 w-4 text-emerald-500" />
+                  <Clock className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                 )}
                 <span className="truncate">{getTripTitle()}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-gray-500 flex-shrink-0">
                 <span>{tripDistance}</span>
                 <Button
                   size="sm"
                   variant="ghost"
                   className="text-emerald-500 p-1 h-8"
+                  aria-label="Navigate"
                 >
                   <Navigation className="h-4 w-4" />
                 </Button>
@@ -876,7 +909,7 @@ const RideTrackingPage: React.FC = () => {
                   setActiveSection("messages");
                   setUnreadCount(0);
                 }}
-                className={`flex-1 py-2 text-sm font-medium ${
+                className={`flex-1 py-2 text-sm font-medium relative ${
                   activeSection === "messages"
                     ? "text-blue-600 border-b-2 border-blue-600"
                     : "text-gray-500 hover:text-gray-700"
@@ -884,7 +917,7 @@ const RideTrackingPage: React.FC = () => {
               >
                 Messages
                 {unreadCount > 0 && (
-                  <span className="ml-2 inline-flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                  <span className="absolute top-0 right-2 inline-flex items-center justify-center h-4 w-4 text-xs font-bold text-white bg-red-500 rounded-full">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
@@ -898,11 +931,11 @@ const RideTrackingPage: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-emerald-200 flex-shrink-0">
                     <AvatarImage
-                      src={rideData.driverDetails.driverImage}
+                      src={rideData.driverDetails.driverPhoto}
                       alt={rideData.driverDetails.driverName}
                     />
                     <AvatarFallback className="text-sm">
-                      {rideData.driverDetails.driverName}
+                      {rideData.driverDetails.driverName?.[0] || "D"}
                     </AvatarFallback>
                   </Avatar>
 
@@ -911,10 +944,10 @@ const RideTrackingPage: React.FC = () => {
                       {rideData.driverDetails.driverName}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-500">
-                      Vehicle:{" "}
                       {rideData.booking?.vehicleModel ||
-                        rideData.driverDetails?.vehicleModel ||
-                        "N/A"}
+                        rideData.driverDetails.vehicleModel ||
+                        "N/A"}{" "}
+                      • Rating: {rideData.driverDetails.rating || "0"}
                     </p>
                   </div>
 
@@ -927,11 +960,11 @@ const RideTrackingPage: React.FC = () => {
                         setActiveSection("messages");
                         setUnreadCount(0);
                       }}
-                      aria-label={`Messages with ${unreadCount} unread messages`}
+                      aria-label={`Open messages (${unreadCount} unread)`}
                     >
                       <MessageSquare className="h-4 w-4" />
                       {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center text-[10px]">
                           {unreadCount > 9 ? "9+" : unreadCount}
                         </span>
                       )}
@@ -941,6 +974,7 @@ const RideTrackingPage: React.FC = () => {
                       variant="outline"
                       className="rounded-full h-8 w-8 sm:h-10 sm:w-10"
                       onClick={handleCallDriver}
+                      aria-label="Call driver"
                     >
                       <PhoneCall className="h-4 w-4" />
                     </Button>
@@ -949,86 +983,92 @@ const RideTrackingPage: React.FC = () => {
 
                 {(rideData.status === "Accepted" ||
                   rideData.status === "DriverComingToPickup") && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 className="font-medium text-sm mb-3">Your Ride PIN:</h3>
-                    <div className="text-2xl font-bold text-blue-700 tracking-wider mb-2 font-mono">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 space-y-2">
+                    <h3 className="font-medium text-sm">Your Ride PIN</h3>
+                    <div className="text-2xl font-bold text-blue-700 tracking-widest font-mono">
                       {rideData.booking?.pin ?? "N/A"}
                     </div>
                     <p className="text-xs text-gray-600">
-                      Share this PIN with your driver to start the ride
+                      Share this with your driver to verify and start the ride.
                     </p>
                   </div>
                 )}
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Distance:</span>
-                    <span className="font-medium">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Distance</p>
+                    <p className="font-medium">
                       {rideData.booking?.distance || tripDistance}
-                    </span>
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Duration:</span>
-                    <span className="font-medium">
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Duration</p>
+                    <p className="font-medium">
                       {rideData.booking?.duration || arrivalTime}
-                    </span>
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Fare:</span>
-                    <span className="font-medium">
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Fare</p>
+                    <p className="font-medium">
                       ₹{rideData.booking?.price ?? "N/A"}
-                    </span>
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Vehicle No.</p>
+                    <p className="font-medium">
+                      {rideData.driverDetails.vehicleNumber ?? "N/A"}
+                    </p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4 pt-2">
                   <div className="flex gap-3 items-start">
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <div className="mt-1 flex-shrink-0">
+                      <MapPin className="h-5 w-5 text-green-500" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 font-medium">
-                        PICKUP
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium uppercase">
+                        Pickup
                       </p>
-                      <p className="text-sm font-medium leading-tight">
+                      <p className="text-sm font-medium leading-tight truncate">
                         {rideData.booking?.pickupLocation || "Current Location"}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex gap-3 items-start">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5e">
-                      <div className="'w-2 h-2 rounded-full bg-blue-500"></div>
+                    <div className="mt-1 flex-shrink-0">
+                      <MapPin className="h-5 w-5 text-blue-500" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 font-medium">
-                        DROP-OFF
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium uppercase">
+                        Drop-off
                       </p>
-                      <p className="text-sm font-medium leading-tight">
+                      <p className="text-sm font-medium leading-tight truncate">
                         {rideData.booking?.dropoffLocation || "Destination"}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {canCancelTrip && rideData.status === "Accepted" && (
-                  <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 pt-4">
+                  {canCancelTrip && rideData.status === "Accepted" && (
                     <Dialog
                       open={isCancelDialogOpen}
                       onOpenChange={setIsCancelDialogOpen}
                     >
                       <DialogTrigger asChild>
-                        <Button className="flex-1 bg-red-500 hover:bg-red-600 h-12">
+                        <Button variant="destructive" className="flex-1 h-10">
                           <X className="h-4 w-4 mr-2" />
-                          Cancel Ride ({cancelTimeLeft}s)
+                          Cancel ({cancelTimeLeft}s)
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
+                      <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Cancel Ride</DialogTitle>
+                          <DialogTitle>Confirm Cancellation</DialogTitle>
                           <DialogDescription>
-                            Are you sure you want to cancel your ride? This
-                            action cannot be undone.
+                            Cancel your ride? This can't be undone. Time left:{" "}
+                            {cancelTimeLeft}s
                           </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
@@ -1036,33 +1076,41 @@ const RideTrackingPage: React.FC = () => {
                             variant="outline"
                             onClick={() => setIsCancelDialogOpen(false)}
                           >
-                            No, Keep Ride
+                            Keep Ride
                           </Button>
                           <Button
-                            className="bg-red-500 hover:bg-red-600"
+                            variant="destructive"
                             onClick={handleCancelTrip}
                           >
-                            Yes, Cancel Ride
+                            Cancel Ride
                           </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                  </div>
-                )}
+                  )}
+                  {/* <Button
+                    variant="outline"
+                    className="flex-1 h-10"
+                    onClick={() => toast.info("Sharing location...")} // Placeholder for share functionality
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Share Location
+                  </Button> */}
+                </div>
               </>
             )}
 
             {activeSection === "messages" && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {isCameraOpen && (
-                  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-                    <div className="relative bg-white rounded-lg p-6 w-full max-w-sm">
+                  <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="relative bg-white rounded-xl p-4 w-full max-w-md space-y-4">
                       <Button
-                        onClick={stopCamera}
-                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600"
-                        size="icon"
+                        variant="ghost"
+                        className="absolute top-2 right-2"
+                        onClick={() => setIsCameraOpen(false)}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-5 w-5" />
                       </Button>
                       <Webcam
                         audio={false}
@@ -1070,81 +1118,65 @@ const RideTrackingPage: React.FC = () => {
                         screenshotFormat="image/jpeg"
                         videoConstraints={videoConstraints}
                         className="w-full rounded-lg"
-                        onUserMediaError={(error) => {
-                          console.error("Webcam error:", error);
-                          toast.error(
-                            "Failed to access camera. Please check permissions and try again."
-                          );
-                          stopCamera();
-                        }}
                       />
-                      <div className="flex justify-center gap-2 mt-3">
-                        <Button
-                          onClick={captureImage}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          Capture
-                        </Button>
-                      </div>
+                      <Button className="w-full" onClick={captureImage}>
+                        Capture Photo
+                      </Button>
                     </div>
                   </div>
                 )}
 
                 {formik.values.selectedImage && (
-                  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-                    <form onSubmit={formik.handleSubmit}>
-                      <div className="relative bg-white rounded-lg p-6 w-full max-w-sm">
+                  <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <form
+                      onSubmit={formik.handleSubmit}
+                      className="relative bg-white rounded-xl p-4 w-full max-w-md space-y-4"
+                    >
+                      <Button
+                        variant="ghost"
+                        className="absolute top-2 right-2"
+                        onClick={clearImageSelection}
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                      <img
+                        src={
+                          typeof formik.values.selectedImage === "string"
+                            ? formik.values.selectedImage
+                            : URL.createObjectURL(formik.values.selectedImage)
+                        }
+                        alt="Preview"
+                        className="w-full max-h-[60vh] object-contain rounded-lg"
+                      />
+                      <div className="flex gap-2">
                         <Button
-                          onClick={clearImageSelection}
-                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600"
-                          size="icon"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <img
-                          src={
-                            typeof formik.values.selectedImage === "string"
-                              ? formik.values.selectedImage
-                              : URL.createObjectURL(formik.values.selectedImage)
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={
+                            imageSource === "camera"
+                              ? () => {
+                                  clearImageSelection();
+                                  setIsCameraOpen(true);
+                                }
+                              : triggerFileInput
                           }
-                          alt="Preview"
-                          className="w-full rounded-lg max-h-[50vh] object-contain"
-                        />
-                        <div className="flex justify-center gap-2 mt-3">
-                          {imageSource === "camera" && (
-                            <Button
-                              type="button"
-                              onClick={() => {
-                                clearImageSelection();
-                                startCamera();
-                              }}
-                              className="bg-gray-600 hover:bg-gray-700"
-                            >
-                              Retake
-                            </Button>
-                          )}
-                          {imageSource === "file" && (
-                            <Button
-                              type="button"
-                              onClick={triggerFileInput}
-                              className="bg-gray-600 hover:bg-gray-700"
-                            >
-                              Choose Another
-                            </Button>
-                          )}
-                          <Button
-                            type="submit"
-                            className="bg-blue-600 hover:bg-blue-700"
-                            disabled={formik.isSubmitting}
-                          >
-                            Send
-                          </Button>
-                        </div>
+                        >
+                          {imageSource === "camera"
+                            ? "Retake"
+                            : "Choose Another"}
+                        </Button>
+                        <Button
+                          type="submit"
+                          className="flex-1"
+                          disabled={formik.isSubmitting}
+                        >
+                          Send Image
+                        </Button>
                       </div>
                     </form>
                     <input
                       ref={fileInputRef}
-                      id="file-input"
                       type="file"
                       accept="image/*"
                       className="hidden"
@@ -1153,123 +1185,104 @@ const RideTrackingPage: React.FC = () => {
                   </div>
                 )}
 
-                <div className="h-40 sm:h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3">
-                  {(!rideData.chatMessages ||
-                    rideData.chatMessages.length === 0) && (
-                    <p className="text-center text-gray-500 text-sm">
-                      No messages yet.
+                <div className="h-[30vh] overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3 border border-gray-200">
+                  {rideData.chatMessages?.length === 0 ? (
+                    <p className="text-center text-gray-500 text-sm py-4">
+                      Start chatting with your driver!
                     </p>
-                  )}
-                  {rideData.chatMessages?.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${
-                        message.sender === "user"
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
-                      <div className="max-w-[70%]">
-                        {message.type === "text" && message.content && (
-                          <div
-                            className={`p-3 rounded-lg text-sm ${
-                              message.sender === "user"
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            <p>{message.content}</p>
-                            <p
-                              className={`text-xs mt-1 ${
-                                message.sender === "user"
-                                  ? "text-blue-100"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              {new Date(message.timestamp).toLocaleTimeString(
-                                [],
-                                { hour: "2-digit", minute: "2-digit" }
-                              )}
-                            </p>
-                          </div>
-                        )}
-                        {message.type === "image" && message.fileUrl && (
-                          <div className="rounded-lg overflow-hidden">
+                  ) : (
+                    rideData.chatMessages?.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${
+                          message.sender === "user"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[75%] p-3 rounded-xl text-sm ${
+                            message.sender === "user"
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-gray-800"
+                          }`}
+                        >
+                          {message.type === "text" && <p>{message.content}</p>}
+                          {message.type === "image" && message.fileUrl && (
                             <img
                               src={message.fileUrl}
-                              alt="Shared content"
-                              className="max-w-[200px] h-auto rounded-lg"
-                              onError={(e) =>
-                                console.log("Image load failed:", e)
+                              alt="Chat image"
+                              className="max-w-[180px] rounded-lg cursor-pointer"
+                              onClick={() =>
+                                window.open(message.fileUrl, "_blank")
                               }
                             />
-                            <p
-                              className={`text-xs mt-1 text-right ${
-                                message.sender === "user"
-                                  ? "text-blue-500"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              {new Date(message.timestamp).toLocaleTimeString(
-                                [],
-                                { hour: "2-digit", minute: "2-digit" }
-                              )}
-                            </p>
-                          </div>
-                        )}
+                          )}
+                          <p className={`text-xs mt-1 opacity-75 text-right`}>
+                            {new Date(message.timestamp).toLocaleTimeString(
+                              [],
+                              { hour: "2-digit", minute: "2-digit" }
+                            )}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
+                  {isTyping && (
+                    <p className="text-xs text-gray-500">Driver is typing...</p>
+                  )}
                   <div ref={chatEndRef} />
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex items-center gap-2">
                   <Input
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="Type a message..."
+                    placeholder="Type your message..."
                     className="flex-1 h-10"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && messageInput.trim()) {
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        !e.shiftKey &&
+                        messageInput.trim()
+                      ) {
+                        e.preventDefault();
                         handleSendMessage();
                       }
                     }}
+                    aria-label="Chat input"
                   />
                   <Button
                     onClick={handleSendMessage}
-                    className="h-10 bg-green-600 hover:bg-green-700"
+                    className="h-10 px-3"
                     disabled={!messageInput.trim() || !isConnected}
+                    aria-label="Send message"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
                   <Button
                     onClick={startCamera}
-                    className="h-10 w-10 bg-blue-600 hover:bg-blue-700 p-0"
-                    disabled={!!formik.values.selectedImage || isCameraOpen}
+                    className="h-10 px-3"
+                    variant="outline"
+                    aria-label="Open camera"
                   >
                     <Camera className="h-4 w-4" />
                   </Button>
-                  <div className="relative">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="h-10 w-10 p-0"
-                      disabled={!!formik.values.selectedImage || isCameraOpen}
-                    >
-                      <label htmlFor="file-input">
-                        <Image className="h-4 w-4" />
-                        <span className="sr-only">Choose image</span>
-                      </label>
-                    </Button>
+                  <Button
+                    onClick={triggerFileInput}
+                    className="h-10 px-3"
+                    variant="outline"
+                    aria-label="Upload image"
+                  >
+                    <Image className="h-4 w-4" />
                     <input
                       ref={fileInputRef}
-                      id="file-input"
                       type="file"
                       accept="image/*"
                       className="hidden"
                       onChange={handleFileInput}
-                      disabled={!!formik.values.selectedImage || isCameraOpen}
                     />
-                  </div>
+                  </Button>
                 </div>
               </div>
             )}

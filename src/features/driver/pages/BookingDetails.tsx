@@ -44,7 +44,7 @@ const BookingDetail: React.FC = () => {
           `${DriverApiEndpoints.GET_MY_TRIP_DETAILS}/${bookingId}`,
           "Driver"
         );
-        setBooking(data.data);
+        setBooking(data);
         setError(null);
       } catch (err: any) {
         console.error("Error fetching booking:", err);

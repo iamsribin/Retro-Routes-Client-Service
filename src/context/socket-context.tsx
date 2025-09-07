@@ -10,13 +10,17 @@ import { io, Socket } from "socket.io-client";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch, store } from "@/shared/services/redux/store";
 import { userLogout } from "@/shared/services/redux/slices/userAuthSlice";
-import { driverLogout } from "@/shared/services/redux/slices/driverAuthSlice";
+import {
+  driverLogout,
+  setOnline,
+} from "@/shared/services/redux/slices/driverAuthSlice";
 import { adminLogout } from "@/shared/services/redux/slices/adminAuthSlice";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { useNavigate } from "react-router-dom";
 import {
   setPaymentStatus,
   showRideMap as showRideMapUser,
+  updateRideStatus,
 } from "@/shared/services/redux/slices/rideSlice";
 import {
   showRideRequestNotification,
@@ -24,9 +28,7 @@ import {
   showRideMap as showRideMapDriver,
   hideRideRequestNotification,
 } from "@/shared/services/redux/slices/driverRideSlice";
-import {
-  RideRequest,
-} from "@/shared/types/driver/ridetype";
+import { RideRequest } from "@/shared/types/driver/ridetype";
 import { useLoading } from "@/shared/hooks/useLoading";
 import { getItem, setItem } from "@/shared/utils/localStorage";
 import { handleLogout } from "@/shared/utils/handleLogout";
@@ -138,14 +140,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }) => {
       setItem("token", token);
       setItem("refreshToken", refreshToken);
-      // if (role === "User") {
-      // } else if (role === "Driver") {
-      //   setItem("token", token);
-      //   setItem("refreshToken", refreshToken);
-      // } else if (role === "Admin") {
-      //   setItem("token", token);
-      //   setItem("refreshToken", refreshToken);
-      // }
     };
 
     const handleError = (error: string) => {
@@ -172,9 +166,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           navigate: "/login",
         })
       );
-      if (role === "User") handleLogout("User",dispatch)
-      else if (role === "Driver") handleLogout("Driver",dispatch)
-      else if (role === "Admin") handleLogout("Admin",dispatch)
+      if (role === "User") handleLogout("User", dispatch);
+      else if (role === "Driver") handleLogout("Driver", dispatch);
+      else if (role === "Admin") handleLogout("Admin", dispatch);
       navigate("/login");
     };
 
@@ -197,6 +191,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         );
       } else {
         dispatch(hideRideMapDriver());
+        dispatch(setOnline({ onlineStatus: false }));
         dispatch(
           showNotification({
             type: "info",
@@ -251,6 +246,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         loadingType: "ride-search",
         progress: 100,
       });
+      console.log("handleDriverAssigned", data);
 
       dispatch(
         showNotification({
@@ -280,6 +276,16 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     // Register events
     socketInstance.on("connect", handleConnect);
+    socketInstance.on("driver:start:ride", (med) => {
+      console.log("-=--=-=", med);
+
+      dispatch(
+        updateRideStatus({
+          ride_id: med.rideId,
+          status: "RideStarted",
+        })
+      );
+    });
     socketInstance.on("token_refreshed", handleTokensUpdated);
     socketInstance.on("error", handleError);
     socketInstance.on("disconnect", handleDisconnect);
@@ -290,6 +296,18 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socketInstance.on("booking:accept:result", handleRideRequestAccept);
     socketInstance.on("booking:driver:assigned", handleDriverAssigned);
     socketInstance.on("booking:no_drivers", handleNoDriver);
+
+    socketInstance.on("booking:cancelled", (data) => {
+      dispatch(hideRideMapDriver());
+      dispatch(setOnline({ onlineStatus: false }));
+      dispatch(
+        showNotification({
+          type: "info",
+          message: `Ride canceled by user. You're now offline. Enable online and start ride.`,
+          navigate:"/driver/dashboard"
+        })
+      );
+    });
     // Cleanup
     return () => {
       console.log(`Cleaning up socket for ${role}: ${connectionInfo.id}`);

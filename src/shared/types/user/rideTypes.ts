@@ -2,7 +2,7 @@ import { Coordinates, Message } from "../commonTypes";
 import { DriverDetails } from "../driver/driverType";
 import { User } from "./userTypes";
 
-interface Booking {
+export interface Booking {
   date: string;
   distance: string;
   pickupCoordinates: Coordinates;
@@ -16,7 +16,6 @@ interface Booking {
   status: string;
   vehicleModel: string;
   _id: string;
-  __v: number;
 }
 
 interface RideStatusData {

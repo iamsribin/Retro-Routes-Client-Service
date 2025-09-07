@@ -11,7 +11,7 @@ import { toast } from "@/shared/hooks/use-toast";
 import { useSocket } from "@/context/socket-context";
 import { geocodeLatLng } from "@/shared/utils/locationToAddress";
 import { useJsApiLoader } from "@react-google-maps/api";
-import { Coordinates, LocationCoordinates } from "../shared/types/commonTypes";
+import { Coordinates } from "../shared/types/commonTypes";
 
 interface DriverLocationContextType {
   driverLocation: Coordinates | null;
@@ -42,6 +42,9 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
 
   const isOnline = useSelector((state: RootState) => state.driver.isOnline);
   const driverId = useSelector((state: RootState) => state.driver.driverId);
+  const rideData = useSelector(
+    (state: RootState) => state.driverRideMap.rideData
+  );
   const role = useSelector((state: RootState) => state.driver.role);
 
   useEffect(() => {
@@ -54,34 +57,38 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
         variant: "destructive",
       });
     }
-    console.log("isOnline", isOnline);
-    // latitude:11.072035,
-    // longitude: 76.074005,
-    // 11.050994, 76.071157
-    // latitude:11.050994,
-    // longitude: 76.071157,
 
     if (isOnline && navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
           const coords = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+          // latitude: position.coords.latitude,
+          // longitude: position.coords.longitude,
+          // 11.050667, 76.071029
+          latitude:11.050667,
+          longitude: 76.071029,
           };
           if (isLoaded) {
+
+            // 11.050331, 76.071086
             // const address = await geocodeLatLng(
             //   coords.latitude,
             //   coords.longitude
             // );
-            const fullLocation: Coordinates = {
-              ...coords,
-              // address,
-            };
+            // const fullLocation: Coordinates = {
+            //   ...coords,
+            // };
 
-            setDriverLocation(fullLocation);
-            console.log("driver coords", fullLocation);
+            setDriverLocation(coords);
+            console.log("driver coords", coords);
 
-            if (socket && isConnected) {
+            if (socket && isConnected && rideData) {
+              socket.emit("location:update:ride_driver", {
+                driverId,
+                userId:rideData.customer.userId,
+                ...coords,
+              });
+            }else if (socket && isConnected) {
               socket.emit("location:update", {
                 driverId,
                 ...coords,
@@ -100,8 +107,8 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
         },
         {
           enableHighAccuracy: true,
-          maximumAge: 10000,
-          timeout: 10000,
+          // maximumAge: 10000,
+          // timeout: 10000,
         }
       );
     }
@@ -115,7 +122,7 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
     if (isOnline && socket && role === "Driver") {
       const interval = setInterval(() => {
         socket.emit("ping");
-      }, 60 * 1000); // every 1 minute
+      }, 60 * 1000);
 
       return () => clearInterval(interval);
     }
