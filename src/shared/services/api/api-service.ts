@@ -58,6 +58,8 @@ export const patchData = async <T>(
   return response.data;
 };
 
+
+
 export const deleteData = async <T>(url: string, role: Role): Promise<T> => {
   const axios = getAxios(role);
   const response = await axios.delete(url);

@@ -5,10 +5,10 @@ import { toast } from "sonner";
 import { Message } from "@/shared/types/commonTypes";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { DriverRideRequest } from "../types/driver/ridetype";
+import { RideRequest } from "../types/driver/ridetype";
 
 const useRideSocket = (
-  rideData: DriverRideRequest | null,
+  rideData: RideRequest | null,
   activeSection: "info" | "messages",
   setUnreadCount: (count: number | ((prev: number) => number)) => void
 ) => {
@@ -24,7 +24,7 @@ const useRideSocket = (
       status: "accepted" | "started" | "completed" | "cancelled" | "failed";
       userId: string;
     }) => {
-      if (data.requestId === rideData.requestId) {
+      if (data.requestId === rideData.bookingDetails.bookingId) {
         if (data.status === "cancelled" || data.status === "failed" || data.status === "completed") {
           dispatch(hideRideMap());
           navigate("/driver/dashboard");
@@ -32,7 +32,7 @@ const useRideSocket = (
         } else {
           dispatch(
             updateRideStatus({
-              requestId: data.requestId,
+              bookingId: data.requestId,
               status: data.status,
             })
           );
@@ -56,7 +56,7 @@ const useRideSocket = (
       };
       dispatch(
         addChatMessage({
-          requestId: rideData.requestId,
+          bookingId: rideData.bookingDetails.bookingId,
           message,
         })
       );

@@ -11,7 +11,7 @@ const DriverRideMap: React.FC = () => {
   const { isOpen, rideData } = useSelector((state: RootState) => state.driverRideMap);
   
   const [activeSection, setActiveSection] = useState<"info" | "messages">("info");
-  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const { mapContainerRef, mapReady } = useMap(rideData);
   useRideSocket(rideData, activeSection, setUnreadCount);

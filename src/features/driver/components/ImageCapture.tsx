@@ -61,24 +61,24 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ rideData }) => {
           formData
         );
 
-        if (data.data.fileUrl) {
+        if (data.fileUrl) {
           const timestamp = new Date().toISOString();
           const message: Message = {
             sender: "driver",
             content: "",
             timestamp,
             type: "image",
-            fileUrl: data.data.fileUrl,
+            fileUrl: data.fileUrl,
           };
 
           socket.emit("sendMessage", {
-            rideId: rideData.ride.rideId,
+            rideId: rideData.bookingDetails.rideId,
             sender: "driver",
             message: "",
             timestamp,
-            userId: rideData.customer.id,
+            userId: rideData.customer.userId,
             type: "image",
-            fileUrl: data.data.fileUrl,
+            fileUrl: data.fileUrl,
           });
 
           dispatch(

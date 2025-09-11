@@ -18,6 +18,7 @@ import { getDistanceInMeters } from "@/shared/utils/getDistanceInMeters";
 import { patchData, postData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import ApiEndpoints from "@/constants/api-end-pointes";
+import { useNotification } from "@/shared/hooks/useNotificatiom";
 
 interface TripInfoProps {
   rideData: RideRequest;
@@ -25,7 +26,7 @@ interface TripInfoProps {
 
 const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
   const dispatch = useDispatch();
-
+ const {onNotification} = useNotification()
   // dispatch(
   //       updateRideStatus({
   //         bookingId: rideData.bookingDetails.bookingId,
@@ -112,16 +113,17 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
       );
       return;
     }
+console.log("==============");
 
     const data = await patchData(ApiEndpoints.COMPLETE_RIDE,"Driver",{
       bookingId: rideData.bookingDetails.bookingId,
       userId: rideData.customer.userId,
     })
-
+    onNotification("success","ride completed successfully")
     // socket.emit("rideCompleted", {
     //   bookingId: rideData.bookingDetails.bookingId,
     //   userId: rideData.customer.userId,
-    // });
+    // }); 
 
     dispatch(
       updateRideStatus({

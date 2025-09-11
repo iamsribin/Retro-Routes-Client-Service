@@ -60,7 +60,8 @@ import { postData, patchData } from "@/shared/services/api/api-service";
 import ApiEndpoints from "@/constants/api-end-pointes";
 import debounce from "lodash/debounce";
 import { useNotification } from "@/shared/hooks/useNotificatiom";
-
+import { useChat } from "@/shared/hooks/useChat";
+import { Wifi, WifiOff } from "lucide-react";
 const videoConstraints = {
   width: { ideal: 1280 },
   height: { ideal: 720 },
@@ -79,7 +80,7 @@ const RideTrackingPage: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const webcamRef = useRef<Webcam | null>(null);
-  const {onNotification} = useNotification()
+  const { onNotification } = useNotification();
 
   mapboxgl.accessToken = import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN;
 
@@ -98,20 +99,18 @@ const RideTrackingPage: React.FC = () => {
     null
   );
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
-  const [isTyping, setIsTyping] = useState<boolean>(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { socket, isConnected } = useSocket();
   const { isOpen, rideData } = useSelector((state: RootState) => state.RideMap);
 
-
-      //  dispatch(
-      //     updateRideStatus({
-      //       ride_id: rideData.ride_id,
-      //       status: "RideStarted",
-      //     })
-      //   );
+  //  dispatch(
+  //     updateRideStatus({
+  //       ride_id: rideData.ride_id,
+  //       status: "RideStarted",
+  //     })
+  //   );
 
   const formik = useFormik<{
     selectedImage: string | File | null;
@@ -285,6 +284,8 @@ const RideTrackingPage: React.FC = () => {
         type: data.type,
         fileUrl: data.fileUrl,
       };
+      console.log("recevice", data);
+
       dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
       if (activeSection !== "messages") {
         setUnreadCount((prev) => prev + 1);
@@ -308,7 +309,7 @@ const RideTrackingPage: React.FC = () => {
         }
       },
       1000
-    ); 
+    );
 
     const handleDriverLocationUpdate = (data: {
       driverId: string;
@@ -690,7 +691,7 @@ const RideTrackingPage: React.FC = () => {
         );
         setArrivalTime(rideData.booking.duration || "N/A");
         setTripDistance(rideData.booking.distance || "N/A");
-        clearRoute(map);
+        // clearRoute(map);
       }
     },
     [rideData, mapReady, parseCoords, getDestinationCoords]
@@ -714,10 +715,9 @@ const RideTrackingPage: React.FC = () => {
         rideId: rideData.ride_id,
       });
       toast.info("Ride cancellation requested");
-      onNotification("success","your ride cancelled successfully")
-      dispatch(hideRideMap())
+      onNotification("success", "your ride cancelled successfully");
+      dispatch(hideRideMap());
     }
-
 
     // if (socket && isConnected && rideData) {
     //   socket.emit("cancelRide", {
@@ -737,29 +737,29 @@ const RideTrackingPage: React.FC = () => {
     }
   };
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !socket || !isConnected || !rideData) return;
+  // const handleSendMessage = () => {
+  //   if (!messageInput.trim() || !socket || !isConnected || !rideData) return;
 
-    const timestamp = new Date().toISOString();
-    const message: Message = {
-      sender: "user",
-      content: messageInput.trim(),
-      timestamp,
-      type: "text",
-    };
+  //   const timestamp = new Date().toISOString();
+  //   const message: Message = {
+  //     sender: "user",
+  //     content: messageInput.trim(),
+  //     timestamp,
+  //     type: "text",
+  //   };
 
-    socket.emit("sendMessage", {
-      rideId: rideData.ride_id,
-      sender: "user",
-      message: messageInput.trim(),
-      timestamp,
-      driverId: rideData.driverDetails.driverId,
-      type: "text",
-    });
+  //   socket.emit("sendMessage", {
+  //     rideId: rideData.ride_id,
+  //     sender: "user",
+  //     message: messageInput.trim(),
+  //     timestamp,
+  //     driverId: rideData.driverDetails.driverId,
+  //     type: "text",
+  //   });
 
-    dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
-    setMessageInput("");
-  };
+  //   dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
+  //   setMessageInput("");
+  // };
 
   const startCamera = () => {
     setIsCameraOpen(true);
@@ -793,6 +793,155 @@ const RideTrackingPage: React.FC = () => {
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
+  };
+
+  const TypingIndicator: React.FC<{ isTyping: boolean; userName: string }> = ({
+    isTyping,
+    userName,
+  }) => {
+    if (!isTyping) return null;
+
+    return (
+      <div className="flex justify-start">
+        <div className="bg-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm">
+          <div className="flex items-center space-x-2">
+            <span>{userName} is typing</span>
+            <div className="flex space-x-1">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="w-1 h-1 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ConnectionStatus: React.FC<{
+    status: "connected" | "disconnected" | "connecting";
+  }> = ({ status }) => {
+    const getStatusConfig = () => {
+      switch (status) {
+        case "connected":
+          return { icon: Wifi, color: "text-green-500", text: "Connected" };
+        case "connecting":
+          return {
+            icon: Wifi,
+            color: "text-yellow-500",
+            text: "Connecting...",
+          };
+        default:
+          return { icon: WifiOff, color: "text-red-500", text: "Disconnected" };
+      }
+    };
+
+    const { icon: Icon, color, text } = getStatusConfig();
+
+    return (
+      <div className={`flex items-center gap-1 text-xs ${color}`}>
+        <Icon className="h-3 w-3" />
+        <span>{text}</span>
+      </div>
+    );
+  };
+
+  const MessageBubble: React.FC<{ message: Message; isOwn: boolean }> = ({
+    message,
+    isOwn,
+  }) => {
+    const formatTime = (timestamp: string) => {
+      return new Date(timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    };
+
+    return (
+      <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+        <div
+          className={`max-w-[75%] p-3 rounded-xl text-sm ${
+            isOwn
+              ? "bg-blue-500 text-white rounded-br-sm"
+              : "bg-gray-200 text-gray-800 rounded-bl-sm"
+          }`}
+        >
+          {message.type === "text" && (
+            <>
+              <p className="break-words whitespace-pre-wrap">
+                {message.content}
+              </p>
+              <p className={`text-xs mt-1 opacity-75 text-right`}>
+                {formatTime(message.timestamp)}
+              </p>
+            </>
+          )}
+
+          {message.type === "image" && message.fileUrl && (
+            <>
+              <img
+                src={message.fileUrl}
+                alt="Chat image"
+                className="max-w-[180px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => window.open(message.fileUrl, "_blank")}
+                loading="lazy"
+              />
+              <p className={`text-xs mt-1 opacity-75 text-right`}>
+                {formatTime(message.timestamp)}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const handleChatReceiveMessage = useCallback(
+    (message: Message) => {
+      if (!rideData) return;
+      dispatch(addChatMessage({ ride_id: rideData.ride_id, message }));
+    },
+    [dispatch, rideData?.ride_id]
+  );
+
+  const handleChatUnreadCount = useCallback(
+    (increment: number) => {
+      if (activeSection !== "messages") {
+        setUnreadCount((prev) => prev + increment);
+      }
+    },
+    [activeSection]
+  );
+
+  // Use the custom chat hook
+  const {
+    sendMessage,
+    handleTyping,
+    isRecipientTyping,
+    isConnected: chatConnected,
+    connectionStatus,
+  } = useChat({
+    rideId: rideData?.ride_id || "n/a",
+    currentUser: "user",
+    recipientId: rideData?.driverDetails.driverId || "n/a",
+    onReceiveMessage: handleChatReceiveMessage,
+    onUnreadCountChange: handleChatUnreadCount,
+    isActiveSection: activeSection === "messages",
+  });
+
+  // Update your handleSendMessage function:
+  const handleSendMessage = () => {
+    if (!messageInput.trim()) return;
+
+    const success = sendMessage(messageInput);
+    if (success) {
+      setMessageInput("");
+    } else {
+      toast.error("Failed to send message. Please check your connection.");
+    }
   };
 
   const getStatusBanner = useMemo(() => {
@@ -1102,6 +1251,12 @@ const RideTrackingPage: React.FC = () => {
 
             {activeSection === "messages" && (
               <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium text-gray-700">
+                    Chat with Driver
+                  </h3>
+                  <ConnectionStatus status={connectionStatus} />
+                </div>
                 {isCameraOpen && (
                   <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
                     <div className="relative bg-white rounded-xl p-4 w-full max-w-md space-y-4">
@@ -1185,59 +1340,43 @@ const RideTrackingPage: React.FC = () => {
                   </div>
                 )}
 
-                <div className="h-[30vh] overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3 border border-gray-200">
+                <div className="h-[30vh] overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-3 border border-gray-200 scroll-smooth">
                   {rideData.chatMessages?.length === 0 ? (
-                    <p className="text-center text-gray-500 text-sm py-4">
-                      Start chatting with your driver!
-                    </p>
+                    <div className="text-center text-gray-500 text-sm py-8">
+                      <p>Start chatting with your driver!</p>
+                      <p className="text-xs mt-1">
+                        Ask questions about pickup or share updates.
+                      </p>
+                    </div>
                   ) : (
                     rideData.chatMessages?.map((message, index) => (
-                      <div
-                        key={index}
-                        className={`flex ${
-                          message.sender === "user"
-                            ? "justify-end"
-                            : "justify-start"
-                        }`}
-                      >
-                        <div
-                          className={`max-w-[75%] p-3 rounded-xl text-sm ${
-                            message.sender === "user"
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-200 text-gray-800"
-                          }`}
-                        >
-                          {message.type === "text" && <p>{message.content}</p>}
-                          {message.type === "image" && message.fileUrl && (
-                            <img
-                              src={message.fileUrl}
-                              alt="Chat image"
-                              className="max-w-[180px] rounded-lg cursor-pointer"
-                              onClick={() =>
-                                window.open(message.fileUrl, "_blank")
-                              }
-                            />
-                          )}
-                          <p className={`text-xs mt-1 opacity-75 text-right`}>
-                            {new Date(message.timestamp).toLocaleTimeString(
-                              [],
-                              { hour: "2-digit", minute: "2-digit" }
-                            )}
-                          </p>
-                        </div>
-                      </div>
+                      <MessageBubble
+                        key={`${message.timestamp}-${index}`}
+                        message={message}
+                        isOwn={message.sender === "user"}
+                      />
                     ))
                   )}
-                  {isTyping && (
-                    <p className="text-xs text-gray-500">Driver is typing...</p>
-                  )}
+
+                  {/* Typing Indicator */}
+                  <TypingIndicator
+                    isTyping={isRecipientTyping}
+                    userName="Driver"
+                  />
+
                   <div ref={chatEndRef} />
                 </div>
 
+                {/* Input Section */}
                 <div className="flex items-center gap-2">
                   <Input
                     value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
+                    onChange={(e) => {
+                      setMessageInput(e.target.value);
+                      if (e.target.value.trim()) {
+                        handleTyping();
+                      }
+                    }}
                     placeholder="Type your message..."
                     className="flex-1 h-10"
                     onKeyDown={(e) => {
@@ -1250,12 +1389,14 @@ const RideTrackingPage: React.FC = () => {
                         handleSendMessage();
                       }
                     }}
+                    disabled={!chatConnected}
+                    maxLength={500}
                     aria-label="Chat input"
                   />
                   <Button
                     onClick={handleSendMessage}
-                    className="h-10 px-3"
-                    disabled={!messageInput.trim() || !isConnected}
+                    className="h-10 px-3 disabled:opacity-50"
+                    disabled={!messageInput.trim() || !chatConnected}
                     aria-label="Send message"
                   >
                     <Send className="h-4 w-4" />
@@ -1264,6 +1405,7 @@ const RideTrackingPage: React.FC = () => {
                     onClick={startCamera}
                     className="h-10 px-3"
                     variant="outline"
+                    disabled={!chatConnected}
                     aria-label="Open camera"
                   >
                     <Camera className="h-4 w-4" />
@@ -1272,6 +1414,7 @@ const RideTrackingPage: React.FC = () => {
                     onClick={triggerFileInput}
                     className="h-10 px-3"
                     variant="outline"
+                    disabled={!chatConnected}
                     aria-label="Upload image"
                   >
                     <Image className="h-4 w-4" />
@@ -1284,8 +1427,18 @@ const RideTrackingPage: React.FC = () => {
                     />
                   </Button>
                 </div>
+
+                {/* Character count */}
+                {messageInput.length > 400 && (
+                  <p className="text-xs text-gray-500 text-right">
+                    {messageInput.length}/500
+                  </p>
+                )}
               </div>
             )}
+
+            {/* </div>
+            )} */}
           </CardContent>
         </Card>
       </div>

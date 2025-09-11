@@ -62,15 +62,14 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
           const coords = {
-          // latitude: position.coords.latitude,
-          // longitude: position.coords.longitude,
-          // 11.050667, 76.071029
-          latitude:11.050667,
-          longitude: 76.071029,
+          latitude: position.coords.latitude, 
+          longitude: position.coords.longitude,
+          // latitude:11.050919,
+          // longitude: 76.071024
           };
           if (isLoaded) {
-
-            // 11.050331, 76.071086
+            // 11.050919, 76.071024
+            //11.050939, 76.071015
             // const address = await geocodeLatLng(
             //   coords.latitude,
             //   coords.longitude
@@ -133,4 +132,4 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
       {children}
     </DriverLocationContext.Provider>
   );
-};
+}; 
