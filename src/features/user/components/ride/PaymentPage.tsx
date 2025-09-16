@@ -199,7 +199,7 @@ const PaymentPage: React.FC = () => {
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="w-12 h-12">
               <img
-                src={rideData.driverDetails.driverImage || '/api/placeholder/48/48'}
+                src={rideData.driverDetails.driverPhoto || '/api/placeholder/48/48'}
                 alt={rideData.driverDetails.driverName}
                 className="w-full h-full object-cover rounded-full"
               />
@@ -277,7 +277,7 @@ const PaymentPage: React.FC = () => {
               <Elements stripe={stripePromise}>
                 <CheckoutForm
                   bookingId={rideData.booking.ride_id}
-                  userId={rideData.userDetails.user_id}
+                  userId={rideData.userId}
                   driverId={rideData.driverDetails.driverId}
                   amount={rideData.booking.price}
                 />
