@@ -49,7 +49,7 @@ const mapOptions: google.maps.MapOptions = {
   fullscreenControl: false,
 };
 
-const Ride: React.FC = () => {
+const RideBooking: React.FC = () => {
   const [center, setCenter] = useState<{ lat: number; lng: number }>({
     lat: 13.003371,
     lng: 77.589134,
@@ -101,7 +101,6 @@ const Ride: React.FC = () => {
     libraries,
   });
 
-  // hideLoading()
   useEffect(() => {
     const getUserLocation = () => {
       if (!navigator.geolocation) return;
@@ -123,7 +122,6 @@ const Ride: React.FC = () => {
       );
     };
 
-    // setupSocketListeners();
     getUserLocation();
 
     return () => {
@@ -153,7 +151,6 @@ const Ride: React.FC = () => {
 
   const fetchVehicles = async (distanceInKm: number) => {
     try {
-      // const response = await axiosUser(dispatch).get();
       const data = await fetchData<BackendVehicle[]>(
         ApiEndpoints.ADMIN_VEHICLE_MODELS,
         "User"
@@ -278,14 +275,6 @@ const Ride: React.FC = () => {
       let pickupAddress = origin;
       let dropoffAddress = destination;
 
-      // if (useCurrentLocationAsPickup) {
-      //   try {
-      //   } catch (error) {
-      //     console.error("Failed to geocode pickup location:", error);
-      //     pickupAddress = "Current Location";
-      //   }
-      // }
-
       try {
         pickupAddress = await geocodeLatLng(pickupLat, pickupLng);
         dropoffAddress = await geocodeLatLng(dropoffLat, dropoffLng);
@@ -321,7 +310,6 @@ const Ride: React.FC = () => {
         profile: user.profile,
       };
 
-      //  const{data} = await axiosUser(dispatch).post("/book-my-cab",bookingData);
       const data = await postData<ResponseCom["data"]>(
         ApiEndpoints.BOOK_MY_CAB,
         "User",
@@ -337,7 +325,6 @@ const Ride: React.FC = () => {
           progress: 60,
         });
       }
-      // socket.emit("requestRide", bookingData);
     } catch (error) {
       console.log("booking error", error);
       toast.error("Failed to send ride request. Please try again.");
@@ -370,17 +357,19 @@ const Ride: React.FC = () => {
 
   if (!isLoaded) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Loading Map...
+      <div className="flex justify-center items-center h-screen bg-gray-900">
+        <div className="text-white">Loading Map...</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+        <section className="py-20 bg-gradient-to-br from-black to-gray-800">
+
+    <div className="container mx-auto px-4 py-8 bg-gray-900">
       <header className="mb-6 text-center">
-        <h1 className="text-4xl font-bold text-blue-800">Find Your Ride</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-4xl font-bold text-white">Find Your Ride</h1>
+        <p className="text-gray-400 mt-2">
           Safe, reliable rides to your destination
         </p>
       </header>
@@ -414,7 +403,7 @@ const Ride: React.FC = () => {
           </GoogleMap>
         </div>
 
-        <div className="absolute top-4 left-4 right-4 bg-white rounded-xl shadow-lg p-4 md:w-96 md:left-4 md:right-auto">
+        <div className="absolute top-4 left-4 right-4 bg-gray-900/95 backdrop-blur-md rounded-xl shadow-lg p-4 md:w-96 md:left-4 md:right-auto border border-gray-700">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Switch
@@ -424,7 +413,7 @@ const Ride: React.FC = () => {
               />
               <Label
                 htmlFor="use-current-location"
-                className="text-sm font-medium"
+                className="text-sm font-medium text-gray-300"
               >
                 Use my current location as pickup
               </Label>
@@ -432,7 +421,7 @@ const Ride: React.FC = () => {
 
             {!useCurrentLocationAsPickup && (
               <div className="w-full">
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                <label className="text-sm font-medium text-gray-300 mb-1 block">
                   Pickup Location
                 </label>
                 <div className="flex gap-2">
@@ -443,12 +432,12 @@ const Ride: React.FC = () => {
                       placeholder="Enter pickup location"
                       value={origin}
                       onChange={(e) => setOrigin(e.target.value)}
-                      className="border-2 focus:border-blue-500"
+                      className="bg-gray-800 border-gray-600 text-white focus:border-gray-500"
                     />
                   </Autocomplete>
                   <Button
                     size="icon"
-                    className="bg-blue-500 hover:bg-blue-600"
+                    className="bg-gray-700 hover:bg-gray-600 text-white"
                     onClick={() => {
                       if (userLocation) {
                         setOrigin("Current Location");
@@ -464,7 +453,7 @@ const Ride: React.FC = () => {
             )}
 
             <div className="w-full">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
+              <label className="text-sm font-medium text-gray-300 mb-1 block">
                 Dropoff Location
               </label>
               <Autocomplete className="w-full">
@@ -474,14 +463,14 @@ const Ride: React.FC = () => {
                   placeholder="Enter destination"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
-                  className="border-2 focus:border-blue-500"
+                  className="bg-gray-800 border-gray-600 text-white focus:border-gray-500"
                 />
               </Autocomplete>
             </div>
 
             <div className="flex gap-2">
               <Button
-                className="w-3/4 h-10 bg-blue-600 hover:bg-blue-700 font-medium"
+                className="w-3/4 h-10 bg-gray-700 hover:bg-gray-600 font-medium text-white"
                 onClick={handleSearchCabs}
                 disabled={
                   (useCurrentLocationAsPickup &&
@@ -494,7 +483,7 @@ const Ride: React.FC = () => {
                 Find Rides
               </Button>
               <Button
-                className="w-1/4 h-10 bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium"
+                className="w-1/4 h-10 bg-gray-600 text-gray-300 hover:bg-gray-500 font-medium"
                 onClick={handleClear}
                 disabled={isSearching}
               >
@@ -507,22 +496,22 @@ const Ride: React.FC = () => {
         <Sheet open={showVehicleSheet} onOpenChange={setShowVehicleSheet}>
           <SheetContent
             side="bottom"
-            className="h-[70vh] rounded-t-xl max-w-2xl mx-auto"
+            className="h-[70vh] rounded-t-xl max-w-2xl mx-auto bg-gray-900 border-gray-700"
           >
             <SheetHeader className="text-left mb-4">
-              <SheetTitle className="text-2xl">Choose Your Ride</SheetTitle>
+              <SheetTitle className="text-2xl text-white">Choose Your Ride</SheetTitle>
               {distanceInfo && (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-4 text-sm">
                     <Badge
                       variant="outline"
-                      className="bg-blue-50 text-blue-800 border-blue-200"
+                      className="bg-gray-800 text-gray-300 border-gray-600"
                     >
                       Distance: {distanceInfo.distance}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="bg-blue-50 text-blue-800 border-blue-200"
+                      className="bg-gray-800 text-gray-300 border-gray-600"
                     >
                       Duration: {distanceInfo.duration}
                     </Badge>
@@ -539,16 +528,16 @@ const Ride: React.FC = () => {
               {vehicles.map((vehicle) => (
                 <Card
                   key={vehicle.id}
-                  className={`cursor-pointer transition-all ${
+                  className={`cursor-pointer transition-all bg-gray-800 border-gray-700 ${
                     selectedVehicle === vehicle.id
-                      ? "border-2 border-blue-500 shadow-md"
-                      : "border border-gray-200 hover:border-blue-300"
+                      ? "border-gray-500 shadow-md"
+                      : "hover:border-gray-600"
                   }`}
                   onClick={() => setSelectedVehicle(vehicle.id)}
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                      <div className="w-16 h-16 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
                         <img
                           src={vehicle.image}
                           alt={vehicle.name}
@@ -556,14 +545,14 @@ const Ride: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <p className="font-semibold text-lg">{vehicle.name}</p>
-                        <p className="text-sm text-gray-500">{vehicle.eta}</p>
+                        <p className="font-semibold text-lg text-white">{vehicle.name}</p>
+                        <p className="text-sm text-gray-400">{vehicle.eta}</p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {vehicle.features.map((feature, index) => (
                             <Badge
                               key={index}
                               variant="secondary"
-                              className="text-xs"
+                              className="text-xs bg-gray-700 text-gray-300"
                             >
                               {feature}
                             </Badge>
@@ -571,15 +560,15 @@ const Ride: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="text-xl font-bold">${vehicle.price}</div>
+                    <div className="text-xl font-bold text-white">${vehicle.price}</div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-200 max-w-2xl mx-auto">
+            <div className="fixed bottom-0 left-0 right-0 bg-gray-900 p-4 border-t border-gray-700 max-w-2xl mx-auto">
               <Button
-                className="w-full h-14 text-lg font-medium bg-blue-600 hover:bg-blue-700"
+                className="w-full h-14 text-lg font-medium bg-gray-700 hover:bg-gray-600 text-white"
                 onClick={handleBookRide}
                 disabled={!selectedVehicle || isSearching}
               >
@@ -605,19 +594,10 @@ const Ride: React.FC = () => {
             </div>
           </SheetContent>
         </Sheet>
-
-        {/* <NotificationDialog
-          open={notification.open}
-          onOpenChange={(open: boolean) =>
-            setNotification((prev) => ({ ...prev, open }))
-          }
-          type={notification.type}
-          title={notification.title}
-          message={notification.message}
-        /> */}
       </div>
     </div>
+    </section>
   );
 };
 
-export default Ride;
+export default RideBooking;

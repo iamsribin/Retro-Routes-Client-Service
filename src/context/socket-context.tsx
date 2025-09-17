@@ -297,6 +297,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socketInstance.on("booking:driver:assigned", handleDriverAssigned);
     socketInstance.on("booking:no_drivers", handleNoDriver);
     socketInstance.on("ride:completed", ()=>{
+      // dispatch()
       dispatch(
         showNotification({
           type: "success",

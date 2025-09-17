@@ -15,8 +15,11 @@ import {
   User,
   Phone,
   Mail,
-  Gift
+  Gift,
+  Eye,
+  ArrowRight
 } from 'lucide-react';
+import Navbar from '../components/layout/Navbar';
 
 // Mock user data based on the schema
 const mockUser = {
@@ -79,18 +82,16 @@ const mockBookings = [
   }
 ];
 
-interface UserProfilePageProps {}
-
-const UserProfilePage: React.FC<UserProfilePageProps> = () => {
+const UserProfilePage = () => {
   const [user, setUser] = useState(mockUser);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(user.name);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef(null);
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date) => {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -98,20 +99,20 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
     }).format(date);
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
   };
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (event) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+        setImagePreview(e.target?.result);
       };
       reader.readAsDataURL(file);
     }
@@ -153,173 +154,164 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return 'text-green-600';
-      case 'cancelled':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
-    }
+  const handleViewRides = () => {
+    console.log('Navigate to ride history');
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4 text-red-600" />;
-      default:
-        return <Clock className="w-4 h-4 text-gray-600" />;
-    }
+  const handleViewWallet = () => {
+    console.log('Navigate to wallet');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Info Card */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              {/* Profile Image Section */}
-              <div className="text-center mb-6">
-                <div className="relative inline-block">
-                  <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-4 border-gray-100">
-                    <img
-                      src={imagePreview || user.userImage || '/api/placeholder/150/150'}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute -bottom-2 -right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-colors"
-                  >
-                    <Camera className="w-4 h-4" />
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                </div>
-
-                {/* Image Preview Actions */}
-                {imagePreview && (
-                  <div className="flex justify-center space-x-2 mb-4">
-                    <button
-                      onClick={handleSaveImage}
-                      className="flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
-                    >
-                      <Check className="w-4 h-4 mr-1" />
-                      Save
-                    </button>
-                    <button
-                      onClick={handleCancelImageEdit}
-                      className="flex items-center px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Cancel
-                    </button>
-                  </div>
-                )}
-
-                {/* Name Section */}
-                <div className="mb-4">
-                  {isEditingName ? (
-                    <div className="space-y-2">
+    <div className="min-h-screen bg-gradient-to-br from-black to-gray-800 text-white">
+      <Navbar />
+      
+      <div className="pt-20 pb-8">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Profile Info Card */}
+            <div className="lg:col-span-1">
+              <div className="bg-gradient-to-br from-black to-gray-800 text-white rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
+                <div className="p-6">
+                  {/* Profile Image Section */}
+                  <div className="text-center mb-6">
+                    <div className="relative inline-block">
+                      <div className="w-28 h-28 rounded-full overflow-hidden mx-auto mb-4 border-4 border-gray-700 shadow-lg">
+                        <img
+                          src={imagePreview || user.userImage || '/api/placeholder/150/150'}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute -bottom-2 -right-2 bg-gray-900 hover:bg-gray-700 text-white p-2.5 rounded-full shadow-lg transition-all duration-300 hover:scale-105"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
                       <input
-                        type="text"
-                        value={tempName}
-                        onChange={(e) => setTempName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
-                        autoFocus
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
                       />
-                      <div className="flex justify-center space-x-2">
+                    </div>
+
+                    {/* Image Preview Actions */}
+                    {imagePreview && (
+                      <div className="flex justify-center space-x-3 mb-4">
                         <button
-                          onClick={handleSaveName}
-                          className="flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                          onClick={handleSaveImage}
+                          className="flex items-center px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-full transition-all duration-300 hover:scale-105"
                         >
                           <Check className="w-4 h-4 mr-1" />
                           Save
                         </button>
                         <button
-                          onClick={handleCancelNameEdit}
-                          className="flex items-center px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
+                          onClick={handleCancelImageEdit}
+                          className="flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-full transition-all duration-300 hover:scale-105"
                         >
                           <X className="w-4 h-4 mr-1" />
                           Cancel
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center space-x-2">
-                      <h2 className="text-xl font-semibold text-gray-900">{user.name}</h2>
-                      <button
-                        onClick={() => setIsEditingName(true)}
-                        className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    )}
 
-                <p className="text-gray-600 text-sm">
-                  Member since {formatDate(user.joiningDate)}
-                </p>
-              </div>
+                    {/* Name Section */}
+                    <div className="mb-4">
+                      {isEditingName ? (
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-700 rounded-full focus:ring-2 focus:ring-gray-500 focus:border-transparent text-center bg-gray-900 text-white transition-all duration-300"
+                            autoFocus
+                          />
+                          <div className="flex justify-center space-x-3">
+                            <button
+                              onClick={handleSaveName}
+                              className="flex items-center px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-full transition-all duration-300 hover:scale-105"
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelNameEdit}
+                              className="flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-full transition-all duration-300 hover:scale-105"
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center space-x-2">
+                          <h2 className="text-2xl font-bold text-white">{user.name}</h2>
+                          <button
+                            onClick={() => setIsEditingName(true)}
+                            className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700 transition-all duration-300"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-              {/* Contact Info */}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium text-gray-900">{user.email}</p>
+                    <p className="text-gray-400 text-sm">
+                      Member since {formatDate(user.joiningDate)}
+                    </p>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4 p-4 bg-gray-900 rounded-xl">
+                      <div className="p-2 bg-gray-800 rounded-lg shadow-sm">
+                        <Mail className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Email</p>
+                        <p className="font-medium text-white truncate">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-4 p-4 bg-gray-900 rounded-xl">
+                      <div className="p-2 bg-gray-800 rounded-lg shadow-sm">
+                        <Phone className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Phone</p>
+                        <p className="font-medium text-white">+1 {user.mobile}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <Phone className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-medium text-gray-900">+1 {user.mobile}</p>
-                  </div>
-                </div>
-
-                {/* Referral Code */}
-                <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+                {/* Referral Code Section */}
+                <div className="p-6 bg-gradient-to-br from-black to-gray-800 text-white">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Gift className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-gray-900 rounded-lg">
+                        <Gift className="w-5 h-5 text-white" />
+                      </div>
                       <div>
-                        <p className="text-sm text-blue-700 font-medium">Referral Code</p>
-                        <p className="font-mono font-bold text-blue-900">{user.referral_code}</p>
+                        <p className="text-sm text-gray-400">Referral Code</p>
+                        <p className="font-mono font-bold text-lg text-white">{user.referral_code}</p>
                       </div>
                     </div>
                     <button
                       onClick={copyReferralCode}
-                      className="flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                      className="flex items-center px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm rounded-full transition-all duration-300 hover:scale-105"
                     >
                       {copySuccess ? (
                         <>
-                          <Check className="w-4 h-4 mr-1" />
+                          <Check className="w-4 h-4 mr-2" />
                           Copied!
                         </>
                       ) : (
                         <>
-                          <Copy className="w-4 h-4 mr-1" />
+                          <Copy className="w-4 h-4 mr-2" />
                           Copy
                         </>
                       )}
@@ -328,123 +320,111 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Car className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Completed Rides</p>
-                    <p className="text-2xl font-bold text-green-600">{user.RideDetails.completedRides}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <XCircle className="w-6 h-6 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Cancelled Rides</p>
-                    <p className="text-2xl font-bold text-red-600">{user.RideDetails.cancelledRides}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Wallet className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Wallet Balance</p>
-                    <p className="text-2xl font-bold text-blue-600">{formatCurrency(user.wallet.balance)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Bookings */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Bookings</h3>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {mockBookings.map((booking) => (
-                  <div key={booking.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          {getStatusIcon(booking.status)}
-                          <span className={`text-sm font-medium ${getStatusColor(booking.status)}`}>
-                            {booking.status}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2 text-sm">
-                            <MapPin className="w-4 h-4 text-green-600" />
-                            <span className="text-gray-900 font-medium">{booking.pickup}</span>
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Rides Summary Card */}
+                <div className="bg-gradient-to-br from-black to-gray-800 text-white rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-white">Ride Summary</h3>
+                      <div className="p-2 bg-gray-900 rounded-lg">
+                        <Car className="w-6 h-6 text-blue-400" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-900 rounded-xl">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-green-900 rounded-lg">
+                            <CheckCircle className="w-5 h-5 text-green-400" />
                           </div>
-                          <div className="flex items-center space-x-2 text-sm">
-                            <MapPin className="w-4 h-4 text-red-600" />
-                            <span className="text-gray-900 font-medium">{booking.drop}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <Calendar className="w-4 h-4" />
-                            <span>{formatDate(booking.date)}</span>
+                          <div>
+                            <p className="text-sm text-green-400 font-medium">Completed</p>
+                            <p className="text-2xl font-bold text-green-400">{user.RideDetails.completedRides}</p>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900">
-                          {booking.fare > 0 ? formatCurrency(booking.fare) : '-'}
-                        </p>
+                      
+                      <div className="flex items-center justify-between p-4 bg-gray-900 rounded-xl">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-red-900 rounded-lg">
+                            <XCircle className="w-5 h-5 text-red-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-red-400 font-medium">Cancelled</p>
+                            <p className="text-2xl font-bold text-red-400">{user.RideDetails.cancelledRides}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="p-4 border-t border-gray-200 text-center">
-                <button className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">
-                  View All Bookings
-                </button>
-              </div>
-            </div>
+                  
+                  <div className="px-6 py-4 bg-gradient-to-br from-black to-gray-800 border-t border-gray-700">
+                    <button 
+                      onClick={handleViewRides}
+                      className="w-full flex items-center justify-center space-x-2 py-3 bg-gray-900 hover:bg-gray-700 text-white rounded-xl transition-all duration-300 hover:scale-105"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span className="font-medium">View All Rides</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
 
-            {/* Recent Transactions */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {user.wallet.transactions.map((transaction, index) => (
-                  <div key={index} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${transaction.amount > 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-                          <Wallet className={`w-5 h-5 ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.details}</p>
-                          <p className="text-sm text-gray-600">{formatDate(transaction.date)}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-lg font-bold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                        </p>
-                        <p className="text-sm text-gray-600">{transaction.status}</p>
+                {/* Wallet Card */}
+                <div className="bg-gradient-to-br from-black to-gray-800 text-white rounded-2xl shadow-sm border border-gray-700 overflow-hidden">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-white">Wallet</h3>
+                      <div className="p-2 bg-gray-900 rounded-lg">
+                        <Wallet className="w-6 h-6 text-green-400" />
                       </div>
                     </div>
+                    
+                    <div className="text-center py-8">
+                      <p className="text-sm text-gray-400 mb-2">Current Balance</p>
+                      <p className="text-4xl font-bold text-green-400 mb-4">
+                        {formatCurrency(user.wallet.balance)}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {user.wallet.transactions.length} recent transactions
+                      </p>
+                    </div>
                   </div>
-                ))}
+                  
+                  <div className="px-6 py-4 bg-gradient-to-br from-black to-gray-800 border-t border-gray-700">
+                    <button 
+                      onClick={handleViewWallet}
+                      className="w-full flex items-center justify-center space-x-2 py-3 bg-gray-900 hover:bg-gray-700 text-white rounded-xl transition-all duration-300 hover:scale-105"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span className="font-medium">View Wallet</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Status */}
+              <div className="bg-gradient-to-br from-black to-gray-800 text-white rounded-2xl shadow-sm border border-gray-700 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gray-900 rounded-xl">
+                      <CheckCircle className="w-6 h-6 text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Account Status</h3>
+                      <p className="text-green-400 font-medium">{user.account_status}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">Last updated</p>
+                    <p className="text-sm font-medium text-white">{formatDate(new Date())}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

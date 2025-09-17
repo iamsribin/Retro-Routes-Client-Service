@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Star } from 'lucide-react';
 
@@ -31,16 +30,16 @@ const testimonials = [
 
 const Testimonials: React.FC = () => {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-gradient-to-br from-black to-gray-800">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="bg-brand-50 text-brand-700 px-4 py-1.5 rounded-full text-sm font-medium inline-block mb-6">
+          <span className="bg-gray-800 text-gray-300 px-4 py-1.5 rounded-full text-sm font-medium inline-block mb-6">
             Testimonials
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
             What Our Customers Say
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-gray-400 text-lg">
             Don't just take our word for it. Hear from our satisfied customers about their experience with Retro Routes.
           </p>
         </div>
@@ -49,29 +48,29 @@ const Testimonials: React.FC = () => {
           {testimonials.map((testimonial, index) => (
             <div 
               key={testimonial.id}
-              className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 animate-slide-up"
+              className="bg-gray-900 rounded-2xl p-8 border border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 animate-slide-up"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="flex space-x-1 mb-4">
                 {[...Array(5)].map((_, i) => (
                   <Star 
                     key={i} 
-                    className={`h-5 w-5 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
+                    className={`h-5 w-5 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} 
                   />
                 ))}
               </div>
-              <p className="text-foreground mb-6">"{testimonial.content}"</p>
+              <p className="text-gray-300 mb-6">"{testimonial.content}"</p>
               <div className="flex items-center">
                 <div className="mr-4">
                   <img 
                     src={testimonial.avatar} 
                     alt={testimonial.author} 
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-12 h-12 rounded-full object-cover border border-gray-600"
                   />
                 </div>
                 <div>
-                  <h4 className="font-medium">{testimonial.author}</h4>
-                  <p className="text-sm text-muted-foreground">{testimonial.position}</p>
+                  <h4 className="font-medium text-white">{testimonial.author}</h4>
+                  <p className="text-sm text-gray-400">{testimonial.position}</p>
                 </div>
               </div>
             </div>

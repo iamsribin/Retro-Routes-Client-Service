@@ -1,4 +1,3 @@
-
 import { Feature1, Feature2, Feature3 } from '@/assets';
 
 const features = [
@@ -20,18 +19,17 @@ const features = [
 ];
 
 const FeaturesSection: React.FC = () => {
-
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-gradient-to-br from-black to-gray-800">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="bg-brand-50 text-gradient px-4 py-1.5 rounded-full text-sm font-medium inline-block mb-6">
+          <span className="bg-gray-800/50 text-gray-300 border border-gray-700 px-4 py-1.5 rounded-full text-sm font-medium inline-block mb-6">
             Why Choose Us
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
             Experience the Difference with Retro Routes
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-gray-400 text-lg">
             Our premium features ensure that every journey with us is comfortable, safe, and enjoyable.
           </p>
         </div>
@@ -40,11 +38,11 @@ const FeaturesSection: React.FC = () => {
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className="flex flex-col items-center text-center p-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-white border border-slate-100"
+              className="flex flex-col items-center text-center p-8 rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gray-900/80 border border-gray-700 backdrop-blur-sm"
             >
               <img src={feature.icon} alt={feature.title} className="w-20 h-20 mb-6" />
-              <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
+              <h3 className="text-xl font-semibold mb-3 text-white">{feature.title}</h3>
+              <p className="text-gray-400">{feature.description}</p>
             </div>
           ))}
         </div>
