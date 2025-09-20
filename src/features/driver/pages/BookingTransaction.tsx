@@ -57,7 +57,7 @@ const BookingList: React.FC = () => {
         setLoading(true);
         // const response = await driverAxios(dispatch).get();
         const data = await fetchData<ResponseCom["data"]>(
-          DriverApiEndpoints.GET_MY_TRIPS,
+          `${DriverApiEndpoints.GET_MY_TRIPS}/driver`,
           "Driver"
         );
         
