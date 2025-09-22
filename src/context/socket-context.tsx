@@ -101,6 +101,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       navigate("/login");
       return;
     }
+console.log({role, connectionInfo});
 
     if (!role || !connectionInfo.id || !SOCKET_URL || !connectionInfo.token) {
       console.warn("Missing connection details. Disconnecting socket.");

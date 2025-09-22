@@ -315,6 +315,9 @@ const RideBooking: React.FC = () => {
         "User",
         bookingData
       );
+
+      console.log("sta==", data);
+      
       setIsSearching(false);
       setShowVehicleSheet(false);
       if (data.status == StatusCode.Created) {

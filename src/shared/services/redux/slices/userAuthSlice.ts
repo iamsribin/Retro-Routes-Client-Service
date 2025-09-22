@@ -46,9 +46,6 @@ export const userAuthSlice = createSlice({
       state.role = "";
       state.profile = "";
       state.mobile= undefined;
-      localStorage.removeItem("role");
-      localStorage.removeItem("userToken");
-      localStorage.removeItem("refreshToken");
     },
   },
 });
