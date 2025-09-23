@@ -19,6 +19,7 @@ import { patchData, postData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import ApiEndpoints from "@/constants/api-end-pointes";
 import { useNotification } from "@/shared/hooks/useNotificatiom";
+import { setPaymentStatus, updateRideStatusOnly } from "@/shared/services/redux/slices/rideSlice";
 
 interface TripInfoProps {
   rideData: RideRequest;
@@ -30,7 +31,7 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
   // dispatch(
   //       updateRideStatus({
   //         bookingId: rideData.bookingDetails.bookingId,
-  //         status: "accepted",
+  //         status: "started",
   //       })
   //     )
   const { driverLocation } = useDriverLocation();
@@ -119,7 +120,7 @@ console.log("==============");
       bookingId: rideData.bookingDetails.bookingId,
       userId: rideData.customer.userId,
     })
-    onNotification("success","ride completed successfully")
+    onNotification("success","ride completed successfully","","/payment")
     // socket.emit("rideCompleted", {
     //   bookingId: rideData.bookingDetails.bookingId,
     //   userId: rideData.customer.userId,
@@ -131,6 +132,8 @@ console.log("==============");
         status: "completed",
       })
     );
+
+    dispatch(setPaymentStatus("pending"));
 
     toast.success("Ride completed successfully");
   };

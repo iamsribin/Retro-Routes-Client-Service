@@ -21,6 +21,7 @@ import {
   setPaymentStatus,
   showRideMap as showRideMapUser,
   updateRideStatus,
+  updateRideStatusOnly
 } from "@/shared/services/redux/slices/rideSlice";
 import {
   showRideRequestNotification,
@@ -173,16 +174,16 @@ console.log({role, connectionInfo});
       navigate("/login");
     };
 
-    const handleRideCompleted = ({
-      bookingId,
-      userId,
-      role: rideRole,
-    }: any) => {
-      if (rideRole === "user") {
-        dispatch(setPaymentStatus("pending"));
-        navigate("/payment");
-      }
-    };
+    // const handleRideCompleted = ({
+    //   bookingId,
+    //   userId,
+    //   role: rideRole,
+    // }: any) => {
+    //   if (rideRole === "user") {
+    //     dispatch(setPaymentStatus("pending"));
+    //     navigate("/payment");
+    //   }
+    // };
 
     const handleCanceled = (data: any) => {
       if (data.user) {
@@ -278,8 +279,6 @@ console.log({role, connectionInfo});
     // Register events
     socketInstance.on("connect", handleConnect);
     socketInstance.on("driver:start:ride", (med) => {
-      console.log("-=--=-=", med);
-
       dispatch(
         updateRideStatus({
           ride_id: med.rideId,
@@ -291,18 +290,21 @@ console.log({role, connectionInfo});
     socketInstance.on("error", handleError);
     socketInstance.on("disconnect", handleDisconnect);
     socketInstance.on("user-blocked", handleUserBlocked);
-    socketInstance.on("rideCompleted", handleRideCompleted);
+    // socketInstance.on("rideCompleted", handleRideCompleted);
     socketInstance.on("canceled", handleCanceled);
     socketInstance.on("ride:request", handleRideRequest);
     socketInstance.on("booking:accept:result", handleRideRequestAccept);
     socketInstance.on("booking:driver:assigned", handleDriverAssigned);
     socketInstance.on("booking:no_drivers", handleNoDriver);
+    
     socketInstance.on("ride:completed", ()=>{
-      // dispatch()
+      dispatch(setPaymentStatus("pending"));
+      dispatch(updateRideStatusOnly("RideFinished"));
       dispatch(
         showNotification({
           type: "success",
           message: `you reached the destination`,
+          navigate:"/payment"
         })
       );
     });
@@ -326,7 +328,7 @@ console.log({role, connectionInfo});
       socketInstance.off("error", handleError);
       socketInstance.off("disconnect", handleDisconnect);
       socketInstance.off("user-blocked", handleUserBlocked);
-      socketInstance.off("rideCompleted", handleRideCompleted);
+      // socketInstance.off("rideCompleted", handleRideCompleted);
       socketInstance.off("canceled", handleCanceled);
       socketInstance.disconnect();
       setSocket(null);

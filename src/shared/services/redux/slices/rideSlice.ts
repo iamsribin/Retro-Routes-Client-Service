@@ -39,6 +39,13 @@ const RideMapSlice = createSlice({
         state.rideData.chatMessages = state.rideData.chatMessages ?? [];
       }
     },
+
+    updateRideStatusOnly:(state, action: PayloadAction< RideStatusData["status"]>)=>{
+      if (state.rideData&& action.payload){
+        state.rideData.status = action.payload;
+      }
+    },
+
     addChatMessage: (state, action: PayloadAction<{ ride_id: string; message: Message }>) => {
       if (state.rideData && state.rideData.ride_id === action.payload.ride_id) {
         state.rideData.chatMessages = [...(state.rideData.chatMessages ?? []), action.payload.message];
@@ -51,5 +58,5 @@ const RideMapSlice = createSlice({
   },
 });
 
-export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage,setPaymentStatus } = RideMapSlice.actions;
+export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage,setPaymentStatus, updateRideStatusOnly } = RideMapSlice.actions;
 export default RideMapSlice;

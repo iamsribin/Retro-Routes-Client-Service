@@ -10,6 +10,7 @@ import Dashboard from "../pages/DriverDashboard";
 import DriverProfile from "../pages/DriverProfile";
 import BookingTransaction from "../pages/BookingTransaction";
 import BookingDetails from "../pages/BookingDetails";
+import PaymentPage from "../pages/paymentPage";
 import DriverRideMap from "../pages/DriverRideMap";
 import DriverDocuments from "../pages/DriverDocument"
 import { DriverLocationProvider } from "@/context/driver-location-context";
@@ -31,6 +32,7 @@ function DriverRoutes() {
       <Route path={AppRoutes.TRIPS} element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>} />
       <Route path={AppRoutes.DOCUMENTS} element={<ProtectedRoute allowedRole={ROLE}><DriverDocuments/></ProtectedRoute>} />
       <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
+      <Route path={AppRoutes.PAYMENT} element={<ProtectedRoute allowedRole={ROLE}><PaymentPage/></ProtectedRoute>} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
     </DriverLocationProvider>
