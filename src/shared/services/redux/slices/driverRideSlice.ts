@@ -10,6 +10,8 @@ interface RideState {
   isRideNotificationOpen: boolean;
   notificationData: RideRequest | null;
   rideData: RideRequest | null;
+    paymentStatus: 'idle' | 'pending' | 'completed' | 'failed';
+
 }
 
 const initialState: RideState = {
@@ -17,6 +19,8 @@ const initialState: RideState = {
   rideData: null,
   isRideNotificationOpen: false,
   notificationData: null,
+  paymentStatus: 'idle',
+
 };
 
 const RideMapSlice = createSlice({
@@ -79,9 +83,12 @@ const RideMapSlice = createSlice({
         ];
       }
     },
+    setPaymentStatus: (state, action: PayloadAction<RideState['paymentStatus']>) => {
+          state.paymentStatus = action.payload;
+        },
   },
 });
 
-export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage,showRideRequestNotification,hideRideRequestNotification } =
+export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage,showRideRequestNotification,hideRideRequestNotification,setPaymentStatus } =
   RideMapSlice.actions;
 export default RideMapSlice;

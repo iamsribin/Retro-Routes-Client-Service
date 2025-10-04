@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface NotificationState {
   isOpen: boolean;
-  type: "info" | "alert" | "ride-accepted" | "admin-blocked" | "success" | "error";
+  type: "info" | "alert" | "ride-accepted" | "admin-blocked" | "success" | "error" | "payment-confirmation"; // <-- added
   message: string;
   navigate?: string;
   data?: any;

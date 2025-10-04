@@ -21,7 +21,7 @@ import {
   setPaymentStatus,
   showRideMap as showRideMapUser,
   updateRideStatus,
-  updateRideStatusOnly
+  updateRideStatusOnly,
 } from "@/shared/services/redux/slices/rideSlice";
 import {
   showRideRequestNotification,
@@ -102,7 +102,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       navigate("/login");
       return;
     }
-console.log({role, connectionInfo});
+    console.log({ role, connectionInfo });
 
     if (!role || !connectionInfo.id || !SOCKET_URL || !connectionInfo.token) {
       console.warn("Missing connection details. Disconnecting socket.");
@@ -296,15 +296,20 @@ console.log({role, connectionInfo});
     socketInstance.on("booking:accept:result", handleRideRequestAccept);
     socketInstance.on("booking:driver:assigned", handleDriverAssigned);
     socketInstance.on("booking:no_drivers", handleNoDriver);
-    
-    socketInstance.on("ride:completed", ()=>{
+
+    socketInstance.on("driver:payment:conformation", (data) => {
+      console.log("payment conformation", data);
+      dispatch(showNotification({type:"payment-confirmation",message:`did you receive ${data.amount} in hand`,data:data}))
+    });
+
+    socketInstance.on("ride:completed", () => {
       dispatch(setPaymentStatus("pending"));
       dispatch(updateRideStatusOnly("RideFinished"));
       dispatch(
         showNotification({
           type: "success",
           message: `you reached the destination`,
-          navigate:"/payment"
+          navigate: "/payment",
         })
       );
     });
@@ -316,7 +321,7 @@ console.log({role, connectionInfo});
         showNotification({
           type: "info",
           message: `Ride canceled by user. You're now offline. Enable online and start ride.`,
-          navigate:"/driver/dashboard"
+          navigate: "/driver/dashboard",
         })
       );
     });

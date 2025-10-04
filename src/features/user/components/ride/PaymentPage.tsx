@@ -1,29 +1,49 @@
 // frontend/src/components/PaymentPage.tsx
-import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { Card } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
-import { Separator } from '@/shared/components/ui/separator';
-import { Avatar } from '@/shared/components/ui/avatar';
-import { useToast } from '@/shared/components/ui/use-toast';
-import { setPaymentStatus, hideRideMap } from '@/shared/services/redux/slices/rideSlice';
-import { CreditCard, Wallet, Banknote, MapPin, Clock, Route, Star, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
-import { RootState } from '@/shared/services/redux/store';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { postData } from '@/shared/services/api/api-service';
-import { ResponseCom } from '@/shared/types/commonTypes';
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { Card } from "@/shared/components/ui/card";
+import { Button } from "@/shared/components/ui/button";
+import { Badge } from "@/shared/components/ui/badge";
+import { Separator } from "@/shared/components/ui/separator";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { useToast } from "@/shared/components/ui/use-toast";
+import {
+  setPaymentStatus,
+  hideRideMap,
+} from "@/shared/services/redux/slices/rideSlice";
+import {
+  CreditCard,
+  Wallet,
+  Banknote,
+  MapPin,
+  Clock,
+  Route,
+  Star,
+  CheckCircle,
+  AlertCircle,
+  ArrowLeft,
+} from "lucide-react";
+import { RootState } from "@/shared/services/redux/store";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { postData } from "@/shared/services/api/api-service";
+import { ResponseCom } from "@/shared/types/commonTypes";
+import { useSocket } from "@/context/socket-context";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
 
-const CheckoutForm: React.FC<{ bookingId: string; userId: string; driverId: string; amount: number }> = ({
-  bookingId,
-  userId,
-  driverId,
-  amount,
-}) => {
+const CheckoutForm: React.FC<{
+  bookingId: string;
+  userId: string;
+  driverId: string;
+  amount: number;
+}> = ({ bookingId, userId, driverId, amount }) => {
   const stripe = useStripe();
   const elements = useElements();
   const dispatch = useDispatch();
@@ -32,30 +52,48 @@ const CheckoutForm: React.FC<{ bookingId: string; userId: string; driverId: stri
     event.preventDefault();
     if (!stripe || !elements) return;
 
-    dispatch(setPaymentStatus('pending'));
+    dispatch(setPaymentStatus("pending"));
     try {
-      const data  = await postData<ResponseCom["data"]>('/payments/create-checkout-session',"User", {
-        bookingId,
-        userId,
-        driverId,
-        amount,
-      });
+      const data = await postData<ResponseCom["data"]>(
+        "/payments/create-checkout-session",
+        "User",
+        {
+          bookingId,
+          userId,
+          driverId,
+          amount,
+        }
+      );
 
-      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+      const result = await stripe.redirectToCheckout({
+        sessionId: data.sessionId,
+      });
       if (result.error) {
-        dispatch(setPaymentStatus('failed'));
-        toast({ title: 'Payment Failed', description: result.error.message, variant: 'destructive' });
+        dispatch(setPaymentStatus("failed"));
+        toast({
+          title: "Payment Failed",
+          description: result.error.message,
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      dispatch(setPaymentStatus('failed'));
-      toast({ title: 'Payment Failed', description: (error as any).message, variant: 'destructive' });
+      dispatch(setPaymentStatus("failed"));
+      toast({
+        title: "Payment Failed",
+        description: (error as any).message,
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <CardElement className="p-2 border rounded" />
-      <Button type="submit" disabled={!stripe || !elements} className="mt-2 w-full">
+      <Button
+        type="submit"
+        disabled={!stripe || !elements}
+        className="mt-2 w-full"
+      >
         Pay ₹{amount.toFixed(2)}
       </Button>
     </form>
@@ -66,82 +104,95 @@ const PaymentPage: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const {socket,isConnected}=useSocket();
 
-  const { paymentStatus, rideData } = useSelector((state: RootState) => state.RideMap);
+  const { paymentStatus, rideData } = useSelector(
+    (state: RootState) => state.RideMap
+  );
   const { user } = useSelector((state: RootState) => state.user);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!rideData) {
-      navigate('/');
+      navigate("/");
     }
   }, [rideData, navigate]);
 
   const paymentMethods = [
     {
-      id: 'wallet',
-      name: 'Wallet',
+      id: "wallet",
+      name: "Wallet",
       icon: Wallet,
-      description: 'Pay using your wallet balance',
-      color: 'bg-blue-500',
+      description: "Pay using your wallet balance",
+      color: "bg-blue-500",
       available: true,
     },
     {
-      id: 'cash',
-      name: 'Cash in Hand',
+      id: "cash",
+      name: "Cash in Hand",
       icon: Banknote,
-      description: 'Pay with cash to the driver',
-      color: 'bg-green-500',
+      description: "Pay with cash to the driver",
+      color: "bg-green-500",
       available: true,
     },
     {
-      id: 'stripe',
-      name: 'Online Payment',
+      id: "stripe",
+      name: "Online Payment",
       icon: CreditCard,
-      description: 'Pay with card via Stripe',
-      color: 'bg-purple-500',
+      description: "Pay with card via Stripe",
+      color: "bg-purple-500",
       available: true,
     },
   ];
 
   const handlePayment = async () => {
     if (!selectedPaymentMethod) {
-      toast({ title: 'Select Payment Method', description: 'Please select a payment method to proceed', variant: 'destructive' });
+      toast({
+        title: "Select Payment Method",
+        description: "Please select a payment method to proceed",
+        variant: "destructive",
+      });
       return;
     }
 
-    // setIsProcessing(true);
-    // dispatch(setPaymentStatus('pending'));
+    setIsProcessing(true);
+    dispatch(setPaymentStatus("pending"));
+
+    const data = {
+      bookingId: rideData?.booking.ride_id,
+      userId: rideData?.userId,
+      driverId: rideData?.driverDetails.driverId,
+      amount: rideData?.booking.price,
+    };
 
     try {
-      if (selectedPaymentMethod === 'cash') {
-        // await axiosUser.post('/payments/cash-payment', {
-        //   bookingId: rideData?.booking.ride_id,
-        //   userId: rideData?.userDetails.user_id,
-        //   driverId: rideData?.driverDetails.driverId,
-        //   amount: rideData?.booking.price,
-        // });
-      } else if (selectedPaymentMethod === 'wallet') {
-        // await axiosUser.post('/payments/wallet-payment', {
-        //   bookingId: rideData?.booking.ride_id,
-        //   userId: rideData?.userDetails.user_id,
-        //   driverId: rideData?.driverDetails.driverId,
-        //   amount: rideData?.booking.price,
-        // });
+      if (selectedPaymentMethod === "cash") {
+        if (isConnected) {
+          socket?.emit("user:payment:conformation",data);
+        }
+      //  const response =  await postData("/payments/cash-payment", "User", data);
+      } else if (selectedPaymentMethod === "wallet") {
+       const response =  await postData("/payments/wallet", "User", data);
+      } else if (selectedPaymentMethod === "stripe") {
+       const response =  await postData("/payments/stripe", "User", data);
       }
     } catch (error) {
       // dispatch(setPaymentStatus('failed'));
-      toast({ title: 'Payment Failed', description: (error as any).message, variant: 'destructive' });
+      toast({
+        title: "Payment Failed",
+        description: (error as any).message,
+        variant: "destructive",
+      });
       // setIsProcessing(false);
     }
   };
 
   const getStatusIcon = () => {
     switch (paymentStatus) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="w-6 h-6 text-green-500" />;
-      case 'failed':
+      case "failed":
         return <AlertCircle className="w-6 h-6 text-red-500" />;
       default:
         return null;
@@ -150,14 +201,14 @@ const PaymentPage: React.FC = () => {
 
   const getStatusMessage = () => {
     switch (paymentStatus) {
-      case 'completed':
-        return 'Payment completed successfully!';
-      case 'failed':
-        return 'Payment failed. Please try again.';
-      case 'pending':
-        return 'Processing payment...';
+      case "completed":
+        return "Payment completed successfully!";
+      case "failed":
+        return "Payment failed. Please try again.";
+      case "pending":
+        return "Processing payment...";
       default:
-        return 'Complete your payment';
+        return "Complete your payment";
     }
   };
 
@@ -166,8 +217,10 @@ const PaymentPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-600">No ride data found</h2>
-          <Button onClick={() => navigate('/')} className="mt-4">
+          <h2 className="text-xl font-semibold text-gray-600">
+            No ride data found
+          </h2>
+          <Button onClick={() => navigate("/")} className="mt-4">
             Go Home
           </Button>
         </div>
@@ -184,7 +237,7 @@ const PaymentPage: React.FC = () => {
             size="sm"
             onClick={() => navigate(-1)}
             className="flex items-center gap-2"
-            disabled={paymentStatus === 'completed'}
+            disabled={paymentStatus === "completed"}
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -199,19 +252,27 @@ const PaymentPage: React.FC = () => {
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="w-12 h-12">
               <img
-                src={rideData.driverDetails.driverPhoto || '/api/placeholder/48/48'}
+                src={
+                  rideData.driverDetails.driverPhoto || "/api/placeholder/48/48"
+                }
                 alt={rideData.driverDetails.driverName}
                 className="w-full h-full object-cover rounded-full"
               />
             </Avatar>
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">{rideData.driverDetails.driverName}</h3>
+              <h3 className="font-semibold text-gray-900">
+                {rideData.driverDetails.driverName}
+              </h3>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="text-sm text-gray-600">{rideData.driverDetails.rating.toFixed(1)}</span>
+                <span className="text-sm text-gray-600">
+                  {rideData.driverDetails.rating.toFixed(1)}
+                </span>
               </div>
             </div>
-            <Badge variant="outline" className="text-xs">{rideData.driverDetails.vehicleModel}</Badge>
+            <Badge variant="outline" className="text-xs">
+              {rideData.driverDetails.vehicleModel}
+            </Badge>
           </div>
 
           <div className="space-y-3">
@@ -219,14 +280,18 @@ const PaymentPage: React.FC = () => {
               <MapPin className="w-4 h-4 text-green-500 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Pickup</p>
-                <p className="text-sm text-gray-600">{rideData.booking.pickupLocation}</p>
+                <p className="text-sm text-gray-600">
+                  {rideData.booking.pickupLocation}
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <MapPin className="w-4 h-4 text-red-500 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Drop-off</p>
-                <p className="text-sm text-gray-600">{rideData.booking.dropoffLocation}</p>
+                <p className="text-sm text-gray-600">
+                  {rideData.booking.dropoffLocation}
+                </p>
               </div>
             </div>
           </div>
@@ -248,7 +313,9 @@ const PaymentPage: React.FC = () => {
         </Card>
 
         <Card className="p-4 mb-6 bg-white shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-4">Select Payment Method</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">
+            Select Payment Method
+          </h3>
           <div className="space-y-3">
             {paymentMethods.map((method) => {
               const IconComponent = method.icon;
@@ -256,23 +323,35 @@ const PaymentPage: React.FC = () => {
                 <div
                   key={method.id}
                   className={`relative flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                    selectedPaymentMethod === method.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                  } ${!method.available ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => method.available && setSelectedPaymentMethod(method.id)}
+                    selectedPaymentMethod === method.id
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  } ${
+                    !method.available ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={() =>
+                    method.available && setSelectedPaymentMethod(method.id)
+                  }
                 >
-                  <div className={`w-10 h-10 rounded-full ${method.color} flex items-center justify-center mr-3`}>
+                  <div
+                    className={`w-10 h-10 rounded-full ${method.color} flex items-center justify-center mr-3`}
+                  >
                     <IconComponent className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{method.name}</p>
-                    <p className="text-sm text-gray-600">{method.description}</p>
+                    <p className="text-sm text-gray-600">
+                      {method.description}
+                    </p>
                   </div>
-                  {selectedPaymentMethod === method.id && <CheckCircle className="w-5 h-5 text-blue-500" />}
+                  {selectedPaymentMethod === method.id && (
+                    <CheckCircle className="w-5 h-5 text-blue-500" />
+                  )}
                 </div>
               );
             })}
           </div>
-          {selectedPaymentMethod === 'stripe' && (
+          {selectedPaymentMethod === "stripe" && (
             <div className="mt-4">
               <Elements stripe={stripePromise}>
                 <CheckoutForm
@@ -291,27 +370,40 @@ const PaymentPage: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Base Fare</span>
-              <span className="font-medium">₹{(rideData.booking.price * 0.7).toFixed(2)}</span>
+              <span className="font-medium">
+                ₹{(rideData.booking.price * 0.7).toFixed(2)}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Distance Charge</span>
-              <span className="font-medium">₹{(rideData.booking.price * 0.25).toFixed(2)}</span>
+              <span className="font-medium">
+                ₹{(rideData.booking.price * 0.25).toFixed(2)}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Service Fee</span>
-              <span className="font-medium">₹{(rideData.booking.price * 0.05).toFixed(2)}</span>
+              <span className="font-medium">
+                ₹{(rideData.booking.price * 0.05).toFixed(2)}
+              </span>
             </div>
             <Separator className="my-2" />
             <div className="flex justify-between font-semibold text-lg">
               <span>Total Amount</span>
-              <span className="text-blue-600">₹{rideData.booking.price.toFixed(2)}</span>
+              <span className="text-blue-600">
+                ₹{rideData.booking.price.toFixed(2)}
+              </span>
             </div>
           </div>
         </Card>
 
         <Button
           onClick={handlePayment}
-          disabled={!selectedPaymentMethod || isProcessing || paymentStatus === 'completed' || selectedPaymentMethod === 'stripe'}
+          disabled={
+            !selectedPaymentMethod ||
+            isProcessing ||
+            paymentStatus === "completed" ||
+            selectedPaymentMethod === "stripe"
+          }
           className="w-full h-12 text-lg font-semibold"
           size="lg"
         >
@@ -320,7 +412,7 @@ const PaymentPage: React.FC = () => {
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Processing...
             </div>
-          ) : paymentStatus === 'completed' ? (
+          ) : paymentStatus === "completed" ? (
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5" />
               Payment Completed
@@ -332,7 +424,8 @@ const PaymentPage: React.FC = () => {
 
         <div className="mt-4 p-3 bg-blue-50 rounded-lg">
           <p className="text-xs text-blue-600 text-center">
-            🔒 Your payment is secure and encrypted. We never store your card details.
+            🔒 Your payment is secure and encrypted. We never store your card
+            details.
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { RootState, AppDispatch } from "@/shared/services/redux/store";
 import { hideNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { Button } from "@/shared/components/ui/button";
+import { postData } from "../services/api/api-service";
 
 const NotificationModal: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -30,26 +31,30 @@ const NotificationModal: React.FC = () => {
     }
   };
 
-  const getTitle = () => {
-    switch (type) {
-      case "ride-accepted":
-        return "Ride Accepted!";
-      case "admin-blocked":
-        return "Account Blocked";
-      case "success":
-        return "Success";
-      case "error":
-        return "Error";
-      case "alert":
-        return "Alert";
-      case "info":
-      default:
-        return "Information";
-    }
-  };
+const getTitle = () => {
+  switch (type) {
+    case "payment-confirmation":
+      return "Payment Confirmation";
+    case "ride-accepted":
+      return "Ride Accepted!";
+    case "admin-blocked":
+      return "Account Blocked";
+    case "success":
+      return "Success";
+    case "error":
+      return "Error";
+    case "alert":
+      return "Alert";
+    case "info":
+    default:
+      return "Information";
+  }
+};
+
 
   const handleClose = () => {
     dispatch(hideNotification());
+    console.log("hideNotification",navigateRoute);
     
     if (navigateRoute) {
       navigate(navigateRoute);
@@ -61,6 +66,26 @@ const NotificationModal: React.FC = () => {
   };
 
   const renderContent = () => {
+
+      if (type === "payment-confirmation" && data) {
+    return (
+      <div className="space-y-3">
+        <p className="text-base">{message}</p>
+
+        {data?.amount && (
+          <div className="bg-white bg-opacity-20 p-3 rounded-md">
+            <p className="text-sm font-medium">Amount: ₹{data.amount}</p>
+          </div>
+        )}
+        {data?.ride_id && (
+          <div className="bg-white bg-opacity-20 p-3 rounded-md">
+            <p className="text-sm font-medium">Ride ID: {data.ride_id}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
     if (type === "ride-accepted" && data) {
       return (
         <div className="space-y-3">
@@ -106,36 +131,81 @@ const NotificationModal: React.FC = () => {
     return <p className="text-base">{message}</p>;
   };
 
-  const renderButtons = () => {
-    if (navigateRoute) {
-      return (
-        <div className="flex space-x-3 mt-6">
-          <Button
-            className="flex-1 bg-white text-black hover:bg-gray-100 font-medium"
-            onClick={handleClose}
-          >
-            OK
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 bg-transparent border-white text-white hover:bg-white hover:text-black"
-            onClick={handleCancel}
-          >
-            Cancel
-          </Button>
-        </div>
-      );
-    }
+const handlePaymentConfirm = async () => {
+  try {
+    const payload = { ...data, conformation: true };
+    console.log("handlePaymentConfirm",payload);
     
+    await postData("/driver-payment-conformation","Driver",payload)
+    dispatch(hideNotification());
+  } catch (error) {
+    console.error("Payment confirm error:", error);
+    // dispatch(hideNotification());
+  }
+};
+
+const handlePaymentReject = async() => {
+  try {
+    const payload = { ...data, conformation: false };
+    await postData("/driver-payment-conformation","Driver",payload)
+    dispatch(hideNotification());
+  } catch (error) {
+    console.error("Payment confirm error:", error);
+    // dispatch(hideNotification());
+  }
+};
+
+const renderButtons = () => {
+  if (type === "payment-confirmation") {
     return (
-      <Button
-        className="w-full mt-6 bg-white text-black hover:bg-gray-100 font-medium"
-        onClick={handleClose}
-      >
-        Close
-      </Button>
+      <div className="flex space-x-3 mt-6">
+        <Button
+          className="flex-1 bg-white text-black hover:bg-gray-100 font-medium"
+          onClick={handlePaymentConfirm}
+        >
+          Yes
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1 bg-transparent border-white text-white hover:bg-white hover:text-black"
+          onClick={handlePaymentReject}
+        >
+          No
+        </Button>
+      </div>
     );
-  };
+  }
+
+  if (navigateRoute) {
+    return (
+      <div className="flex space-x-3 mt-6">
+        <Button
+          className="flex-1 bg-white text-black hover:bg-gray-100 font-medium"
+          onClick={handleClose}
+        >
+          OK
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1 bg-transparent border-white text-white hover:bg-white hover:text-black"
+          onClick={handleCancel}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      className="w-full mt-6 bg-white text-black hover:bg-gray-100 font-medium"
+      onClick={handleClose}
+    >
+      Close
+    </Button>
+  );
+};
+
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">

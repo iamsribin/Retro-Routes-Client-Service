@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { CheckCircle, Clock, CreditCard, Banknote, Wallet, User, MapPin, Car } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateRideStatus } from '@/shared/services/redux/slices/driverRideSlice';
+import { RootState } from '@/shared/services/redux/store';
 
 // Types
 interface PaymentState {
@@ -12,29 +13,6 @@ interface PaymentState {
   transactionId?: string;
 }
 
-interface RootState {
-  driverRide: {
-    rideData: {
-      customer: {
-        userId: string;
-        userName: string;
-        userNumber: string;
-        userProfile: string;
-      };
-      bookingDetails: {
-        bookingId: string;
-        fareAmount: number;
-        pickupLocation: {
-          address: string;
-        };
-        dropoffLocation: {
-          address: string;
-        };
-        status: string;
-      };
-    } | null;
-  };
-}
 
 const DriverPaymentPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -42,7 +20,7 @@ const DriverPaymentPage: React.FC = () => {
   // Safe selector with fallback to avoid Redux store errors
   const rideData = useSelector((state: RootState) => {
     try {
-      return state.driverRide?.rideData || null;
+      return state.driverRideMap || null;
     } catch (error) {
       console.warn('Redux store structure mismatch:', error);
       return null;
@@ -71,13 +49,14 @@ const DriverPaymentPage: React.FC = () => {
   };
 
   // Use real data if available, otherwise use dummy data
-  const currentRideData = rideData || dummyRideData;
+  const currentRideData = rideData?.rideData 
+  console.log("rideData",rideData);
   
   // Demo payment state - in real app this would come from your payment service
   const [paymentState, setPaymentState] = useState<PaymentState>({
     method: 'cash',
     status: 'pending',
-    amount: currentRideData.bookingDetails.fareAmount,
+    amount: currentRideData?.bookingDetails.fareAmount || 0,
   });
 
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -85,64 +64,16 @@ const DriverPaymentPage: React.FC = () => {
 
   // Timer for payment waiting
   useEffect(() => {
-    if (paymentState.status === 'pending' || paymentState.status === 'processing') {
       const timer = setInterval(() => {
         setTimeElapsed(prev => prev + 1);
       }, 1000);
       return () => clearInterval(timer);
-    }
   }, [paymentState.status]);
-
-  const handleCashReceived = () => {
-    setPaymentState(prev => ({ ...prev, status: 'processing' }));
-    
-    // Simulate processing time
-    setTimeout(() => {
-      setPaymentState(prev => ({ 
-        ...prev, 
-        status: 'completed',
-        transactionId: 'CASH_' + Date.now()
-      }));
-      setShowSuccessAnimation(true);
-      
-      // Update ride status in Redux (only if using real data)
-      if (rideData) {
-        dispatch(updateRideStatus({
-          bookingId: currentRideData.bookingDetails.bookingId,
-          status: 'completed'
-        }));
-      }
-    }, 2000);
-  };
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getPaymentMethodIcon = () => {
-    switch (paymentState.method) {
-      case 'cash':
-        return <Banknote className="w-8 h-8 text-green-600" />;
-      case 'wallet':
-        return <Wallet className="w-8 h-8 text-blue-600" />;
-      case 'online':
-        return <CreditCard className="w-8 h-8 text-purple-600" />;
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (paymentState.status) {
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-50';
-      case 'processing':
-        return 'text-blue-600 bg-blue-50';
-      case 'completed':
-        return 'text-green-600 bg-green-50';
-      case 'failed':
-        return 'text-red-600 bg-red-50';
-    }
   };
 
   if (!currentRideData) {
@@ -250,20 +181,20 @@ const DriverPaymentPage: React.FC = () => {
         >
           <div className="text-center mb-6">
             <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              {getPaymentMethodIcon()}
+             <Banknote className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               ₹{paymentState.amount}
             </h3>
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor()}`}>
-              {paymentState.status === 'pending' && <Clock className="w-4 h-4 mr-1" />}
-              {paymentState.status === 'processing' && (
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-blue-600 bg-blue-50`}>
+              {/* {paymentState.status === 'pending' && <Clock className="w-4 h-4 mr-1" />} */}
+              {/* {paymentState.status === 'processing' && ( */}
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="w-4 h-4 mr-1 border-2 border-current border-t-transparent rounded-full"
                 />
-              )}
+              {/* // )} */}
               {paymentState.status === 'completed' && <CheckCircle className="w-4 h-4 mr-1" />}
               {paymentState.status.charAt(0).toUpperCase() + paymentState.status.slice(1)}
             </div>
@@ -271,12 +202,12 @@ const DriverPaymentPage: React.FC = () => {
 
           {/* Payment Method Info */}
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <span className="text-gray-600">Payment Method</span>
               <span className="font-medium capitalize text-gray-800">
                 {paymentState.method === 'online' ? 'Online Payment' : paymentState.method}
               </span>
-            </div>
+            </div> */}
             <div className="flex items-center justify-between mt-2">
               <span className="text-gray-600">Time Elapsed</span>
               <span className="font-mono text-gray-800">
@@ -286,7 +217,7 @@ const DriverPaymentPage: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          {paymentState.method === 'cash' && paymentState.status === 'pending' && (
+          {/* {paymentState.method === 'cash' && paymentState.status === 'pending' && (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -296,9 +227,9 @@ const DriverPaymentPage: React.FC = () => {
               <Banknote className="w-5 h-5 mr-2" />
               Confirm Cash Received
             </motion.button>
-          )}
+          )} */}
 
-          {(paymentState.method === 'wallet' || paymentState.method === 'online') && (
+          {/* {(paymentState.method === 'wallet' || paymentState.method === 'online') && ( */}
             <div className="text-center">
               <motion.div
                 animate={{ opacity: [0.5, 1, 0.5] }}
@@ -309,7 +240,7 @@ const DriverPaymentPage: React.FC = () => {
                 Waiting for customer to complete payment...
               </motion.div>
             </div>
-          )}
+          {/* // )} */}
         </motion.div>
 
         {/* Quick Actions */}
@@ -333,7 +264,7 @@ const DriverPaymentPage: React.FC = () => {
         </motion.div>
 
         {/* Demo Controls (Remove in production) */}
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        {/* <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800 font-medium mb-2">Demo Controls:</p>
           <div className="flex gap-2 mb-2">
             <button
@@ -358,7 +289,7 @@ const DriverPaymentPage: React.FC = () => {
           <p className="text-xs text-yellow-700">
             {rideData ? 'Using real Redux data' : 'Using dummy data (Redux not connected)'}
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

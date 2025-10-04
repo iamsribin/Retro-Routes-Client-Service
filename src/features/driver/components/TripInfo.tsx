@@ -9,17 +9,16 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { PhoneCall } from "lucide-react";
-import { updateRideStatus } from "@/shared/services/redux/slices/driverRideSlice";
+import { updateRideStatus,setPaymentStatus } from "@/shared/services/redux/slices/driverRideSlice";
 import { toast } from "sonner";
 import { RideRequest } from "@/shared/types/driver/ridetype";
 import { useDriverLocation } from "@/context/driver-location-context";
-import { Toast, useToast } from "@chakra-ui/react";
+import { Toast } from "@chakra-ui/react";
 import { getDistanceInMeters } from "@/shared/utils/getDistanceInMeters";
 import { patchData, postData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import ApiEndpoints from "@/constants/api-end-pointes";
 import { useNotification } from "@/shared/hooks/useNotificatiom";
-import { setPaymentStatus, updateRideStatusOnly } from "@/shared/services/redux/slices/rideSlice";
 
 interface TripInfoProps {
   rideData: RideRequest;
@@ -114,13 +113,17 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
       );
       return;
     }
-console.log("==============");
+console.log("=======success=======");
 
     const data = await patchData(ApiEndpoints.COMPLETE_RIDE,"Driver",{
       bookingId: rideData.bookingDetails.bookingId,
       userId: rideData.customer.userId,
     })
-    onNotification("success","ride completed successfully","","/payment")
+    console.log("data",data);
+    
+    onNotification("success","ride completed successfully","","/driver/payment")
+    console.log("][[]",rideData);
+    
     // socket.emit("rideCompleted", {
     //   bookingId: rideData.bookingDetails.bookingId,
     //   userId: rideData.customer.userId,
@@ -132,8 +135,10 @@ console.log("==============");
         status: "completed",
       })
     );
+    console.log("completed dis");
 
     dispatch(setPaymentStatus("pending"));
+    console.log("setPaymentStatus dis");
 
     toast.success("Ride completed successfully");
   };

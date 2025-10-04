@@ -16,7 +16,6 @@ import { postData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import { ResponseCom } from "@/shared/types/commonTypes";
 
-
 const DriverDashboard: React.FC = () => {
   const dispatch = useDispatch();
   const toast = useToast();
@@ -31,9 +30,19 @@ const DriverDashboard: React.FC = () => {
     (state: RootState) => state.driver.OnlineTimestamp
   );
 
+// hideLoading(); 
+// const dummydata= {
+//   amount: 599,
+//   ride_id:"jldkfjslj"
+// }
+// dispatch(showNotification({
+//     type: "payment-confirmation",
+//     message: "Passenger paid in cash. Confirm receipt?",
+//     data:dummydata,
+//   }));
+
   // const axiosDriver = createAxios(dispatch);
 // hideLoading()
-
 
   // Load sound
   // useEffect(() => {
@@ -152,7 +161,7 @@ const DriverDashboard: React.FC = () => {
             }
             try {
               const data = await postData<ResponseCom["data"]>(DriverApiEndpoints.HANDLE_ONLINE_CHANGE,"Driver",request)
-              // const { data } = await axiosDriver.post("/handle-online-change", {
+                // const { data } = await axiosDriver.post("/handle-online-change", {
                 //            online: checked,
                 // driverId,
                 // onlineTimestamp: OnlineTimestamp,
@@ -160,7 +169,7 @@ const DriverDashboard: React.FC = () => {
                 //   lat: latitude,
                 //   lng: longitude,
                 // }
-              // });
+                // });
 
               if (data.status === 200) {
                 if (!checked) {

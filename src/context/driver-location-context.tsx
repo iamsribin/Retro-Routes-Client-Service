@@ -62,10 +62,10 @@ export const DriverLocationProvider: React.FC<Props> = ({ children }) => {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
           const coords = {
-          // latitude: position.coords.latitude, 
-          // longitude: position.coords.longitude,
-          latitude:11.050929,
-          longitude:76.071014 
+          latitude: position.coords.latitude, 
+          longitude: position.coords.longitude,
+          // latitude:11.050929,
+          // longitude:76.071014 
           };
           if (isLoaded) {
           //  11.050929, 76.071014
