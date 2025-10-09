@@ -94,6 +94,10 @@ const RideBooking: React.FC = () => {
   const { user } = useSelector((state: RootState) => ({
     user: state.user,
   }));
+    const { paymentStatus, rideData } = useSelector(
+      (state: RootState) => state.RideMap
+    );
+
   const { onNotification, offNotification } = useNotification();
 
   const { isLoaded } = useJsApiLoader({
@@ -224,6 +228,10 @@ const RideBooking: React.FC = () => {
   };
 
   const handleSearchCabs = async () => {
+    if(rideData){
+     onNotification("alert", "You're already on a ride. Finish it before booking another.");
+      return;
+    }
     if (
       !destination ||
       (useCurrentLocationAsPickup && !userLocation) ||

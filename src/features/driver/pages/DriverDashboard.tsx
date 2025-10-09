@@ -15,113 +15,26 @@ import { useLoading } from "@/shared/hooks/useLoading";
 import { postData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import { ResponseCom } from "@/shared/types/commonTypes";
+import { useNotification } from "@/shared/hooks/useNotificatiom";
 
 const DriverDashboard: React.FC = () => {
   const dispatch = useDispatch();
   const toast = useToast();
   const { socket, isConnected } = useSocket();
   const { showLoading, hideLoading } = useLoading();
+  const { onNotification, offNotification } = useNotification();
+  
 
   const driverId = useSelector((state: RootState) => state.driver.driverId);
   const isOnline = useSelector((state: RootState) => state.driver.isOnline);
   const isOpen = useSelector((state: RootState) => state.driverRideMap.isOpen);
+  const rideData = useSelector((state: RootState) => state.driverRideMap.rideData);
 
   const OnlineTimestamp = useSelector(
     (state: RootState) => state.driver.OnlineTimestamp
   );
 
 // hideLoading(); 
-// const dummydata= {
-//   amount: 599,
-//   ride_id:"jldkfjslj"
-// }
-// dispatch(showNotification({
-//     type: "payment-confirmation",
-//     message: "Passenger paid in cash. Confirm receipt?",
-//     data:dummydata,
-//   }));
-
-  // const axiosDriver = createAxios(dispatch);
-// hideLoading()
-
-  // Load sound
-  // useEffect(() => {
-  //   audioRef.current = new Audio(NOTIFICATION_SOUND);
-  //   return () => {
-  //     if (audioRef.current) {
-  //       audioRef.current.pause();
-  //       audioRef.current = null;
-  //     }
-  //   };
-  // }, []);
-
-  // const playNotificationSound = useCallback(() => {
-  //   if (audioRef.current) {
-  //     audioRef.current.currentTime = 0;
-  //     audioRef.current
-  //       .play()
-  //       .catch((e) => console.error("Error playing sound:", e));
-  //   }
-  // }, []);
-
-  // const startCountdown = useCallback((duration: number) => {
-  //   setTimeLeft(Math.floor(duration / 1000));
-  //   if (timeoutRef.current) clearInterval(timeoutRef.current);
-
-  //   timeoutRef.current = setInterval(() => {
-  //     setTimeLeft((prev) => {
-  //       if (prev <= 1) {
-  //         if (timeoutRef.current) clearInterval(timeoutRef.current);
-  //         return 0;
-  //       }
-  //       return prev - 1;
-  //     });
-  //   }, 1000);
-  // }, []);
-
-  // Listen for ride requests
-  // useEffect(() => {
-  //   if (!socket) return;
-
-  //   socket.on("rideRequest", (rideRequest: DriverRideRequest) => {
-  //     if (!rideRequest || !rideRequest.booking) {
-  //       toast({
-  //         title: "Ride Request Error",
-  //         description: "Invalid ride request data received.",
-  //         variant: "destructive",
-  //       });
-  //       return;
-  //     }
-
-  //     try {
-  //       setActiveRide(rideRequest);
-  //       setShowRideRequest(true);
-  //       playNotificationSound();
-  //       startCountdown(rideRequest.requestTimeout);
-  //     } catch (error) {
-  //       console.error("Error processing ride request:", error);
-  //       toast({
-  //         title: "Ride Request Error",
-  //         description: "Failed to process ride request.",
-  //         variant: "destructive",
-  //       });
-  //     }
-  //   });
-
-  //   socket.on("error", (error: { message: string; code: string }) => {
-  //     console.error("Socket error:", error);
-  //     toast({
-  //       title: "Error",
-  //       description: error.message,
-  //       variant: "destructive",
-  //     });
-  //   });
-
-  //   return () => {
-  //     socket.off("rideRequest");
-  //     socket.off("error");
-  //   };
-  // }, [socket, playNotificationSound, startCountdown, toast]);
 
   useEffect(() => {
     if (!isConnected && isOnline) {
@@ -141,6 +54,10 @@ const DriverDashboard: React.FC = () => {
 
   const handleOnlineChange = useCallback(
     async (checked: boolean) => {
+      if(rideData){
+onNotification("alert", "You can't go offline while you're on a ride.");
+      return;
+      }
       showLoading({
         isLoading: true,
         loadingMessage: "please wait updating your online status",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { RootState } from "@/shared/services/redux/store";
@@ -6,6 +6,7 @@ import TripInfo from "@/features/driver/components/TripInfo";
 import ChatSection from "@/features/driver/components/ChatSection";
 import useMap from "@/shared/hooks/useMap";
 import useRideSocket from "@/shared/hooks/useRideSocket";
+import { useNavigate } from "react-router-dom";
 
 const DriverRideMap: React.FC = () => {
   const { isOpen, rideData } = useSelector((state: RootState) => state.driverRideMap);
@@ -15,6 +16,13 @@ const DriverRideMap: React.FC = () => {
 
   const { mapContainerRef, mapReady } = useMap(rideData);
   useRideSocket(rideData, activeSection, setUnreadCount);
+    const navigate = useNavigate();
+  
+      useEffect(() => {
+    if (!rideData || !isOpen) {
+      navigate("/driver/dashboard");
+    }
+  }, [isOpen, navigate]);
 
   if (!rideData || !isOpen) {
     return (

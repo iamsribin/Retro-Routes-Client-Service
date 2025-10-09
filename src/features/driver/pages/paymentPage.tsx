@@ -4,6 +4,7 @@ import { CheckCircle, Clock, CreditCard, Banknote, Wallet, User, MapPin, Car } f
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateRideStatus } from '@/shared/services/redux/slices/driverRideSlice';
 import { RootState } from '@/shared/services/redux/store';
+import { useNavigate } from 'react-router-dom';
 
 // Types
 interface PaymentState {
@@ -15,44 +16,12 @@ interface PaymentState {
 
 
 const DriverPaymentPage: React.FC = () => {
-  const dispatch = useDispatch();
-  
-  // Safe selector with fallback to avoid Redux store errors
-  const rideData = useSelector((state: RootState) => {
-    try {
-      return state.driverRideMap || null;
-    } catch (error) {
-      console.warn('Redux store structure mismatch:', error);
-      return null;
-    }
-  });
+  const navigate = useNavigate()
 
-  // Dummy data for testing when no ride data is available
-  const dummyRideData = {
-    customer: {
-      userId: 'user123',
-      userName: 'John Doe',
-      userNumber: '+1 234 567 8900',
-      userProfile: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format',
-    },
-    bookingDetails: {
-      bookingId: 'booking123',
-      fareAmount: 250,
-      pickupLocation: {
-        address: '123 Main Street, Downtown, City Center',
-      },
-      dropoffLocation: {
-        address: '456 Oak Avenue, Business District, Metro City',
-      },
-      status: 'completed',
-    },
-  };
+  const { isOpen, rideData } = useSelector((state: RootState) => state.driverRideMap);
 
-  // Use real data if available, otherwise use dummy data
-  const currentRideData = rideData?.rideData 
-  console.log("rideData",rideData);
+  const currentRideData = rideData 
   
-  // Demo payment state - in real app this would come from your payment service
   const [paymentState, setPaymentState] = useState<PaymentState>({
     method: 'cash',
     status: 'pending',
@@ -62,7 +31,12 @@ const DriverPaymentPage: React.FC = () => {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
 
-  // Timer for payment waiting
+  useEffect(() => {
+    if (!rideData) {
+      navigate("/driver/dashboard");
+    }
+  }, [rideData, navigate]);
+
   useEffect(() => {
       const timer = setInterval(() => {
         setTimeElapsed(prev => prev + 1);

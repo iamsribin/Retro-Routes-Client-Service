@@ -10,8 +10,7 @@ interface RideState {
   isRideNotificationOpen: boolean;
   notificationData: RideRequest | null;
   rideData: RideRequest | null;
-    paymentStatus: 'idle' | 'pending' | 'completed' | 'failed';
-
+  paymentStatus: "idle" | "pending" | "completed" | "failed";
 }
 
 const initialState: RideState = {
@@ -19,14 +18,20 @@ const initialState: RideState = {
   rideData: null,
   isRideNotificationOpen: false,
   notificationData: null,
-  paymentStatus: 'idle',
-
+  paymentStatus: "idle",
 };
 
 const RideMapSlice = createSlice({
   name: "DriverRideMap",
   initialState,
   reducers: {
+    clearRide: (state) => {
+      state.isOpen = false;
+      state.rideData = null;
+      state.isRideNotificationOpen = false;
+      state.notificationData = null;
+      state.paymentStatus = "idle";
+    },
     showRideMap: (state, action: PayloadAction<RideRequest>) => {
       state.isOpen = true;
       state.rideData = {
@@ -35,7 +40,10 @@ const RideMapSlice = createSlice({
         // status: action.payload.status ?? "accepted",
       };
     },
-    showRideRequestNotification: (state, action: PayloadAction<RideRequest>) => {
+    showRideRequestNotification: (
+      state,
+      action: PayloadAction<RideRequest>
+    ) => {
       state.isRideNotificationOpen = true;
       state.notificationData = { ...action.payload };
     },
@@ -83,12 +91,23 @@ const RideMapSlice = createSlice({
         ];
       }
     },
-    setPaymentStatus: (state, action: PayloadAction<RideState['paymentStatus']>) => {
-          state.paymentStatus = action.payload;
-        },
+    setPaymentStatus: (
+      state,
+      action: PayloadAction<RideState["paymentStatus"]>
+    ) => {
+      state.paymentStatus = action.payload;
+    },
   },
 });
 
-export const { showRideMap, hideRideMap, updateRideStatus, addChatMessage,showRideRequestNotification,hideRideRequestNotification,setPaymentStatus } =
-  RideMapSlice.actions;
+export const {
+  showRideMap,
+  hideRideMap,
+  updateRideStatus,
+  addChatMessage,
+  showRideRequestNotification,
+  hideRideRequestNotification,
+  setPaymentStatus,
+  clearRide
+} = RideMapSlice.actions;
 export default RideMapSlice;

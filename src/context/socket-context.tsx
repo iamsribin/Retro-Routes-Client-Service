@@ -18,6 +18,7 @@ import { adminLogout } from "@/shared/services/redux/slices/adminAuthSlice";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { useNavigate } from "react-router-dom";
 import {
+  clearRide as clearRideUser,
   setPaymentStatus,
   showRideMap as showRideMapUser,
   updateRideStatus,
@@ -28,6 +29,7 @@ import {
   hideRideMap as hideRideMapDriver,
   showRideMap as showRideMapDriver,
   hideRideRequestNotification,
+  clearRide as clearRideDriver,
 } from "@/shared/services/redux/slices/driverRideSlice";
 import { RideRequest } from "@/shared/types/driver/ridetype";
 import { useLoading } from "@/shared/hooks/useLoading";
@@ -299,7 +301,38 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     socketInstance.on("driver:payment:conformation", (data) => {
       console.log("payment conformation", data);
-      dispatch(showNotification({type:"payment-confirmation",message:`did you receive ${data.amount} in hand`,data:data}))
+      dispatch(
+        showNotification({
+          type: "payment-confirmation",
+          message: `did you receive ${data.amount} in hand`,
+          data: data,
+        })
+      );
+    });
+
+    socketInstance.on("payment:conformation", (data) => {
+      console.log("payment:conformation",data);
+      
+      if (data.user) {
+        dispatch(clearRideUser());
+        dispatch(
+        showNotification({
+          type: "success",
+          message: `Payment completed successfully`,
+          navigate:"/"
+        })
+      );
+      }else{
+        dispatch(clearRideDriver());
+        console.log("ddriver else");
+        dispatch(
+          showNotification({
+          type: "success",
+          message: `Payment completed successfully`,
+          navigate:"driver/dashboard"
+        })
+        )
+      }
     });
 
     socketInstance.on("ride:completed", () => {
