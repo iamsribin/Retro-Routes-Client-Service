@@ -36,22 +36,6 @@ const DriverDashboard: React.FC = () => {
 
 // hideLoading(); 
 
-  useEffect(() => {
-    if (!isConnected && isOnline) {
-      toast({
-        title: "Disconnected",
-        description: "Lost connection to the server. Retrying...",
-        variant: "destructive",
-      });
-    } else if (isConnected && isOnline) {
-      toast({
-        title: "Connected",
-        description: "Successfully connected to the server.",
-        variant: "default",
-      });
-    }
-  }, [isConnected, isOnline, toast]);
-
   const handleOnlineChange = useCallback(
     async (checked: boolean) => {
       if(rideData){
