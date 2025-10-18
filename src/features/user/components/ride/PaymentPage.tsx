@@ -1,4 +1,3 @@
-// frontend/src/components/PaymentPage.tsx
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +9,6 @@ import { Avatar } from "@/shared/components/ui/avatar";
 import { useToast } from "@/shared/components/ui/use-toast";
 import {
   setPaymentStatus,
-  hideRideMap,
 } from "@/shared/services/redux/slices/rideSlice";
 import {
   CreditCard,
@@ -26,85 +24,79 @@ import {
 } from "lucide-react";
 import { RootState } from "@/shared/services/redux/store";
 import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  CardElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
 import { postData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { useSocket } from "@/context/socket-context";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
 
-const CheckoutForm: React.FC<{
-  bookingId: string;
-  userId: string;
-  driverId: string;
-  amount: number;
-}> = ({ bookingId, userId, driverId, amount }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const dispatch = useDispatch();
-  const { toast } = useToast();
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!stripe || !elements) return;
+// const CheckoutForm: React.FC<{
+//   bookingId: string;
+//   userId: string;
+//   driverId: string;
+//   amount: number;
+// }> = ({ bookingId, userId, driverId, amount }) => {
+//   const stripe = useStripe();
+//   const elements = useElements();
+//   const dispatch = useDispatch();
+//   const { toast } = useToast();
+//   const handleSubmit = async (event: React.FormEvent) => {
+//     event.preventDefault();
+//     if (!stripe || !elements) return;
 
-    dispatch(setPaymentStatus("pending"));
-    try {
-      const data = await postData<ResponseCom["data"]>(
-        "/payments/create-checkout-session",
-        "User",
-        {
-          bookingId,
-          userId,
-          driverId,
-          amount,
-        }
-      );
+//     dispatch(setPaymentStatus("pending"));
+//     try {
+//       const data = await postData<ResponseCom["data"]>(
+//         "/payments/create-checkout-session",
+//         "User",
+//         {
+//           bookingId,
+//           userId,
+//           driverId,
+//           amount,
+//         }
+//       );
 
-      const result = await stripe.redirectToCheckout({
-        sessionId: data.sessionId,
-      });
-      if (result.error) {
-        dispatch(setPaymentStatus("failed"));
-        toast({
-          title: "Payment Failed",
-          description: result.error.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      dispatch(setPaymentStatus("failed"));
-      toast({
-        title: "Payment Failed",
-        description: (error as any).message,
-        variant: "destructive",
-      });
-    }
-  };
+//       const result = await stripe.redirectToCheckout({
+//         sessionId: data.sessionId,
+//       });
+//       if (result.error) {
+//         dispatch(setPaymentStatus("failed"));
+//         toast({
+//           title: "Payment Failed",
+//           description: result.error.message,
+//           variant: "destructive",
+//         });
+//       }
+//     } catch (error) {
+//       dispatch(setPaymentStatus("failed"));
+//       toast({
+//         title: "Payment Failed",
+//         description: (error as any).message,
+//         variant: "destructive",
+//       });
+//     }
+//   };
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <CardElement className="p-2 border rounded" />
-      <Button
-        type="submit"
-        disabled={!stripe || !elements}
-        className="mt-2 w-full"
-      >
-        Pay ₹{amount.toFixed(2)}
-      </Button>
-    </form>
-  );
-};
+//   return (
+//     <form onSubmit={handleSubmit}>
+//       <CardElement className="p-2 border rounded" />
+//       <Button
+//         type="submit"
+//         disabled={!stripe || !elements}
+//         className="mt-2 w-full"
+//       >
+//         Pay ₹{amount.toFixed(2)}
+//       </Button>
+//     </form>
+//   );
+// };
 
 const PaymentPage: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const {socket,isConnected}=useSocket();
+  const { socket, isConnected } = useSocket();
 
   const { paymentStatus, rideData } = useSelector(
     (state: RootState) => state.RideMap
@@ -169,22 +161,35 @@ const PaymentPage: React.FC = () => {
     try {
       if (selectedPaymentMethod === "cash") {
         if (isConnected) {
-          socket?.emit("user:payment:conformation",data);
+          socket?.emit("user:payment:conformation", data);
         }
-      //  const response =  await postData("/payments/cash-payment", "User", data);
+        //  const response =  await postData("/payments/cash-payment", "User", data);
       } else if (selectedPaymentMethod === "wallet") {
-       const response =  await postData("/payments/wallet", "User", data);
+        const response = await postData("/payments/wallet", "User", data);
       } else if (selectedPaymentMethod === "stripe") {
-       const response =  await postData("/payments/stripe", "User", data);
+        const response = await postData<ResponseCom["data"]>(
+          "/payments/create-checkout-session",
+          "User",
+          data
+        );
+        
+  if (response?.sessionId) {
+  const stripe = await stripePromise;
+  await stripe?.redirectToCheckout({ sessionId: response.sessionId });
+} else {
+  console.error("Stripe sessionId not received");
+}
       }
     } catch (error) {
+      console.log(error);
+      
       // dispatch(setPaymentStatus('failed'));
       toast({
         title: "Payment Failed",
         description: (error as any).message,
         variant: "destructive",
       });
-      // setIsProcessing(false);
+      setIsProcessing(false);
     }
   };
 
@@ -351,7 +356,7 @@ const PaymentPage: React.FC = () => {
               );
             })}
           </div>
-          {selectedPaymentMethod === "stripe" && (
+          {/* {selectedPaymentMethod === "stripe" && (
             <div className="mt-4">
               <Elements stripe={stripePromise}>
                 <CheckoutForm
@@ -362,7 +367,7 @@ const PaymentPage: React.FC = () => {
                 />
               </Elements>
             </div>
-          )}
+          )} */}
         </Card>
 
         <Card className="p-4 mb-6 bg-white shadow-sm">
@@ -401,9 +406,7 @@ const PaymentPage: React.FC = () => {
           disabled={
             !selectedPaymentMethod ||
             isProcessing ||
-            paymentStatus === "completed" ||
-            selectedPaymentMethod === "stripe"
-          }
+            paymentStatus === "completed"          }
           className="w-full h-12 text-lg font-semibold"
           size="lg"
         >

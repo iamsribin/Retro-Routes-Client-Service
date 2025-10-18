@@ -23,7 +23,7 @@
 //       '@': path.resolve(__dirname, 'src'),
 //     },
 //   },
-// });/
+// });
 
 
 import { defineConfig } from 'vite';
