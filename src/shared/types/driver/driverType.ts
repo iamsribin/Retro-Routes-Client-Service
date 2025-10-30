@@ -15,7 +15,6 @@ interface DriverAuthData {
   name: string;
   token: string;
   driverId: string;
-  refreshToken: string;
   role: "Driver";
 }
 

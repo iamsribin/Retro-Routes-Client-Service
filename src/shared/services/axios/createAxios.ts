@@ -1,7 +1,7 @@
 import { handleLogout } from "@/shared/utils/handleLogout";
-import { getItem, setItem } from "@/shared/utils/localStorage";
 import axios, { AxiosInstance, CanceledError } from "axios";
 import { showNotification } from "../redux/slices/notificationSlice";
+import { authService } from "./authService";
 
 type Role = "Admin" | "Driver" | "User";
 const API_URL = import.meta.env.VITE_API_GATEWAY_URL;
@@ -15,14 +15,14 @@ export const createAxios = (role: Role, dispatch: any): AxiosInstance => {
   // Attach access token
   axiosInstance.interceptors.request.use(
     (config: any) => {
-      const token = getItem("token");
-      if (token) {
-        config.headers = {
-          ...config.headers,
-          Authorization: `Bearer ${token}`,
-        };
-      }
-      return config;
+
+      const token = authService.get(); 
+console.log("token",token);
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`; 
+        }
+     return config;
     },
     (error) => Promise.reject(error)
   );
@@ -44,23 +44,15 @@ export const createAxios = (role: Role, dispatch: any): AxiosInstance => {
       // Handle token expiry
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
-        const refreshToken = getItem("refreshToken");
-
-        if (!refreshToken) {
-          handleLogout(role, dispatch);
-          return Promise.reject(error);
-        }
 
         try {
-          const res = await axios.post(`${API_URL}/auth/refresh`, {
-            token: refreshToken,
-          });
+          const res = await axios.post(`${API_URL}/${role.toLowerCase()}/refresh`);
 
-          const { token: newToken, refreshToken: newRefresh } = res.data;
-          setItem("token", newToken);
-          if (newRefresh) setItem("refreshToken", newRefresh);
-
-          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+          const { accessToken } = res.data;
+          
+          authService.set(accessToken);
+          originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+          
           return axiosInstance(originalRequest);
         } catch (refreshError) {
           handleLogout(role, dispatch);

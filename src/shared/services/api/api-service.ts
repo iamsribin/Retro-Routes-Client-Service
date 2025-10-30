@@ -8,11 +8,16 @@ export const fetchData = async <T>(
   signal?: AbortSignal
 ): Promise<T> => {
   const axios = getAxios(role);
-  const { data } = await axios.get<T>(url, { signal });
-  console.log("fetchData", data);
 
+  const { data } = await axios.get<T>(url, {
+    headers: { "x-user-role": role },
+    signal, 
+  });
+
+  console.log("fetchData", data);
   return data;
 };
+
 const JSON_TYPE = { "Content-Type": "application/json" };
 
 export const postData = async <T>(

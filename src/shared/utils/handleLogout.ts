@@ -10,6 +10,8 @@ const API_URL = import.meta.env.VITE_API_GATEWAY_URL;
 
 export const handleLogout = (role: Role, dispatch: any) => {
   clearStorage();
+  console.log("popo[op[o",role);
+  
   if (role === "Admin") dispatch(adminLogout());
   if (role === "Driver") dispatch(driverLogout());
   if (role === "User") dispatch(userLogout());

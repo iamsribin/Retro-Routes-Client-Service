@@ -12,7 +12,6 @@ import {
 } from "@/shared/services/redux/slices/rideSlice";
 import {
   CreditCard,
-  Wallet,
   Banknote,
   MapPin,
   Clock,
@@ -112,14 +111,14 @@ const PaymentPage: React.FC = () => {
   }, [rideData, navigate]);
 
   const paymentMethods = [
-    {
-      id: "wallet",
-      name: "Wallet",
-      icon: Wallet,
-      description: "Pay using your wallet balance",
-      color: "bg-blue-500",
-      available: true,
-    },
+    // {
+    //   id: "wallet",
+    //   name: "Wallet",
+    //   icon: Wallet,
+    //   description: "Pay using your wallet balance",
+    //   color: "bg-blue-500",
+    //   available: true,
+    // },
     {
       id: "cash",
       name: "Cash in Hand",

@@ -14,7 +14,7 @@ import ApiEndpoints from "@/constants/api-end-pointes";
 import { LoginFormProps } from "./type";
 import { postData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
-import { setItem } from "@/shared/utils/localStorage";
+import { authService } from "@/shared/services/axios/authService";
 
 declare global {
   interface Window {
@@ -53,9 +53,7 @@ const LoginForm = ({
     validationSchema: loginValidation,
     onSubmit: async (values) => {
       try {
-        // const response = await request(() =>
-        //   api.post(ApiEndpoints.USER_CHECK_LOGIN, values)
-        // ); 
+
         setLoading(true);
         const response = await postData<ResponseCom["data"]>(
           ApiEndpoints.USER_CHECK_LOGIN,
@@ -70,7 +68,6 @@ const LoginForm = ({
             user: response.name,
             user_id: response._id,
             userToken: response.token,
-            refreshToken: response.refreshToken,
             loggedIn: true,
             role: response.role,
             mobile: response.mobile,
@@ -109,10 +106,11 @@ const LoginForm = ({
 
     try {
       await confirmationResult.confirm(otp.toString());
-      setItem("role", userData.role);
+
       if (userData.role === "Admin") {
-        setItem("token", userData.userToken);
-        setItem("refreshToken", userData.refreshToken);
+
+        authService.set(userData.userToken)
+
         dispatch(
           adminLogin({
             name: userData.user,
@@ -122,8 +120,9 @@ const LoginForm = ({
         );
         navigate("/admin/dashboard");
       } else {
-        setItem("token", userData.userToken);
-        setItem("refreshToken", userData.refreshToken);
+
+        authService.set(userData.userToken);
+
         dispatch(
           userLogin({
             user: userData.user,

@@ -14,7 +14,8 @@ import { postData } from "@/shared/services/api/api-service";
 import { openRejectedModal } from "@/shared/services/redux/slices/rejectModalSlice";
 import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
-import { removeItem, setItem } from "@/shared/utils/localStorage";
+import { removeItem } from "@/shared/utils/localStorage";
+import { authService } from "@/shared/services/axios/authService";
 
 const DriverLoginForm = ({
   auth,
@@ -59,7 +60,6 @@ const DriverLoginForm = ({
             sendOtp(setOtpInput, auth, values.mobile, setConfirmationResult);
             setDriverData({
               name: data.name,
-              refreshToken: data.refreshToken,
               token: data.token,
               driverId: data.driverId,
               role: "Driver",
@@ -116,8 +116,8 @@ const DriverLoginForm = ({
     try {
       await confirmationResult.confirm(otp.toString());
       toast.success("Login success");
-      setItem("token", driverData.token);
-      setItem("refreshToken", driverData.refreshToken);
+      authService.set(driverData.token)
+
       dispatch(
         driverLogin({
           name: driverData.name,
@@ -126,7 +126,6 @@ const DriverLoginForm = ({
         })
       );
       removeItem("driverId");
-      console.log("enthign dashboard");
       
       navigate("/driver/dashboard");
     } catch {

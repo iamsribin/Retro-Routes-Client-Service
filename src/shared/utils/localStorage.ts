@@ -17,7 +17,6 @@
 
 // export default logoutLocalStorage;
 
-// utils/localStorage.ts
 
 export const setItem = (key: string, value: string) =>
   localStorage.setItem(key, value);
@@ -29,5 +28,5 @@ export const removeItem = (key: string) => localStorage.removeItem(key);
 export const clearStorage = () => {
   localStorage.removeItem("role");
   localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
+  // localStorage.removeItem("refreshToken");
 };

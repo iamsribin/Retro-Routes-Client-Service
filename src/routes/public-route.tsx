@@ -26,7 +26,9 @@ const AuthRedirect = ({ children, role }: AuthRedirectProps) => {
   const { loggedIn, role: currentRole } =
     role === "User" ? user : role === "Driver" ? driver : admin;
 
-  const redirectPath =
+    console.log("authre", { loggedIn, role: currentRole });
+    
+    const redirectPath =
     role === "User" ? "/" : role === "Driver" ? "/driver/dashboard" : "/admin/dashboard";
 
   if (loggedIn && currentRole === role) {

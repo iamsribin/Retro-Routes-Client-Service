@@ -38,7 +38,6 @@ interface UserAuthData {
   user: string;
   user_id: string;
   userToken: string;
-  refreshToken: string;
   loggedIn: boolean;
   role: "User" | "Admin";
   mobile: number | undefined;
