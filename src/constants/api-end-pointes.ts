@@ -1,19 +1,20 @@
 enum ApiEndpoints {
   // Authentication APIs - User Service
   USER_LOGIN = '/user/login',
-  USER_REGISTER = '/register',
+  USER_REGISTER = '/user/register',
   USER_VERIFY_EMAIL = '/user/verify-email',
   USER_REFRESH_TOKEN = '/user/refresh-token',
   USER_LOGOUT = '/user/logout',
-  USER_CHECK_GOOGLE_LOGIN ="/checkGoogleLoginUser",
-  CHECK_USER ='/checkUser',
-  RESENT_OTP = "/resendOtp",
-  CANCEL_RIDE ="/cancel-ride",
-  COMPLETE_RIDE = "/ride-completed",
-  UPLOAD_CHAT_FILE = "/uploadChatFile",
+  USER_CHECK_GOOGLE_LOGIN ="/user/checkGoogleLoginUser",
+  CHECK_USER ='/user/checkUser',
+  RESENT_OTP = "/user/resendOtp",
+  CANCEL_RIDE ="/user/cancel-ride",
+  COMPLETE_RIDE = "/user/ride-completed",
+  UPLOAD_CHAT_FILE = "/user/uploadChatFile",
   // Authentication APIs - Driver Service
   DRIVER_LOGIN = '/driver/login',
   DRIVER_SIGNUP = '/driver/signup',
+  LOGOUT = '/logout',
   
 
   // User APIs - User Service

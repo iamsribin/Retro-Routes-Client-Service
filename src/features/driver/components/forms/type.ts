@@ -35,8 +35,8 @@ interface DriverSignupFormProps {
   setCounter: (value: number) => void;
   load: boolean;
   setLoad: (value: boolean) => void;
-  otp: number;
-  setOtp: (value: number) => void;
+  otp: string;
+  setOtp: React.Dispatch<React.SetStateAction<string>>;
   confirmationResult: ConfirmationResult | null;
   setConfirmationResult: (value: ConfirmationResult | null) => void;
   setStep: (

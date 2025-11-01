@@ -1,74 +1,60 @@
-import { getAxios } from "../axios/initAxios";
-
-type Role = "Admin" | "Driver" | "User";
-
-export const fetchData = async <T>(
-  url: string,
-  role: Role,
-  signal?: AbortSignal
-): Promise<T> => {
-  const axios = getAxios(role);
-
-  const { data } = await axios.get<T>(url, {
-    headers: { "x-user-role": role },
-    signal, 
-  });
-
-  console.log("fetchData", data);
-  return data;
-};
+import { throwCustomError } from "@/shared/utils/error";
+import { axiosInstance } from "../axios/createAxios";
 
 const JSON_TYPE = { "Content-Type": "application/json" };
 
-export const postData = async <T>(
-  url: string,
-  role: Role,
-  data?: any
-): Promise<T> => {
+export const fetchData = async <T>(url: string, signal?: AbortSignal) => {
+  try {
+    const response = await axiosInstance.get<T>(url, {
+      signal,
+    });
 
-  const axios = getAxios(role);
-  const response = await axios.post<T>(url, data, {
-    headers: data instanceof FormData ? {} : JSON_TYPE,
-  });
-  console.log("post data", response.data);
-
-  return response.data;
+    return response;
+  } catch (error) {
+    throwCustomError(error);
+  }
 };
 
-export const updateData = async <T>(
-  url: string,
-  role: Role,
-  data?: any
-): Promise<T> => {
-  const axios = getAxios(role);
-  const response = await axios.put<T>(url, data, {
-    headers: data instanceof FormData ? {} : JSON_TYPE,
-  });
-  console.log("updateData", response.data);
+export const postData = async <T>(url: string, data?: any) => {
+  try {
+    const response = await axiosInstance.post<T>(url, data, {
+      headers: data instanceof FormData ? {} : JSON_TYPE,
+    });
+    return response;
 
-  return response.data;
+  } catch (error) {
+    throwCustomError(error);
+  }
 };
 
-export const patchData = async <T>(
-  url: string,
-  role: Role,
-  data?: any
-): Promise<T> => {
-  const axios = getAxios(role);
-  const response = await axios.patch(url, data || null, {
-    headers: data instanceof FormData ? {} : JSON_TYPE,
-  });
-  console.log("patchData", response.data);
-
-  return response.data;
+export const updateData = async <T>(url: string, data?: any) => {
+  try {
+    const response = await axiosInstance.put<T>(url, data, {
+      headers: data instanceof FormData ? {} : JSON_TYPE,
+    });
+    return response;
+  } catch (error) {
+    throwCustomError(error);
+  }
 };
 
+export const patchData = async <T>(url: string, data?: any) => {
+  try {
+    const response = await axiosInstance.patch(url, data || null, {
+      headers: data instanceof FormData ? {} : JSON_TYPE,
+    });
 
+    return response;
+  } catch (error) {
+    throwCustomError(error);
+  }
+};
 
-export const deleteData = async <T>(url: string, role: Role): Promise<T> => {
-  const axios = getAxios(role);
-  const response = await axios.delete(url);
-  console.log("deleteData", response.data);
-
-  return response.data;
+export const deleteData = async <T>(url: string) => {
+  try {
+    const response = await axiosInstance.delete(url);
+    return response;
+  } catch (error) {
+    throwCustomError(error);
+  }
 };

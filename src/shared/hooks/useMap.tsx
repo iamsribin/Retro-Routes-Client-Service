@@ -4,7 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { toast } from "sonner";
 import { parseCoords, createVehicleIcon } from "@/shared/utils/mapUtils";
 import { RideRequest } from "../types/driver/ridetype";
-import { useDriverLocation } from "@/context/driver-location-context";
+// import { useDriverLocation } from "@/context/driver-location-context";
 import { Feature, LineString } from "geojson"; 
 
 mapboxgl.accessToken = import.meta.env.VITE_MAP_BOX_ACCESS_TOKEN;
@@ -18,7 +18,9 @@ const useMap = (rideData: RideRequest | null) => {
   const [mapReady, setMapReady] = useState<boolean>(false);
   const [isTripStarted, setIsTripStarted] = useState<boolean>(false);
 
-  const { driverLocation } = useDriverLocation();
+  // const { driverLocation } = useDriverLocation();
+
+  const driverLocation = {longitude:9090,latitude:900}
 
   useEffect(() => {
     if (!rideData) return;

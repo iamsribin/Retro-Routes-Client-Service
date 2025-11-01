@@ -1,3 +1,4 @@
+export type Role = "Admin" | "Driver" | "User";
 
 interface Coordinates {
   latitude: number;

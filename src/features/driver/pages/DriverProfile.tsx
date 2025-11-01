@@ -39,11 +39,9 @@ import {
 } from "@/shared/components/ui/dialog";
 import DriverNavbar from "@/features/driver/components/DriverNavbar";
 import { Alert, AlertDescription } from "@chakra-ui/react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import * as yup from "yup";
-import { RootState } from "@/shared/services/redux/store";
 import { DriverProfileData } from "./type";
 import { fetchData, updateData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
@@ -51,31 +49,12 @@ import { ResponseCom } from "@/shared/types/commonTypes";
 import { handleLogout } from "@/shared/utils/handleLogout";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { StatusCode } from "@/shared/types/enum";
+import { store } from "@/shared/services/redux/store";
 
 interface EditValues {
   name: string;
   profilePhoto: File | null;
 }
-
-// Validation Schema
-const profileSchema = yup.object().shape({
-  name: yup
-    .string()
-    .required("Name is required")
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be at most 50 characters")
-    .matches(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
-  profilePhoto: yup
-    .mixed()
-    .test("fileSize", "File size must be less than 5MB", (value: any) =>
-      value ? value.size <= 5 * 1024 * 1024 : true
-    )
-    .test("fileType", "Only image files are allowed", (value: any) =>
-      value
-        ? ["image/jpeg", "image/png", "image/gif"].includes(value.type)
-        : true
-    ),
-});
 
 // Utility Functions
 const formatDate = (dateString: string): string => {
@@ -112,7 +91,7 @@ const DriverProfile: React.FC = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const driverId = useSelector((state: RootState) => state.driver.driverId);
+  const driverId = store.getState().user.id;
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -120,7 +99,7 @@ const DriverProfile: React.FC = () => {
     const fetchDriverProfile = async () => {
       if (!driverId) {
         toast.error("Driver ID not found. Please log in again.");
-        navigate("/login");
+        navigate("/driver/login");
         return;
       }
 
@@ -195,7 +174,7 @@ const DriverProfile: React.FC = () => {
          );
      
          if (data.status == StatusCode.OK) {
-           handleLogout("Driver",dispatch);
+           handleLogout("Driver");
            dispatch(
              showNotification({
                type: "info",

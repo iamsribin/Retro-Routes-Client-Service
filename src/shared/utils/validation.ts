@@ -13,15 +13,15 @@ export const signupValidation = yup.object({
     .string()
     .length(10, "Please enter a valid number")
     .required("Please enter an email"),
-  password: yup
-    .string()
-    .matches(/^(?=.*[A-Z])/, "Must include One uppercase letter")
-    .matches(/^(?=.*\d)/, "Must include one digit")
-    .required("Password is required"),
-  re_password: yup
-    .string()
-    .oneOf([yup.ref("password")], "Password must match")
-    .required("Please re-enter the password"),
+  // password: yup
+  //   .string()
+  //   .matches(/^(?=.*[A-Z])/, "Must include One uppercase letter")
+  //   .matches(/^(?=.*\d)/, "Must include one digit")
+  //   .required("Password is required"),
+  // re_password: yup
+  //   .string()
+  //   .oneOf([yup.ref("password")], "Password must match")
+  //   .required("Please re-enter the password"),
   referred_Code: yup
     .string()
     .min(5, "Enter a valid code")

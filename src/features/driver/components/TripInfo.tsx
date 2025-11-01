@@ -53,7 +53,6 @@ const TripInfo: React.FC<TripInfoProps> = ({ rideData }) => {
     
     const data = await postData(
       DriverApiEndpoints.CHECK_SECURITY_PIN,
-      "Driver",
       payload
     );
     

@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { RootState } from "@/shared/services/redux/store";
-import TripInfo from "@/features/driver/components/TripInfo";
+// import TripInfo from "@/features/driver/components/TripInfo";
 import ChatSection from "@/features/driver/components/ChatSection";
 import useMap from "@/shared/hooks/useMap";
-import useRideSocket from "@/shared/hooks/useRideSocket";
+// import useRideSocket from "@/shared/hooks/useRideSocket";
 import { useNavigate } from "react-router-dom";
 
 const DriverRideMap: React.FC = () => {
@@ -15,7 +15,7 @@ const DriverRideMap: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const { mapContainerRef, mapReady } = useMap(rideData);
-  useRideSocket(rideData, activeSection, setUnreadCount);
+  // useRideSocket(rideData, activeSection, setUnreadCount);
     const navigate = useNavigate();
   
       useEffect(() => {
@@ -93,10 +93,10 @@ const DriverRideMap: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4 space-y-4">
-          {activeSection === "info" && <TripInfo rideData={rideData} />}
+          {/* {activeSection === "info" && <TripInfo rideData={rideData} />}
           {activeSection === "messages" && (
             <ChatSection rideData={rideData} setUnreadCount={setUnreadCount} />
-          )}
+          )} */}
         </CardContent>
       </Card>
     </div>

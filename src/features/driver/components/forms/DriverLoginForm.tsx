@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { HStack, PinInput, PinInputField } from "@chakra-ui/react";
 import { PhoneIcon } from "@chakra-ui/icons";
 import { GoogleLogin } from "@react-oauth/google";
-import { driverLogin } from "@/shared/services/redux/slices/driverAuthSlice";
 import { sendOtp } from "@/shared/hooks/useAuth";
 import { loginValidation } from "@/shared/utils/validation";
 import { useDispatch } from "react-redux";
@@ -16,6 +15,7 @@ import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSli
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import { removeItem } from "@/shared/utils/localStorage";
 import { authService } from "@/shared/services/axios/authService";
+import { userLogin } from "@/shared/services/redux/slices/userSlice";
 
 const DriverLoginForm = ({
   auth,
@@ -51,7 +51,6 @@ const DriverLoginForm = ({
 
         const data = await postData<Res_checkLogin>(
           DriverApiEndpoints.DRIVER_CHECK_LOGIN,
-          "Driver",
           values
         );
 
@@ -115,17 +114,18 @@ const DriverLoginForm = ({
 
     try {
       await confirmationResult.confirm(otp.toString());
-      toast.success("Login success");
+      toast.success("Successfully logged in!");
       authService.set(driverData.token)
 
       dispatch(
-        driverLogin({
+        userLogin({
           name: driverData.name,
-          driverId: driverData.driverId,
+          id: driverData.driverId,
           role: "Driver",
         })
       );
       removeItem("driverId");
+      removeItem("role");
       
       navigate("/driver/dashboard");
     } catch {

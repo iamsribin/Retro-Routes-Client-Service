@@ -3,10 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ConfirmationResult } from "firebase/auth";
 import { CredentialResponse } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import {
-  driverLogin,
-  driverLogout,
-} from "@/shared/services/redux/slices/driverAuthSlice";
 import DriverLoginHeader from "../../components/auth/LoginHeader";
 import DriverLoginForm from "@/features/driver/components/forms/DriverLoginForm";
 import { auth } from "@/shared/services/firebase";
@@ -22,6 +18,8 @@ import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { StatusCode } from "@/shared/types/enum";
 import { setItem } from "@/shared/utils/localStorage";
+import { userLogin } from "@/shared/services/redux/slices/userSlice";
+import { authService } from "@/shared/services/axios/authService";
 
 interface DecodedToken {
   email: string;
@@ -41,7 +39,6 @@ const DriverLogin = () => {
     name: "",
     token: "",
     driverId: "",
-    refreshToken: "",
     role: "Driver",
   });
 
@@ -61,7 +58,6 @@ const DriverLogin = () => {
     try {
       const data = await postData<ResponseCom["data"]>(
         DriverApiEndpoints.DRIVER_CHECK_GOOGLE_LOGIN,
-        "Driver",
         {
           email: decode.email,
         }
@@ -69,13 +65,12 @@ const DriverLogin = () => {
       if (data.status == StatusCode.OK) {
         switch (data.message) {
           case "Success":
-            toast.success("Login success!");
-            setItem("token", data.token);
-            setItem("refreshToken", data.refreshToken);
+            toast.success("Successfully logged in!");
+            authService.set(driverData.token)
             dispatch(
-              driverLogin({
+              userLogin({
                 name: data.name,
-                driverId: data._id,
+                id: data._id,
                 role: "Driver",
               })
             );

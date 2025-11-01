@@ -9,12 +9,12 @@ import React, {
 import { io, Socket } from "socket.io-client";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch, store } from "@/shared/services/redux/store";
-import { userLogout } from "@/shared/services/redux/slices/userAuthSlice";
-import {
-  driverLogout,
-  setOnline,
-} from "@/shared/services/redux/slices/driverAuthSlice";
-import { adminLogout } from "@/shared/services/redux/slices/adminAuthSlice";
+// import { userLogout } from "@/shared/services/redux/slices/userAuthSlice";
+// import {
+//   driverLogout,
+//   setOnline,
+// } from "@/shared/services/redux/slices/driverAuthSlice";
+// import { adminLogout } from "@/shared/services/redux/slices/adminAuthSlice";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { useNavigate } from "react-router-dom";
 import {
@@ -35,6 +35,7 @@ import { RideRequest } from "@/shared/types/driver/ridetype";
 import { useLoading } from "@/shared/hooks/useLoading";
 import { getItem, setItem } from "@/shared/utils/localStorage";
 import { handleLogout } from "@/shared/utils/handleLogout";
+import { setOnline, userLogout } from "@/shared/services/redux/slices/userSlice";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -60,9 +61,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const { showLoading, hideLoading } = useLoading();
 
   const user = useSelector((state: RootState) => state.user);
-  const driver = useSelector((state: RootState) => state.driver);
-  const admin = useSelector((state: RootState) => state.admin);
-  const role = user.role || driver.role || admin.role;
+
+  const role = user.role
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -70,37 +70,37 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const connectionInfo = useMemo(() => {
     if (role === "User") {
       return {
-        id: user.user_id,
+        id: user.id,
         token: getItem("token"),
         refreshToken: getItem("refreshToken"),
       };
     }
     if (role === "Driver") {
       return {
-        id: driver.driverId,
+        id: user.id,
         token: getItem("token"),
         refreshToken: getItem("refreshToken"),
       };
     }
     if (role === "Admin") {
       return {
-        id: admin._id,
+        id: user.id,
         token: getItem("token"),
         refreshToken: getItem("refreshToken"),
       };
     }
     return { id: undefined, token: null, refreshToken: null };
-  }, [role, user.user_id, driver.driverId, admin._id]);
+  }, [role, user.id]);
 
   useEffect(() => {
-    const activeRoles = [user.role, driver.role, admin.role].filter(
+    const activeRoles = [user.role].filter(
       Boolean
     ).length;
     if (activeRoles > 1) {
       console.error("Multiple roles detected. Logging out.");
       dispatch(userLogout());
-      dispatch(driverLogout());
-      dispatch(adminLogout());
+    //   dispatch(driverLogout());
+    //   dispatch(adminLogout());
       navigate("/login");
       return;
     }
@@ -170,9 +170,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           navigate: "/login",
         })
       );
-      if (role === "User") handleLogout("User", dispatch);
-      else if (role === "Driver") handleLogout("Driver", dispatch);
-      else if (role === "Admin") handleLogout("Admin", dispatch);
+      handleLogout(role)
+    //   if (role === "User") handleLogout("User", dispatch);
+    //   else if (role === "Driver") handleLogout("Driver", dispatch);
+    //   else if (role === "Admin") handleLogout("Admin", dispatch);
       navigate("/login");
     };
 

@@ -6,38 +6,33 @@
     import rejectModalSlice from "./slices/rejectModalSlice";
     import storage from "redux-persist/lib/storage";
     import notificationSlice from "./slices/notificationSlice";
-    import { userAuthSlice } from "./slices/userAuthSlice";
-    import driverAuthSlice from "./slices/driverAuthSlice";
-    import adminAuthSlice from "./slices/adminAuthSlice";
+    // import { userAuthSlice } from "./slices/userAuthSlice";
+    // import driverAuthSlice from "./slices/driverAuthSlice";
+    // import adminAuthSlice from "./slices/adminAuthSlice";
     import rideSlice from "./slices/rideSlice";
     import DriverRideSlice from "./slices/driverRideSlice";
     import LoadingSlice from "./slices/loadingSlice";
+    import UserSlice from "./slices/userSlice";
 
-    const userPersistConfig={key:"userAuth",storage,version:1}
     const driverRideMapRideMapPersistConfig={key:"DriverRideMap",storage,version:1}
-    const driverPersistConfig={key:"driverAuth",storage,version:1}
-    const adminPersistConfig={key:"adminAuth",storage,version:1}
     const RideMapPersistConfig={key:"RideMap",storage,version:1}
     const LoadingPersistConfig={key:"Loading",storage,version:1}
+    const UserPersistConfig={key:"UserSlice",storage,version:1}
 
-    const userAuthPersistReducer=persistReducer(userPersistConfig,userAuthSlice.reducer)
-    const driverAuthPersistReducer=persistReducer(driverPersistConfig,driverAuthSlice.reducer)
-    const adminAuthPersistReducer=persistReducer(adminPersistConfig,adminAuthSlice.reducer)
     const RideMapPersistReducer=persistReducer(RideMapPersistConfig,rideSlice.reducer)   
     const DriverRideMapPersistReducer=persistReducer(driverRideMapRideMapPersistConfig,DriverRideSlice.reducer)
     const LoadingPersistConfigReducer = persistReducer(LoadingPersistConfig, LoadingSlice.reducer)
+    const UserPersistReducer = persistReducer(UserPersistConfig, UserSlice.reducer);
 
     export const store=configureStore({
         reducer:{
-            user:userAuthPersistReducer,
-            driver:driverAuthPersistReducer,
-            admin:adminAuthPersistReducer,
             pendingModal: pendingModalSlice,
             rejectModal:rejectModalSlice,
             notification: notificationSlice,
             RideMap:RideMapPersistReducer,
             driverRideMap: DriverRideMapPersistReducer,
-            loading: LoadingPersistConfigReducer
+            loading: LoadingPersistConfigReducer,
+            user: UserPersistReducer,
         },
         middleware: (getDefaultMiddleware) => {
             const middleware = getDefaultMiddleware({

@@ -1,41 +1,66 @@
-import { Navigate, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
+// import { Navigate, useLocation } from "react-router-dom";
 
-interface AuthRedirectProps {
-  children: JSX.Element;
-  role: "User" | "Driver" | "Admin";
-}
+// import { useSelector } from "react-redux";
 
-interface AuthState {
-  loggedIn: boolean;
-  role: "User" | "Driver" | "Admin" | "";
-}
+// interface AuthRedirectProps {
+//   children: JSX.Element;
+//   role: "User" | "Driver" | "Admin";
+// }
 
-interface RootState {
-  user: AuthState;
-  driver: AuthState;
-  admin: AuthState;
-}
+// interface AuthState {
+//   loggedIn: boolean;
+//   role: "User" | "Driver" | "Admin" | "";
+// }
 
-const AuthRedirect = ({ children, role }: AuthRedirectProps) => {
-  const location = useLocation();
-  const user = useSelector((state: RootState) => state.user);
-  const driver = useSelector((state: RootState) => state.driver);
-  const admin = useSelector((state: RootState) => state.admin);
+// interface RootState {
+//   user: AuthState;
+//   driver: AuthState;
+//   admin: AuthState;
+// }
 
-  const { loggedIn, role: currentRole } =
-    role === "User" ? user : role === "Driver" ? driver : admin;
+// const AuthRedirect = ({ children, role }: AuthRedirectProps) => {
+//   const location = useLocation();
+//   const user = useSelector((state: RootState) => state.user);
+//   const driver = useSelector((state: RootState) => state.driver);
+//   const admin = useSelector((state: RootState) => state.admin);
 
-    console.log("authre", { loggedIn, role: currentRole });
+//   const { loggedIn, role: currentRole } =
+//     role === "User" ? user : role === "Driver" ? driver : admin;
+
+//     console.log("authre", { loggedIn, role: currentRole });
     
-    const redirectPath =
-    role === "User" ? "/" : role === "Driver" ? "/driver/dashboard" : "/admin/dashboard";
+//     const redirectPath =
+//     role === "User" ? "/" : role === "Driver" ? "/driver/dashboard" : "/admin/dashboard";
 
-  if (loggedIn && currentRole === role) {
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
-  }
+//   if (loggedIn && currentRole === role) {
+//     return <Navigate to={redirectPath} state={{ from: location }} replace />;
+//   }
 
-  return children;
-};
+//   return children;
+// };
 
-export default AuthRedirect;
+// export default AuthRedirect;
+
+
+import { store } from "@/shared/services/redux/store";
+import { Role } from "@/shared/types/commonTypes";
+import { Navigate, Outlet } from "react-router-dom";
+
+interface PropsType {
+    allowedRole: Role;
+}
+
+// UnProtected Route
+function PublicRoutes({ allowedRole }: PropsType) {
+    
+    const { role, loggedIn } = store.getState().user;
+
+    // Check auth and role
+    if (loggedIn && role === allowedRole) {
+        return <Navigate to={allowedRole === "User" ? "/" : `${allowedRole.toLowerCase()}/dashboard`} />;
+    }
+
+    return <Outlet />;
+}
+
+export default PublicRoutes;

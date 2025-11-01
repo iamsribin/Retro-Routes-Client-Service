@@ -4,7 +4,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from "firebase/auth";
-import { toast } from "sonner";
+import { toast } from "./use-toast";
 
 export const onCaptchaVerify = (auth: Auth) => {
   if (window.recaptchaVerifier) {
@@ -20,12 +20,12 @@ export const onCaptchaVerify = (auth: Auth) => {
         console.log("recaptcha verified result:", response);
       },
       "expired-callback": () => {
-        toast.error("Verification Expired");
+        toast({ description:"Verification Expired", variant: "error" });
         window.recaptchaVerifier?.clear();
       },
       "error-callback": (error: any) => {
         console.error("Recaptcha Error:", error);
-        toast.error("Verification failed");
+        toast({ description:"Verification failed", variant: "error"} );
       },
     }
   );
@@ -35,7 +35,8 @@ export const sendOtp = async (
   setOtpInput: any,
   auth: any,
   mobile: string,
-  setConfirmationResult: any
+  setConfirmationResult: any,
+  setOtpPage: any
 ) => {
   try {
     const number = "+91" + mobile;
@@ -51,8 +52,9 @@ export const sendOtp = async (
 
     const result = await signInWithPhoneNumber(auth, number, appVerifier);
     setConfirmationResult(result);
-    toast.success("OTP sent successfully");
-    setOtpInput(true)
+    setOtpPage(true);
+    toast({ description: "OTP Sent Successfully", variant: "success" });
+    setOtpInput("");
   } catch (error) {
     console.error("OTP Send Error:", error);
 
@@ -60,18 +62,20 @@ export const sendOtp = async (
     if (error instanceof Error) {
       switch (error.message) {
         case "auth/invalid-app-credential":
-          toast.error(
-            "Invalid app credentials. Please check your Firebase configuration."
-          );
+          toast({
+            description:
+              "Invalid app credentials. Please check your Firebase configuration.",
+            variant: "error",
+          });
           break;
         case "auth/too-many-requests":
-          toast.error("Too many requests. Please try again later.");
+          toast({ description:"Too many requests. Please try again later.", variant: "error" });
           break;
         default:
-          toast.error(`OTP Send Failed: ${error.message}`);
+          toast({ description:`OTP Send Failed: ${error.message}`, variant: "error" });
       }
     } else {
-      toast.error("An unexpected error occurred");
+      toast({ description:"An unexpected error occurred", variant: "error" });
     }
   }
 };

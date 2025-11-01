@@ -6,9 +6,9 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { useToast } from "@chakra-ui/react";
 import DriverNavbar from "../components/DriverNavbar";
-import { useSocket } from "@/context/socket-context";
+// import { useSocket } from "@/context/socket-context";
 import { RootState } from "@/shared/services/redux/store";
-import { setOnline } from "@/shared/services/redux/slices/driverAuthSlice";
+// import { setOnline } from "@/shared/services/redux/slices/driverAuthSlice";
 import { CircleDollarSign, Clock, Navigation2, Star } from "lucide-react";
 import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { useLoading } from "@/shared/hooks/useLoading";
@@ -20,18 +20,18 @@ import { useNotification } from "@/shared/hooks/useNotificatiom";
 const DriverDashboard: React.FC = () => {
   const dispatch = useDispatch();
   const toast = useToast();
-  const { socket, isConnected } = useSocket();
+  // const { socket, isConnected } = useSocket();
   const { showLoading, hideLoading } = useLoading();
   const { onNotification, offNotification } = useNotification();
   
 
-  const driverId = useSelector((state: RootState) => state.driver.driverId);
-  const isOnline = useSelector((state: RootState) => state.driver.isOnline);
+  const driverId = useSelector((state: RootState) => state.user.id);
+  const isOnline = useSelector((state: RootState) => state.user.isOnline);
   const isOpen = useSelector((state: RootState) => state.driverRideMap.isOpen);
   const rideData = useSelector((state: RootState) => state.driverRideMap.rideData);
 
   const OnlineTimestamp = useSelector(
-    (state: RootState) => state.driver.OnlineTimestamp
+    (state: RootState) => state.user.OnlineTimestamp
   );
 
 // hideLoading(); 
@@ -61,7 +61,7 @@ onNotification("alert", "You can't go offline while you're on a ride.");
                 },
             }
             try {
-              const data = await postData<ResponseCom["data"]>(DriverApiEndpoints.HANDLE_ONLINE_CHANGE,"Driver",request)
+              const data = await postData<ResponseCom["data"]>(DriverApiEndpoints.HANDLE_ONLINE_CHANGE,request)
                 // const { data } = await axiosDriver.post("/handle-online-change", {
                 //            online: checked,
                 // driverId,
@@ -73,12 +73,12 @@ onNotification("alert", "You can't go offline while you're on a ride.");
                 // });
 
               if (data.status === 200) {
-                if (!checked) {
-                  if (socket && isConnected) {
-                    socket.emit("driverOffline", { driverId: socket.id });
-                  }
-                }
-                dispatch(setOnline({ onlineStatus: checked }));
+                // if (!checked) {
+                //   if (socket && isConnected) {
+                //     socket.emit("driverOffline", { driverId: socket.id });
+                //   }
+                // }
+                // dispatch(setOnline({ onlineStatus: checked }));
               }
             } catch (err) {
               console.error("Failed to update status", err);
@@ -119,7 +119,7 @@ onNotification("alert", "You can't go offline while you're on a ride.");
         );
       }
     },
-    [dispatch, socket, isConnected, OnlineTimestamp]
+    [dispatch,OnlineTimestamp]
   );
 
   // const handleAcceptRide = useCallback(() => {

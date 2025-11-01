@@ -8,12 +8,12 @@ import type {
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 5000;
 
-type ToasterToast = ToastProps & {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: ToastActionElement
-}
+// type ToasterToast = ToastProps & {
+//   id: string
+//   title?: React.ReactNode
+//   description?: React.ReactNode
+//   action?: ToastActionElement
+// }
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -136,6 +136,17 @@ function dispatch(action: Action) {
 }
 
 type Toast = Omit<ToasterToast, "id">
+
+export type ToastVariant = "default" | "error" | "info" | "warning" | "success" | "destructive";
+
+type ToasterToast = ToastProps & {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: ToastActionElement;
+  variant?: ToastVariant;
+};
+
 
 function toast({ ...props }: Toast) {
   const id = genId()

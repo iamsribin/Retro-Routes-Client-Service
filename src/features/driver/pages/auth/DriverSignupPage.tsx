@@ -1,49 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DriverIdentificationPage from "./DriverIdentificationPage";
 import DriverPhotoPage from "./DriverPhoto";
 import DriverVehiclePage from "./DriverVehiclePage";
 import DriverLocationPage from "./DriverLocationPage";
 import DriverInsurancePage from "./DriverInsurancePage";
-import DriverSignupHeader from "../../components/auth/SingupHeader";
 import DriverSignupForm from "@/features/driver/components/forms/DriverSignupForm";
 import { ConfirmationResult } from "firebase/auth";
+import { getItem } from "@/shared/utils/localStorage";
 
 const DriverSignup = () => {
   const [step, setStep] = useState<
     "credentials" | "documents" | "location" | "driverImage" | "vehicle" | "insurance"
-  >("location");
+  >("credentials");
   const [otpPage, setOtpPage] = useState(false);
   const [counter, setCounter] = useState(40);
   const [load, setLoad] = useState(false);
-  const [otp, setOtp] = useState<number>(0);
+  const [otp, setOtp] = useState<string>('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
+  useEffect(() => {
+ const currentStep = getItem("currentStep")
+ console.log("currentStep", currentStep);
+ 
+ setStep(currentStep as any || "credentials")
+}, [step]);
+
+  // Render other steps
   if (step === "documents") return <DriverIdentificationPage />;
   if (step === "driverImage") return <DriverPhotoPage />;
   if (step === "vehicle") return <DriverVehiclePage />;
   if (step === "insurance") return <DriverInsurancePage />;
   if (step === "location") return <DriverLocationPage />;
 
+  // Main signup form 
   return (
-    <div className="bg-white driver-registration-container h-screen flex justify-center items-center">
-      <div className="w-5/6 md:w-4/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
-        <DriverSignupHeader otpPage={otpPage} load={load} />
-        <DriverSignupForm
-          otpPage={otpPage}
-          setOtpPage={setOtpPage}
-          counter={counter}
-          setCounter={setCounter}
-          load={load}
-          setLoad={setLoad}
-          otp={otp}
-          setOtp={setOtp}
-          confirmationResult={confirmationResult}
-          setConfirmationResult={setConfirmationResult}
-          setStep={setStep}
-        />
-      </div>
+    <>
+      <DriverSignupForm
+        otpPage={otpPage}
+        setOtpPage={setOtpPage}
+        counter={counter}
+        setCounter={setCounter}
+        load={load}
+        setLoad={setLoad}
+        otp={otp}
+        setOtp={setOtp}
+        confirmationResult={confirmationResult}
+        setConfirmationResult={setConfirmationResult}
+        setStep={setStep}
+      />
       <div id="recaptcha-container" />
-    </div>
+    </>
   );
 };
 

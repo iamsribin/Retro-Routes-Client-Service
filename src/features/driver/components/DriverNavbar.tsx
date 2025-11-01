@@ -127,7 +127,7 @@ const DriverNavbar: React.FC = () => {
   }, [isNotificationOpen]);
 
   const logoutHandle = () => {
-    handleLogout("Driver", dispatch);
+    handleLogout("Driver");
   };
 
   const handleRideMapNavigation = () => {
