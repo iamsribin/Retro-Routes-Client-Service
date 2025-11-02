@@ -28,12 +28,12 @@ function DriverRoutes() {
        <Route element={<ProtectedRoute allowedRole={ROLE} />}>
            <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
            <Route path={AppRoutes.PROFILE} element={<DriverProfile/>} />
-           <Route path={AppRoutes.RIDE_TRACKING} element={<DriverRideMap/>} />
+           {/* <Route path={AppRoutes.RIDE_TRACKING} element={<DriverRideMap/>} />
            <Route path={AppRoutes.TRIPS} element={<BookingTransaction/>} />
            <Route path={AppRoutes.DOCUMENTS} element={<DriverDocuments/>} />
            <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<BookingDetails/>} />
            <Route path={AppRoutes.PAYMENT} element={<PaymentPage/>} />
-           <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
+           <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} /> */}
        </Route>
 
 

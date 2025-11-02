@@ -7,29 +7,28 @@ import {
 import { toast } from "./use-toast";
 
 export const onCaptchaVerify = (auth: Auth) => {
-  if (window.recaptchaVerifier) {
-    window.recaptchaVerifier.clear();
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      {
+        size: "invisible",
+        callback: (response: any) => {
+          console.log("recaptcha verified result:", response);
+        },
+        "expired-callback": () => {
+          toast({ description: "Verification Expired", variant: "error" });
+          window.recaptchaVerifier = null;
+        },
+        "error-callback": (error: any) => {
+          console.error("Recaptcha Error:", error);
+          toast({ description: "Verification failed", variant: "error" });
+        },
+      }
+    );
   }
-
-  window.recaptchaVerifier = new RecaptchaVerifier(
-    auth,
-    "recaptcha-container",
-    {
-      size: "invisible",
-      callback: (response: any) => {
-        console.log("recaptcha verified result:", response);
-      },
-      "expired-callback": () => {
-        toast({ description:"Verification Expired", variant: "error" });
-        window.recaptchaVerifier?.clear();
-      },
-      "error-callback": (error: any) => {
-        console.error("Recaptcha Error:", error);
-        toast({ description:"Verification failed", variant: "error"} );
-      },
-    }
-  );
 };
+
 
 export const sendOtp = async (
   setOtpInput: any,
@@ -41,7 +40,9 @@ export const sendOtp = async (
   try {
     const number = "+91" + mobile;
 
-    onCaptchaVerify(auth);
+    if (!window.recaptchaVerifier) {
+      onCaptchaVerify(auth);
+    }
 
     const appVerifier: ApplicationVerifier | undefined =
       window?.recaptchaVerifier;

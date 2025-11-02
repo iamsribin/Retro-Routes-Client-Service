@@ -91,10 +91,10 @@ function ProtectedRoutes({ allowedRole }: PropType) {
     
       const state = store.getState();
       const {role,loggedIn} = state.user;
+      console.log({role,loggedIn});
 
     // Check auth and role
     if (!loggedIn || allowedRole !== role) {
-        
         return <Navigate to={allowedRole === "Driver" ? "/driver/login" : "/login"} />;
     }
 

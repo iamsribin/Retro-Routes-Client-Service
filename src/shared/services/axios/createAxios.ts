@@ -65,7 +65,7 @@ axiosInstance.interceptors.response.use(
 
         return axiosInstance(originalRequest);
       } catch (refreshError) {        
-        handleLogout(role);
+        await handleLogout(role);
         return Promise.reject(refreshError);
       }
     }

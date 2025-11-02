@@ -2,13 +2,9 @@
     import {
     persistStore,persistReducer,FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER
     } from 'redux-persist'
-    import pendingModalSlice from "./slices/pendingModalSlice";
-    import rejectModalSlice from "./slices/rejectModalSlice";
+
     import storage from "redux-persist/lib/storage";
     import notificationSlice from "./slices/notificationSlice";
-    // import { userAuthSlice } from "./slices/userAuthSlice";
-    // import driverAuthSlice from "./slices/driverAuthSlice";
-    // import adminAuthSlice from "./slices/adminAuthSlice";
     import rideSlice from "./slices/rideSlice";
     import DriverRideSlice from "./slices/driverRideSlice";
     import LoadingSlice from "./slices/loadingSlice";
@@ -26,8 +22,6 @@
 
     export const store=configureStore({
         reducer:{
-            pendingModal: pendingModalSlice,
-            rejectModal:rejectModalSlice,
             notification: notificationSlice,
             RideMap:RideMapPersistReducer,
             driverRideMap: DriverRideMapPersistReducer,

@@ -39,17 +39,17 @@ import {
 } from "@/shared/components/ui/dialog";
 import DriverNavbar from "@/features/driver/components/DriverNavbar";
 import { Alert, AlertDescription } from "@chakra-ui/react";
-import { useDispatch } from "react-redux";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { DriverProfileData } from "./type";
-import { fetchData, updateData } from "@/shared/services/api/api-service";
+import { deleteData, fetchData, updateData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import { ResponseCom } from "@/shared/types/commonTypes";
-import { handleLogout } from "@/shared/utils/handleLogout";
-import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
 import { StatusCode } from "@/shared/types/enum";
 import { store } from "@/shared/services/redux/store";
+import { handleCustomError } from "@/shared/utils/error";
+import { toast } from "@/shared/hooks/use-toast";
+import { userLogout } from "@/shared/services/redux/slices/userSlice";
+import axios from "axios";
 
 interface EditValues {
   name: string;
@@ -89,34 +89,36 @@ const DriverProfile: React.FC = () => {
   >("");
   const [loading, setLoading] = useState(false);
 
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const driverId = store.getState().user.id;
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchDriverProfile = async () => {
-      if (!driverId) {
-        toast.error("Driver ID not found. Please log in again.");
-        navigate("/driver/login");
-        return;
-      }
 
+     const controller = new AbortController();
+
+    const fetchDriverProfile = async () => {
       try {
         setLoading(true);
-        const data = await fetchData<ResponseCom["data"]>(DriverApiEndpoints.GET_MY_PROFILE,"Driver")
-        setDriverData(data);
-        setEditValues({ name: data.name, profilePhoto: null });
+        const res = await fetchData<ResponseCom["data"]>(DriverApiEndpoints.GET_MY_PROFILE,controller.signal)
+         
+        if(res?.status == StatusCode.OK){
+          const data = res.data as DriverProfileData;
+          setDriverData(data);
+          setEditValues({ name: data.name, profilePhoto: null });
+        }
       } catch (error) {
-        toast.error("Failed to load profile. Please try again.");
-        navigate(-1);
+        if (axios.isCancel(error)) return;
+        handleCustomError(error);
       } finally {
         setLoading(false);
       }
     };
     fetchDriverProfile();
-  }, [dispatch, navigate, driverId]);
+
+    return () => controller.abort();
+  }, []);
 
   const handleEditStart = (field: "name" | "profilePhoto") => {
     setEditingField(field);
@@ -153,13 +155,15 @@ const DriverProfile: React.FC = () => {
     }
   };
 
-  const handleSave = async (field: "name" | "profilePhoto") => {
+  const handleSave = async (field: "name" | "profilePhoto") => { 
+   
     if (!driverId) {
-      toast.error("Driver ID not found. Please log in again.");
+      toast({description:"Driver ID not found. Please log in again.", variant:"destructive"});
       return;
     }
+
      try {
-             setLoading(true);
+         setLoading(true);
          const formData = new FormData();
          formData.append("field", field);
          if (field === "name") {
@@ -167,36 +171,24 @@ const DriverProfile: React.FC = () => {
          } else if (field === "profilePhoto" && editValues.profilePhoto) {
            formData.append("profilePhoto", editValues.profilePhoto);
          }
-     
-         const data  = await updateData<ResponseCom["data"]>(
-           DriverApiEndpoints.UPDATE_DRIVER_PROFILE,"Driver",
+         const res  = await updateData<ResponseCom["data"]>(
+           DriverApiEndpoints.UPDATE_DRIVER_PROFILE,
            formData,
          );
      
-         if (data.status == StatusCode.OK) {
-           handleLogout("Driver");
-           dispatch(
-             showNotification({
-               type: "info",
-               message:
-                 "Profile updated successfully! Logging out for admin verification.",
-               data: null,
-               navigate: "/driver/login",
-             })
-           );
-         } else {
-           toast.error("something went wrong try later");
-         }
-       } catch (error: any) {
-         console.error("Error updating profile:", error);
-         toast.error(
-           error.response?.data?.message ||
-             "Failed to update profile. Please try again."
-         );
+         if (res?.status == StatusCode.OK) {          
+           toast({ description: "Profile update request sended successfully", variant: "success" });
+            await store.dispatch(userLogout());
+            await deleteData(`/driver/logout`);
+           navigate("/driver/login", {
+           state: { showPendingModal: true },
+          });
+         } 
+       } catch (error: any) {        
+         handleCustomError(error);
        } finally {
          setLoading(false);
        }
-
   };
 
   const renderStars = (rating: number) => {

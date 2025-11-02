@@ -57,7 +57,7 @@ function PublicRoutes({ allowedRole }: PropsType) {
 
     // Check auth and role
     if (loggedIn && role === allowedRole) {
-        return <Navigate to={allowedRole === "User" ? "/" : `${allowedRole.toLowerCase()}/dashboard`} />;
+        return <Navigate to={allowedRole === "User" ? "/" : `/${allowedRole.toLowerCase()}/dashboard`} />;
     }
 
     return <Outlet />;

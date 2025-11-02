@@ -10,7 +10,7 @@ import { geocodeLatLng } from "@/shared/utils/locationToAddress";
 import { getItem, removeItem } from "@/shared/utils/localStorage";
 import { postData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
-import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";
+// import { openPendingModal } from "@/shared/services/redux/slices/pendingModalSlice";
 import { useDispatch } from "react-redux";
 import { FaMapMarkerAlt, FaCrosshairs, FaCheckCircle } from "react-icons/fa";
 import { toast } from "@/shared/hooks/use-toast";
@@ -85,14 +85,18 @@ function DriverLocation() {
             requestData
           );
           if(res && res.status === 200){
-            toast({
-              description: "success fully updated your location.",
-              variant: "success",
-            });
-            removeItem("driverId");
-            removeItem("currentStep");
-            navigate("/driver/login");
-            dispatch(openPendingModal());
+toast({
+    description:
+      "Successfully completed registration! Please wait for admin verification.",
+    variant: "success",
+  });
+
+  removeItem("driverId");
+  removeItem("currentStep");
+
+  navigate("/driver/login", {
+    state: { showPendingModal: true },
+  });
           }
         } catch (error) {
         handleCustomError(error);

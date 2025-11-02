@@ -143,28 +143,28 @@ const DriverSignupForm = ({
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: "url('/images/pick2me-bg.png')",
-          filter: "brightness(0.95)",
+          filter: "brightness(0.7)",
         }}
       />
       
       {/* Lighter overlay for better image visibility */}
-      <div className="absolute inset-4 bg-black/10" />
+      <div className="absolute inset-0 bg-black/30" />
 
       {/* Content Container */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-6 items-center">
+      <div className="relative z-10 w-full max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left Side - Branding */}
-          <div className="hidden lg:flex flex-col justify-center space-y-4 text-white drop-shadow-lg">
-            <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
+          <div className="hidden lg:flex flex-col justify-center space-y-6 text-white">
+            <h1 className="text-5xl xl:text-6xl font-bold leading-tight">
               Drive with <span className="text-yellow-400">pick2me</span>
             </h1>
             {/* <p className="text-lg text-gray-100">
               Join thousands of drivers earning on their own schedule
             </p> */}
-            <div className="space-y-3 mt-6">
+            <div className="space-y-4 mt-8">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>

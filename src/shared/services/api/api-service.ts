@@ -55,6 +55,7 @@ export const deleteData = async <T>(url: string) => {
     const response = await axiosInstance.delete(url);
     return response;
   } catch (error) {
+    console.log("error in deleteData:", error);
     throwCustomError(error);
   }
 };
