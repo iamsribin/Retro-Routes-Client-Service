@@ -19,9 +19,9 @@ function App() {
         <NotificationModal />
         <GlobalLoading />
         <Routes>
-          {/* <Route path="/*" element={<UserRoutes />} /> */}
+          <Route path="/*" element={<UserRoutes />} />
           <Route path="/driver/*" element={<DriverRoutes />} />
-          {/* <Route path="/admin/*" element={<AdminRoutes />} /> */}
+          <Route path="/admin/*" element={<AdminRoutes />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>

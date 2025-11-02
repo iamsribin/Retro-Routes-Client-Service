@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   User,
   Wallet,
@@ -17,31 +17,19 @@ import {
   NavigationMenuItem,
   NavigationMenuList,
 } from "@/shared/components/ui/navigation-menu";
-import { useDispatch, useSelector } from "react-redux";
-import { handleLogout } from "@/shared/utils/handleLogout";
 import { RootState } from "@/shared/services/redux/store";
+import { useSelector } from "react-redux";
+import { handleLogout } from "@/shared/utils/handleLogout";
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  type: "info" | "warning" | "success";
-  isRead: boolean;
-}
 
-const DriverNavbar: React.FC = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+const DriverNavbar = () => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isPulsing, setIsPulsing] = useState(true);
-  const notificationRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement | null>(null);
 
-  const rideData = useSelector((state: RootState) => state.driverRideMap.rideData);
-  const paymentStatus = useSelector((state: RootState) => state.driverRideMap.paymentStatus);
+  const rideData = useSelector((state: RootState) => state.driverRideMap);
 
-  // Dummy notifications
-  const [notifications] = useState<Notification[]>([
+  const [notifications] = useState([
     {
       id: "1",
       title: "New Ride Request",
@@ -95,11 +83,10 @@ const DriverNavbar: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const displayNotifications = notifications.slice(0, 5);
   const hasMore = notifications.length > 5;
-  const isPaymentPending = paymentStatus === "pending" || paymentStatus === "failed";
+  const isPaymentPending = rideData.paymentStatus === "pending" || rideData.paymentStatus === "failed";
 
-  // Blinking effect for active ride button
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;;
     if (rideData) {
       interval = setInterval(() => {
         setIsPulsing(prev => !prev);
@@ -111,9 +98,10 @@ const DriverNavbar: React.FC = () => {
   }, [rideData]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setIsNotificationOpen(false);
+    const handleClickOutside = (event:MouseEvent) => {
+      const targetNode = event.target as Node | null;
+  if (notificationRef.current && targetNode && !notificationRef.current.contains(targetNode)) {
+    setIsNotificationOpen(false);
       }
     };
 
@@ -131,11 +119,11 @@ const DriverNavbar: React.FC = () => {
   };
 
   const handleRideMapNavigation = () => {
-    navigate("/driver/ride-tracking");
+    console.log("Navigate to ride tracking");
   };
 
   const handlePaymentNavigation = () => {
-    navigate("/driver/payment");
+    console.log("Navigate to payment");
   };
 
   const handleNotificationClick = (notificationId: string) => {
@@ -144,96 +132,96 @@ const DriverNavbar: React.FC = () => {
   };
 
   const handleSeeAllNotifications = () => {
-    navigate("/notifications");
+    console.log("See all notifications");
     setIsNotificationOpen(false);
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type:string) => {
     switch (type) {
       case "success":
-        return "bg-green-100 text-green-600";
+        return "bg-[#fdb726]/20 text-[#fdb726]";
       case "warning":
-        return "bg-amber-100 text-amber-600";
+        return "bg-[#fdb726]/30 text-[#000000]";
       default:
-        return "bg-blue-100 text-blue-600";
+        return "bg-[#e8c58c] text-[#000000]";
     }
   };
 
-  const linkStyles = (isActive: boolean) => `
-    flex items-center p-3 w-full rounded-lg transition-colors
+  const linkStyles = (isActive:boolean) => `
+    flex items-center p-4 w-full rounded-xl transition-all duration-300 font-medium
     ${
       isActive
-        ? "bg-blue-100 text-blue-600 font-semibold"
-        : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+        ? "bg-gradient-to-r from-[#fdb726] to-[#f5a623] text-[#000000] font-bold shadow-lg scale-105"
+        : "hover:bg-[#e8c58c]/30 text-[#000000]/80 hover:text-[#000000] hover:shadow-md"
     }
   `;
 
   return (
     <>
-      {/* Status Bar - Desktop/Laptop View */}
-      {(rideData || isPaymentPending) && (
-        <div className="hidden sm:block fixed top-0 left-64 right-0 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 z-30 shadow-sm">
-          <div className="px-6 py-3 flex items-center justify-end space-x-3">
-            {rideData && (
-              <button
-                onClick={handleRideMapNavigation}
-                className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 ${
-                  isPulsing 
-                    ? 'bg-green-500 shadow-lg shadow-green-500/30 scale-105' 
-                    : 'bg-green-600 shadow-md scale-100'
-                }`}
-              >
-                <Navigation size={18} className="text-white" />
-                <span className="text-white font-semibold">Go to Ride Map</span>
-                <span className={`w-2.5 h-2.5 rounded-full ml-1 ${
-                  isPulsing ? 'bg-white shadow-lg' : 'bg-green-200'
-                } transition-all duration-300`} />
-              </button>
-            )}
+      {/* Status Bar - Desktop View */}
+{(rideData.isOpen || isPaymentPending) && (
+  <div className="hidden sm:block fixed top-4 right-6 z-30">
+    {isPaymentPending ? (
+      <button
+        onClick={handlePaymentNavigation}
+        className="flex items-center space-x-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#fdb726] to-[#f5a623] hover:from-[#f5a623] hover:to-[#fdb726] font-bold text-sm transition-all duration-300 shadow-xl hover:scale-110 border-2 border-black/10"
+      >
+        <AlertCircle size={18} className="text-black" />
+        <span className="text-black">
+          {rideData?.paymentStatus === 'failed' ? 'Payment Failed' : 'Payment Pending'}
+        </span>
+      </button>
+    ) : (
+      <button
+        onClick={handleRideMapNavigation}
+        className={`flex items-center space-x-2 px-6 py-3 rounded-full font-bold text-sm transition-all duration-300 border-2 ${
+          isPulsing
+            ? 'bg-[#fdb726] shadow-2xl shadow-[#fdb726]/50 scale-110 border-black/20'
+            : 'bg-[#f5a623] shadow-lg scale-100 border-black/10'
+        }`}
+      >
+        <Navigation size={18} className="text-black" />
+        <span className="text-black">Go to Ride Map</span>
+        <span
+          className={`w-3 h-3 rounded-full ml-1 ${
+            isPulsing ? 'bg-black shadow-lg' : 'bg-black/50'
+          } transition-all duration-300`}
+        />
+      </button>
+    )}
+  </div>
+)}
 
-            {isPaymentPending && (
-              <button
-                onClick={handlePaymentNavigation}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/30 hover:scale-105"
-              >
-                <AlertCircle size={18} className="text-white" />
-                <span className="text-white font-semibold">
-                  {paymentStatus === "failed" ? "Payment Failed" : "Payment Pending"}
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Main Sidebar */}
-      <div className={`fixed bottom-0 left-0 right-0 sm:right-auto sm:bottom-auto sm:top-0 sm:h-screen sm:w-64 bg-white shadow-lg sm:shadow-xl p-4 z-20 border-r border-gray-200`}>
+      <div className="fixed bottom-0 left-0 right-0 sm:right-auto sm:bottom-auto sm:top-0 sm:h-screen sm:w-64 bg-gradient-to-b from-[#f0d7a7] via-[#fff3d1] to-[#ffffff] shadow-2xl p-4 z-20 border-r-4 border-[#fdb726]">
+
         {/* Desktop Header with Notification */}
-        <div className="hidden sm:flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-800">Driver Menu</h2>
+        <div className="hidden sm:flex justify-between items-center mb-6 pb-5 border-b-2 border-[#fdb726]/30">
+          <h2 className="text-xl font-bold text-[#000000]">Driver Menu</h2>
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-              className="relative p-2 hover:bg-blue-50 rounded-full transition-all duration-200 group"
+              className="relative p-2 hover:bg-[#fdb726]/20 rounded-full transition-all duration-200 group"
             >
-              <Bell className="h-5 w-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+              <Bell className="h-5 w-5 text-[#000000] group-hover:text-[#fdb726] transition-colors" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-md animate-pulse">
+                <span className="absolute -top-1 -right-1 bg-[#fdb726] text-[#000000] text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse border-2 border-[#000000]/20">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Desktop Notification Dropdown - Fixed positioning */}
+            {/* Desktop Notification Dropdown */}
             {isNotificationOpen && (
-              <div className="absolute left-0 top-full mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
-                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200">
-                  <h3 className="font-bold text-gray-800 text-base">Notifications</h3>
+              <div className="absolute left-0 top-full mt-2 w-96 bg-gradient-to-b from-[#ffffff] to-[#e8c58c]/20 rounded-2xl shadow-2xl border-2 border-[#fdb726]/30 overflow-hidden z-50">
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#fdb726] to-[#f5a623] border-b-2 border-[#000000]/10">
+                  <h3 className="font-bold text-[#000000] text-base">Notifications</h3>
                   <button
                     onClick={() => setIsNotificationOpen(false)}
-                    className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
+                    className="p-1.5 hover:bg-[#000000]/10 rounded-full transition-colors"
                   >
-                    <X className="h-4 w-4 text-gray-600" />
+                    <X className="h-4 w-4 text-[#000000]" />
                   </button>
                 </div>
 
@@ -243,8 +231,8 @@ const DriverNavbar: React.FC = () => {
                       <div
                         key={notification.id}
                         onClick={() => handleNotificationClick(notification.id)}
-                        className={`px-5 py-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-all duration-200 ${
-                          !notification.isRead ? 'bg-blue-50/50 hover:bg-blue-50' : ''
+                        className={`px-5 py-4 border-b border-[#fdb726]/20 hover:bg-[#e8c58c]/30 cursor-pointer transition-all duration-200 ${
+                          !notification.isRead ? 'bg-[#fdb726]/10 hover:bg-[#fdb726]/20' : ''
                         }`}
                       >
                         <div className="flex items-start space-x-3">
@@ -253,17 +241,17 @@ const DriverNavbar: React.FC = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-semibold text-gray-900">
+                              <p className="text-sm font-bold text-[#000000]">
                                 {notification.title}
                               </p>
                               {!notification.isRead && (
-                                <span className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1.5" />
+                                <span className="w-2 h-2 bg-[#fdb726] rounded-full flex-shrink-0 mt-1.5" />
                               )}
                             </div>
-                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                            <p className="text-xs text-[#000000]/70 mt-1 line-clamp-2">
                               {notification.message}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                            <p className="text-xs text-[#000000]/50 mt-1.5 font-medium">
                               {notification.timestamp}
                             </p>
                           </div>
@@ -271,8 +259,8 @@ const DriverNavbar: React.FC = () => {
                       </div>
                     ))
                   ) : (
-                    <div className="px-5 py-8 text-center text-gray-500">
-                      <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <div className="px-5 py-8 text-center text-[#000000]/50">
+                      <Bell className="h-12 w-12 mx-auto mb-3 text-[#000000]/30" />
                       <p className="text-sm">No notifications yet</p>
                     </div>
                   )}
@@ -281,7 +269,7 @@ const DriverNavbar: React.FC = () => {
                 {hasMore && (
                   <button
                     onClick={handleSeeAllNotifications}
-                    className="w-full px-5 py-3.5 text-center text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors border-t border-gray-200"
+                    className="w-full px-5 py-3.5 text-center text-sm font-bold text-[#000000] hover:bg-[#fdb726]/20 transition-colors border-t-2 border-[#fdb726]/30"
                   >
                     See All Notifications
                   </button>
@@ -293,16 +281,16 @@ const DriverNavbar: React.FC = () => {
 
         {/* Navigation Menu */}
         <NavigationMenu orientation="vertical" className="w-full">
-          <NavigationMenuList className="flex flex-row sm:flex-col justify-around sm:justify-start sm:space-y-2 w-full">
+          <NavigationMenuList className="flex flex-row sm:flex-col justify-around sm:justify-start sm:space-y-3 w-full">
             {/* Mobile Notification Icon */}
             <NavigationMenuItem className="w-full sm:hidden">
               <button
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                className="flex items-center justify-center p-3 w-full hover:bg-gray-100 rounded-lg transition-colors relative"
+                className="flex items-center justify-center p-3 w-full hover:bg-[#fdb726]/20 rounded-xl transition-colors relative"
               >
-                <Bell className="h-5 w-5 text-gray-600" />
+                <Bell className="h-5 w-5 text-[#000000]" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-6 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  <span className="absolute top-1 right-6 bg-[#fdb726] text-[#000000] text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold border border-[#000000]/20">
                     {unreadCount}
                   </span>
                 )}
@@ -357,7 +345,7 @@ const DriverNavbar: React.FC = () => {
             <NavigationMenuItem className="w-full hidden sm:block">
               <button
                 onClick={logoutHandle}
-                className="flex items-center p-3 w-full hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors text-left text-gray-600"
+                className="flex items-center p-4 w-full hover:bg-[#fdb726]/20 hover:text-[#000000] rounded-xl transition-all duration-300 text-left text-[#000000]/80 font-medium hover:shadow-md"
               >
                 <LogOut className="mr-3 h-5 w-5" />
                 <span>Logout</span>
@@ -367,34 +355,32 @@ const DriverNavbar: React.FC = () => {
         </NavigationMenu>
 
         {/* Mobile Status Buttons */}
-        {(rideData || isPaymentPending) && (
-          <div className="sm:hidden mt-4 pt-4 border-t border-gray-200 space-y-2">
-            {rideData && (
-              <button
-                onClick={handleRideMapNavigation}
-                className={`flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg font-medium text-sm w-full transition-all duration-300 ${
-                  isPulsing 
-                    ? 'bg-green-500 shadow-lg shadow-green-500/40 scale-105' 
-                    : 'bg-green-600 shadow-md scale-100'
-                }`}
-              >
-                <Navigation size={18} className="text-white" />
-                <span className="text-white font-semibold">Ride Map</span>
-                <span className={`w-2 h-2 rounded-full ${
-                  isPulsing ? 'bg-white' : 'bg-green-200'
-                } transition-colors duration-300`} />
-              </button>
-            )}
-
-            {isPaymentPending && (
+        {(rideData.isOpen || isPaymentPending) && (
+          <div className="sm:hidden mt-4 pt-4 border-t-2 border-[#fdb726]/30 space-y-2">
+            {isPaymentPending ? (
               <button
                 onClick={handlePaymentNavigation}
-                className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 font-medium text-sm w-full transition-all duration-300 shadow-lg shadow-amber-500/30"
+                className="flex items-center justify-center space-x-2 px-4 py-3 rounded-full bg-gradient-to-r from-[#fdb726] to-[#f5a623] hover:from-[#f5a623] hover:to-[#fdb726] font-bold text-sm w-full transition-all duration-300 shadow-xl border-2 border-[#000000]/10"
               >
-                <AlertCircle size={18} className="text-white" />
-                <span className="text-white font-semibold">
-                  {paymentStatus === "failed" ? "Payment Failed" : "Payment Pending"}
+                <AlertCircle size={18} className="text-[#000000]" />
+                <span className="text-[#000000]">
+                  {rideData.paymentStatus === "failed" ? "Payment Failed" : "Payment Pending"}
                 </span>
+              </button>
+            ):(
+              <button
+                onClick={handleRideMapNavigation}
+                className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-full font-bold text-sm w-full transition-all duration-300 border-2 ${
+                  isPulsing 
+                    ? 'bg-[#fdb726] shadow-2xl shadow-[#fdb726]/50 scale-105 border-[#000000]/20' 
+                    : 'bg-[#f5a623] shadow-lg scale-100 border-[#000000]/10'
+                }`}
+              >
+                <Navigation size={18} className="text-[#000000]" />
+                <span className="text-[#000000]">Ride Map</span>
+                <span className={`w-2 h-2 rounded-full ${
+                  isPulsing ? 'bg-[#000000]' : 'bg-[#000000]/50'
+                } transition-colors duration-300`} />
               </button>
             )}
           </div>
@@ -403,18 +389,18 @@ const DriverNavbar: React.FC = () => {
 
       {/* Mobile Notification Modal */}
       {isNotificationOpen && (
-        <div className="sm:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={() => setIsNotificationOpen(false)}>
+        <div className="sm:hidden fixed inset-0 bg-[#000000]/70 z-40 backdrop-blur-sm" onClick={() => setIsNotificationOpen(false)}>
           <div 
-            className="fixed bottom-16 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-hidden"
+            className="fixed bottom-16 left-0 right-0 bg-gradient-to-b from-[#ffffff] to-[#e8c58c]/30 rounded-t-3xl shadow-2xl max-h-[80vh] overflow-hidden border-t-4 border-[#fdb726]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200">
-              <h3 className="font-bold text-gray-800 text-base">Notifications</h3>
+            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#fdb726] to-[#f5a623] border-b-2 border-[#000000]/10">
+              <h3 className="font-bold text-[#000000] text-base">Notifications</h3>
               <button
                 onClick={() => setIsNotificationOpen(false)}
-                className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
+                className="p-1.5 hover:bg-[#000000]/10 rounded-full transition-colors"
               >
-                <X className="h-5 w-5 text-gray-600" />
+                <X className="h-5 w-5 text-[#000000]" />
               </button>
             </div>
 
@@ -424,8 +410,8 @@ const DriverNavbar: React.FC = () => {
                   <div
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification.id)}
-                    className={`px-5 py-4 border-b border-gray-100 active:bg-gray-100 transition-colors ${
-                      !notification.isRead ? 'bg-blue-50/50' : ''
+                    className={`px-5 py-4 border-b border-[#fdb726]/20 active:bg-[#e8c58c]/50 transition-colors ${
+                      !notification.isRead ? 'bg-[#fdb726]/10' : ''
                     }`}
                   >
                     <div className="flex items-start space-x-3">
@@ -434,17 +420,17 @@ const DriverNavbar: React.FC = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-sm font-bold text-[#000000]">
                             {notification.title}
                           </p>
                           {!notification.isRead && (
-                            <span className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1.5" />
+                            <span className="w-2 h-2 bg-[#fdb726] rounded-full flex-shrink-0 mt-1.5" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-[#000000]/70 mt-1">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                        <p className="text-xs text-[#000000]/50 mt-1.5 font-medium">
                           {notification.timestamp}
                         </p>
                       </div>
@@ -452,8 +438,8 @@ const DriverNavbar: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <div className="px-5 py-8 text-center text-gray-500">
-                  <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <div className="px-5 py-8 text-center text-[#000000]/50">
+                  <Bell className="h-12 w-12 mx-auto mb-3 text-[#000000]/30" />
                   <p className="text-sm">No notifications yet</p>
                 </div>
               )}
@@ -462,11 +448,11 @@ const DriverNavbar: React.FC = () => {
             {hasMore && (
               <button
                 onClick={handleSeeAllNotifications}
-                className="w-full px-5 py-3.5 text-center text-sm font-semibold text-blue-600 active:bg-blue-50 transition-colors border-t border-gray-200"
+                className="w-full px-5 py-3.5 text-center text-sm font-bold text-[#000000] active:bg-[#fdb726]/20 transition-colors border-t-2 border-[#fdb726]/30"
               >
                 See All Notifications
               </button>
-              )}
+            )}
           </div>
         </div>
       )}

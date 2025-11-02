@@ -18,7 +18,7 @@ function UserRoutes() {
   return (
     <Routes>
       <Route path={AppRoutes.USER_HOME} element={<HomePage />} />
-      <Route path={AppRoutes.LOGIN} element={<AuthRedirect role={ROLE}><LoginPage /></AuthRedirect>} />
+      {/* <Route path={AppRoutes.LOGIN} element={<AuthRedirect role={ROLE}><LoginPage /></AuthRedirect>} />
       <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><SignupPage /></AuthRedirect>} />
 
       <Route path={AppRoutes.RIDE_TRACKING} element={<ProtectedRoute allowedRole={ROLE}><RideMap/></ProtectedRoute>}/>
@@ -26,7 +26,7 @@ function UserRoutes() {
       <Route path={AppRoutes.TRIPS} element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>}/>
       <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
       
-      <Route path={AppRoutes.PAYMENT} element={<ProtectedRoute allowedRole={ROLE}><PaymentPage/></ProtectedRoute>} />
+      <Route path={AppRoutes.PAYMENT} element={<ProtectedRoute allowedRole={ROLE}><PaymentPage/></ProtectedRoute>} /> */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

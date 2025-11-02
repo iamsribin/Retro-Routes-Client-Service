@@ -23,7 +23,7 @@ function PendingModal({ onClose }: PendingModalProps) {
               <div>
                 <div className="mt-2 text-center">
                   <h1 className="text-xl font-bold">
-                    Thank you for registering with Go
+                    Thank you for registering with Pick2Me
                   </h1>
                   <h1 className="my-1">Your verification is ongoing!</h1>
 

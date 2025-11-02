@@ -11,136 +11,26 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import DriverNavbar from "../components/DriverNavbar";
-import { useDispatch } from "react-redux";
 import { StatusCode } from "@/shared/types/enum";
-import { showNotification } from "@/shared/services/redux/slices/notificationSlice";
-import { toast } from "sonner";
-import { fetchData, updateData } from "@/shared/services/api/api-service";
+import { deleteData, fetchData, updateData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
-import { handleLogout } from "@/shared/utils/handleLogout";
 import { ResponseCom } from "@/shared/types/commonTypes";
-
-interface Aadhar {
-  id: string;
-  frontImageUrl: string;
-  backImageUrl: string;
-}
-
-interface License {
-  id: string;
-  frontImageUrl: string;
-  backImageUrl: string;
-  validity: Date;
-}
-
-interface VehicleRC {
-  registrationId: string;
-  rcFrontImageUrl: string;
-  rcBackImageUrl: string;
-  rcStartDate: Date;
-  rcExpiryDate: Date;
-}
-
-interface VehicleDetails {
-  vehicleNumber: string;
-  vehicleColor: string;
-  model: string;
-  carFrontImageUrl: string;
-  carBackImageUrl: string;
-}
-
-interface Insurance {
-  insuranceImageUrl: string;
-  insuranceStartDate: Date;
-  insuranceExpiryDate: Date;
-}
-
-interface Pollution {
-  pollutionImageUrl: string;
-  pollutionStartDate: Date;
-  pollutionExpiryDate: Date;
-}
-
-interface DriverData {
-  _id: string;
-  aadhar: Aadhar;
-  license: License;
-  vehicleRC: VehicleRC;
-  vehicleDetails: VehicleDetails;
-  insurance: Insurance;
-  pollution: Pollution;
-}
-
-interface FormData {
-  id?: string;
-  frontImageUrl?: File | null;
-  backImageUrl?: File | null;
-  validity?: string;
-  registrationId?: string;
-  rcStartDate?: string;
-  rcFrontImageUrl: File | null;
-  carFrontImageUrl: File | null;
-  carBackImageUrl: File | null;
-  insuranceImageUrl: File | null;
-  pollutionImageUrl: File | null;
-  rcExpiryDate?: string;
-  vehicleNumber?: string;
-  vehicleColor?: string;
-  model?: string;
-  insuranceStartDate?: string;
-  insuranceExpiryDate?: string;
-  pollutionStartDate?: string;
-  pollutionExpiryDate?: string;
-}
-
-interface ImageModal {
-  images: string[];
-  currentIndex: number;
-  title: string;
-  isOpen: boolean;
-}
-
-interface ImagePreview {
-  [key: string]: string;
-}
-
-interface DocumentField {
-  key: string;
-  label: string;
-  type: "text" | "date";
-}
-
-interface DocumentImage {
-  key: string;
-  label: string;
-  url: string;
-}
-
-interface DisplayData {
-  label: string;
-  value: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  status?: "expired" | "expiring" | "valid";
-}
-
-type DocumentStatus = "expired" | "expiring" | "valid";
-
-interface DocumentConfig {
-  key: string;
-  title: string;
-  data: Aadhar | License | VehicleRC | VehicleDetails | Insurance | Pollution;
-  status?: DocumentStatus;
-  fields: DocumentField[];
-  images: DocumentImage[];
-  displayData: DisplayData[];
-}
+import { handleCustomError } from "@/shared/utils/error";
+import { toast } from "@/shared/hooks/use-toast";
+import { store } from "@/shared/services/redux/store";
+import { userLogout } from "@/shared/services/redux/slices/userSlice";
+import { useNavigate } from "react-router-dom";
+import { formatDate } from "@/shared/utils/formatDate";
+import { DocumentStatus, DriverData, ImageModal, FormData as DocFormData, ImagePreview, DocumentConfig } from "./type";
 
 const DriverDocuments: React.FC = () => {
   const [driverData, setDriverData] = useState<DriverData | null>(null);
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<FormData>({});
+  const [editFormData, setEditFormData] = useState<DocFormData>({});
   const [showWarning, setShowWarning] = useState<boolean>(false);
   const [imageModal, setImageModal] = useState<ImageModal>({
     images: [],
@@ -152,33 +42,29 @@ const DriverDocuments: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDriverDocuments = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchData<DriverData>(
+        const res = await fetchData<DriverData>(
           DriverApiEndpoints.GET_MY_DOCUMENTS,
-          "Driver"
         );
-        if (data) {
-          setDriverData(data);
-        } else {
-          setError("No driver data found");
+        if (res?.status === StatusCode.OK && res.data) {
+          setDriverData(res.data);
         }
       } catch (err) {
-        console.error("Error fetching driver documents:", err);
         setError("Failed to fetch driver documents");
+        handleCustomError(err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDriverDocuments();
-  }, [dispatch]);
+  }, []);
 
   // Utility functions
   const getExpiryStatus = (date: Date): DocumentStatus => {
@@ -193,9 +79,9 @@ const DriverDocuments: React.FC = () => {
 
   const getStatusColor = (status: DocumentStatus): string => {
     const statusColors = {
-      expired: "border-red-500 bg-red-50",
-      expiring: "border-yellow-500 bg-yellow-50",
-      valid: "border-gray-200 bg-white",
+      expired: "border-red-500/30 bg-red-50/50",
+      expiring: "border-[#fdb726] bg-[#fdb726]/10",
+      valid: "border-[#fdb726]/20 bg-gradient-to-br from-[#ffffff] to-[#f5e5c8]/30",
     };
     return statusColors[status];
   };
@@ -203,30 +89,25 @@ const DriverDocuments: React.FC = () => {
   const getStatusBadge = (status: DocumentStatus): JSX.Element => {
     const badges = {
       expired: (
-        <span className="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">
+        <span className="px-3 py-1.5 text-xs font-bold text-[#000000] bg-red-500 rounded-full inline-flex items-center gap-1 shadow-md">
+          <XCircle className="h-3 w-3" />
           Expired
         </span>
       ),
       expiring: (
-        <span className="px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">
+        <span className="px-3 py-1.5 text-xs font-bold text-[#000000] bg-[#fdb726] rounded-full inline-flex items-center gap-1 shadow-md">
+          <Clock className="h-3 w-3" />
           Expires Soon
         </span>
       ),
       valid: (
-        <span className="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">
+        <span className="px-3 py-1.5 text-xs font-bold text-[#000000] bg-gradient-to-r from-[#34d399] to-[#10b981] rounded-full inline-flex items-center gap-1 shadow-md">
+          <CheckCircle className="h-3 w-3" />
           Valid
         </span>
       ),
     };
     return badges[status];
-  };
-
-  const formatDate = (date: Date): string => {
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
   };
 
   // Event handlers
@@ -257,12 +138,8 @@ const DriverDocuments: React.FC = () => {
       },
       vehicleRC: {
         registrationId: driverData.vehicleRC.registrationId,
-        rcStartDate: driverData.vehicleRC.rcStartDate
-          .toISOString()
-          .split("T")[0],
-        rcExpiryDate: driverData.vehicleRC.rcExpiryDate
-          .toISOString()
-          .split("T")[0],
+        rcStartDate: driverData.vehicleRC.rcStartDate.toISOString().split("T")[0],
+        rcExpiryDate: driverData.vehicleRC.rcExpiryDate.toISOString().split("T")[0],
         rcFrontImageUrl: null,
         backImageUrl: null,
       },
@@ -274,21 +151,13 @@ const DriverDocuments: React.FC = () => {
         carBackImage: null,
       },
       insurance: {
-        insuranceStartDate: driverData.insurance.insuranceStartDate
-          .toISOString()
-          .split("T")[0],
-        insuranceExpiryDate: driverData.insurance.insuranceExpiryDate
-          .toISOString()
-          .split("T")[0],
+        insuranceStartDate: driverData.insurance.insuranceStartDate.toISOString().split("T")[0],
+        insuranceExpiryDate: driverData.insurance.insuranceExpiryDate.toISOString().split("T")[0],
         insuranceImage: null,
       },
       pollution: {
-        pollutionStartDate: driverData.pollution.pollutionStartDate
-          .toISOString()
-          .split("T")[0],
-        pollutionExpiryDate: driverData.pollution.pollutionExpiryDate
-          .toISOString()
-          .split("T")[0],
+        pollutionStartDate: driverData.pollution.pollutionStartDate.toISOString().split("T")[0],
+        pollutionExpiryDate: driverData.pollution.pollutionExpiryDate.toISOString().split("T")[0],
         pollutionImage: null,
       },
     };
@@ -341,28 +210,18 @@ const DriverDocuments: React.FC = () => {
         }
       }
 
-      const data = await updateData<ResponseCom["data"]>(DriverApiEndpoints.UPDATE_DRIVER_DOCUMENTS,"Driver",formData);
+      const res = await updateData<ResponseCom["data"]>(DriverApiEndpoints.UPDATE_DRIVER_DOCUMENTS, formData);
 
-      if (data.status == StatusCode.OK) {
-        handleLogout("Driver",dispatch);
-        dispatch(
-          showNotification({
-            type: "info",
-            message:
-              "Profile updated successfully! Logging out for admin verification.",
-            data: null,
-            navigate: "/driver/login",
-          })
-        );
-      } else {
-        toast.error("something went wrong try later");
+      if (res?.status == StatusCode.OK) {
+        toast({ description: "Profile update request sended successfully", variant: "success" });
+        await store.dispatch(userLogout());
+        await deleteData(`/driver/logout`);
+        navigate("/driver/login", {
+          state: { showPendingModal: true },
+        });
       }
     } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to update profile. Please try again."
-      );
+      handleCustomError(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -392,21 +251,18 @@ const DriverDocuments: React.FC = () => {
   const prevImage = (): void => {
     setImageModal((prev) => ({
       ...prev,
-      currentIndex:
-        prev.currentIndex === 0
-          ? prev.images.length - 1
-          : prev.currentIndex - 1,
+      currentIndex: prev.currentIndex === 0 ? prev.images.length - 1 : prev.currentIndex - 1,
     }));
   };
 
   // Loading and error states
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20 sm:pb-4 sm:pl-64">
+      <div className="min-h-screen bg-gradient-to-b from-[#e8c58c] via-[#f5e5c8] to-[#ffffff] pb-20 sm:pb-4 sm:pl-64">
         <DriverNavbar />
         <div className="p-4 max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="text-lg text-gray-600">Loading documents...</div>
+            <div className="text-lg text-[#000000] font-bold animate-pulse">Loading documents...</div>
           </div>
         </div>
       </div>
@@ -415,11 +271,11 @@ const DriverDocuments: React.FC = () => {
 
   if (error || !driverData) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20 sm:pb-4 sm:pl-64">
+      <div className="min-h-screen bg-gradient-to-b from-[#e8c58c] via-[#f5e5c8] to-[#ffffff] pb-20 sm:pb-4 sm:pl-64">
         <DriverNavbar />
         <div className="p-4 max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="text-lg text-red-600">
+            <div className="text-lg text-red-600 font-bold">
               {error || "No driver data available"}
             </div>
           </div>
@@ -474,11 +330,7 @@ const DriverDocuments: React.FC = () => {
         { key: "rcExpiryDate", label: "Expiry Date", type: "date" },
       ],
       images: [
-        {
-          key: "rcFrontImageUrl",
-          label: "Front Image",
-          url: "rcFrontImageUrl",
-        },
+        { key: "rcFrontImageUrl", label: "Front Image", url: "rcFrontImageUrl" },
         { key: "rcBackImageUrl", label: "Back Image", url: "rcBackImageUrl" },
       ],
       displayData: [
@@ -501,18 +353,11 @@ const DriverDocuments: React.FC = () => {
         { key: "model", label: "Model", type: "text" },
       ],
       images: [
-        {
-          key: "carFrontImageUrl",
-          label: "Front Image",
-          url: "carFrontImageUrl",
-        },
+        { key: "carFrontImageUrl", label: "Front Image", url: "carFrontImageUrl" },
         { key: "carBackImageUrl", label: "Back Image", url: "carBackImageUrl" },
       ],
       displayData: [
-        {
-          label: "Vehicle Number",
-          value: driverData.vehicleDetails.vehicleNumber,
-        },
+        { label: "Vehicle Number", value: driverData.vehicleDetails.vehicleNumber },
         { label: "Color", value: driverData.vehicleDetails.vehicleColor },
         { label: "Model", value: driverData.vehicleDetails.model },
       ],
@@ -527,17 +372,10 @@ const DriverDocuments: React.FC = () => {
         { key: "insuranceExpiryDate", label: "Expiry Date", type: "date" },
       ],
       images: [
-        {
-          key: "insuranceImageUrl",
-          label: "Insurance Document",
-          url: "insuranceImageUrl",
-        },
+        { key: "insuranceImageUrl", label: "Insurance Document", url: "insuranceImageUrl" },
       ],
       displayData: [
-        {
-          label: "Start",
-          value: formatDate(driverData.insurance.insuranceStartDate),
-        },
+        { label: "Start", value: formatDate(driverData.insurance.insuranceStartDate) },
         {
           label: "Expiry",
           value: formatDate(driverData.insurance.insuranceExpiryDate),
@@ -555,17 +393,10 @@ const DriverDocuments: React.FC = () => {
         { key: "pollutionExpiryDate", label: "Expiry Date", type: "date" },
       ],
       images: [
-        {
-          key: "pollutionImageUrl",
-          label: "Pollution Certificate",
-          url: "pollutionImageUrl",
-        },
+        { key: "pollutionImageUrl", label: "Pollution Certificate", url: "pollutionImageUrl" },
       ],
       displayData: [
-        {
-          label: "Start",
-          value: formatDate(driverData.pollution.pollutionStartDate),
-        },
+        { label: "Start", value: formatDate(driverData.pollution.pollutionStartDate) },
         {
           label: "Expiry",
           value: formatDate(driverData.pollution.pollutionExpiryDate),
@@ -576,200 +407,193 @@ const DriverDocuments: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-4 sm:pl-64">
+    <div className="min-h-screen bg-gradient-to-b from-[#e8c58c] via-[#f5e5c8] to-[#ffffff] pb-20 sm:pb-4 sm:pl-64">
       <DriverNavbar />
-      <div className="p-4 max-w-6xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold text-[#000000] mb-2">
             My Documents
           </h1>
-          <p className="text-gray-600">
+          <p className="text-[#000000]/70 font-medium">
             Manage and update your driving documents
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {documentConfigs.map((config) => (
-            <div
-              key={config.key}
-              className={`p-6 rounded-xl shadow-sm border-2 transition-all duration-200 ${getStatusColor(
-                config.status || "valid"
-              )}`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-6 h-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {config.title}
-                  </h3>
-                  {getStatusBadge(config.status || "valid")}
-                </div>
-                <button
-                  onClick={() => handleEdit(config.key)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Edit
-                </button>
-              </div>
+{documentConfigs.map((config) => (
+  <div
+    key={config.key}
+    className={`p-6 rounded-3xl shadow-xl border-2 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${getStatusColor(
+      config.status || "valid"
+    )}`}
+  >
+    {/* TOP: Icon + File Name + Status Badge */}
+    <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-lg">
+          <FileText className="w-5 h-5 text-[#000000]" />
+        </div>
+        <div className="flex flex-col">
+          <h3 className="text-lg font-bold text-[#000000]">
+            {config.title}
+          </h3>
+        </div>
+      </div>
 
-              {editingSection === config.key ? (
-                <div className="space-y-4">
-                  {config.fields.map((field) => (
-                    <div key={field.key}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label}
-                      </label>
-                      <input
-                        type={field.type}
-                        value={
-                          (editFormData[
-                            field.key as keyof FormData
-                          ] as string) || ""
-                        }
-                        onChange={(e) =>
-                          handleInputChange(field.key, e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                      />
-                    </div>
-                  ))}
-                  <div
-                    className={
-                      config.images.length > 1 ? "grid grid-cols-2 gap-4" : ""
-                    }
-                  >
-                    {config.images.map((image) => (
-                      <div key={image.key}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {image.label}
-                        </label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            handleFileChange(
-                              image.key,
-                              e.target.files?.[0] || null
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        {imagePreviews[image.key] && (
-                          <img
-                            src={imagePreviews[image.key]}
-                            alt="Preview"
-                            className="mt-2 w-full h-20 object-cover rounded-lg"
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <Save className="w-4 h-4" />
-                      {isSubmitting ? "Updating..." : "Update"}
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="space-y-2 mb-4">
-                    {config.displayData.map((item, index) => (
-                      <p
-                        key={index}
-                        className={`text-sm flex items-center ${
-                          item.status === "expired"
-                            ? "text-red-600"
-                            : item.status === "expiring"
-                            ? "text-yellow-600"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {item.icon && <item.icon className="w-4 h-4 mr-1" />}
-                        <strong>{item.label}:</strong> {item.value}
-                        {item.status && item.status !== "valid" && (
-                          <AlertTriangle className="w-4 h-4 ml-1" />
-                        )}
-                      </p>
-                    ))}
-                  </div>
-                  <div
-                    className={
-                      config.images.length > 1
-                        ? "grid grid-cols-2 gap-4"
-                        : "text-center"
-                    }
-                  >
-                    {config.images.map((image) => {
-                      const imageUrl = (config.data as any)[image.url];
-                      return (
-                        <div key={image.key} className="text-center">
-                          <p className="text-sm font-medium text-gray-700 mb-2">
-                            {image.label}
-                          </p>
-                          <div className="relative group cursor-pointer overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-all duration-200">
-                            <img
-                              src={imageUrl}
-                              alt={image.label}
-                              className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200"
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-200 flex items-center justify-center">
-                              <ZoomIn
-                                className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                size={20}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex justify-center mt-4">
-                    <button
-                      onClick={() =>
-                        openImageModal(
-                          config.images.map(
-                            (img) => (config.data as any)[img.url] as string
-                          ),
-                          config.title
-                        )
-                      }
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Images
-                    </button>
-                  </div>
-                </div>
+      {/* keep the top area minimal — badge only */}
+      <div>{getStatusBadge(config.status || "valid")}</div>
+    </div>
+
+    {/* BODY: either edit form or display data + images */}
+    {editingSection === config.key ? (
+      <div className="space-y-4">
+        {config.fields.map((field) => (
+          <div key={field.key}>
+            <label className="block text-sm font-bold text-[#000000]/80 mb-2">
+              {field.label}
+            </label>
+            <input
+              type={field.type}
+              value={(editFormData[field.key as keyof DocFormData] as string) || ""}
+              onChange={(e) => handleInputChange(field.key, e.target.value)}
+              className="w-full px-4 py-3 border-2 border-[#fdb726]/30 rounded-2xl focus:ring-2 focus:ring-[#fdb726] focus:border-[#fdb726] bg-[#ffffff] text-[#000000] font-medium"
+              placeholder={`Enter ${field.label.toLowerCase()}`}
+            />
+          </div>
+        ))}
+        <div className={config.images.length > 1 ? "grid grid-cols-2 gap-4" : ""}>
+          {config.images.map((image) => (
+            <div key={image.key}>
+              <label className="block text-sm font-bold text-[#000000]/80 mb-2">
+                {image.label}
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileChange(image.key, e.target.files?.[0] || null)}
+                className="w-full px-3 py-2 border-2 border-[#fdb726]/30 rounded-2xl focus:ring-2 focus:ring-[#fdb726] text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#fdb726] file:text-[#000000] file:font-bold hover:file:bg-[#f5a623] cursor-pointer"
+              />
+              {imagePreviews[image.key] && (
+                <img
+                  src={imagePreviews[image.key]}
+                  alt="Preview"
+                  className="mt-3 w-full h-24 object-cover rounded-2xl border-2 border-[#fdb726]/30"
+                />
               )}
             </div>
           ))}
         </div>
 
+        {/* Footer when editing: Update / Cancel (same as before) */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="flex items-center justify-center gap-2 flex-1 px-4 py-3 bg-gradient-to-r from-[#fdb726] to-[#f5a623] hover:from-[#f5a623] hover:to-[#fdb726] text-[#000000] font-bold rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl"
+          >
+            <Save className="w-4 h-4" />
+            {isSubmitting ? "Updating..." : "Update"}
+          </button>
+          <button
+            onClick={handleCancelEdit}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-[#000000]/80 hover:bg-[#000000] text-[#ffffff] font-bold rounded-full transition-all duration-300 shadow-lg"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    ) : (
+      <div>
+        <div className="space-y-3 mb-5">
+          {config.displayData.map((item, index) => (
+            <div
+              key={index}
+              className={`flex items-center text-sm font-medium ${
+                item.status === "expired"
+                  ? "text-red-600"
+                  : item.status === "expiring"
+                  ? "text-[#fdb726]"
+                  : "text-[#000000]/80"
+              }`}
+            >
+              {item.icon && (
+                <div className="h-8 w-8 rounded-lg bg-[#fdb726]/20 flex items-center justify-center mr-2">
+                  <item.icon className="w-4 h-4" />
+                </div>
+              )}
+              <span className="font-bold">{item.label}:</span>
+              <span className="ml-2">{item.value}</span>
+              {item.status && item.status !== "valid" && (
+                <AlertTriangle className="w-4 h-4 ml-2" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className={config.images.length > 1 ? "grid grid-cols-2 gap-4" : "text-center"}>
+          {config.images.map((image) => {
+            const imageUrl = (config.data as any)[image.url];
+            return (
+              <div key={image.key} className="text-center">
+                <p className="text-xs font-bold text-[#000000]/70 mb-2">
+                  {image.label}
+                </p>
+                <div className="relative group cursor-pointer overflow-hidden rounded-2xl border-2 border-[#fdb726]/30 hover:border-[#fdb726] transition-all duration-300">
+                  <img
+                    src={imageUrl}
+                    alt={image.label}
+                    className="w-full h-28 object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-[#000000] bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center">
+                    <ZoomIn className="text-[#ffffff] opacity-0 group-hover:opacity-100 transition-opacity duration-300" size={24} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* FOOTER: View All Images + Edit (moved here) */}
+        <div className="flex justify-center gap-4 mt-5">
+          <button
+            onClick={() =>
+              openImageModal(
+                config.images.map((img) => (config.data as any)[img.url] as string),
+                config.title
+              )
+            }
+            className="flex items-center gap-2 px-6 py-3 text-sm font-bold text-[#000000] bg-[#fdb726]/20 border-2 border-[#fdb726]/30 rounded-full hover:bg-[#fdb726]/30 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            <Eye className="w-4 h-4" />
+            View
+          </button>
+
+          <button
+            onClick={() => handleEdit(config.key)}
+            className="flex items-center gap-2 px-6 py-3 text-sm font-bold text-[#000000] bg-[#fdb726]/20 border-2 border-[#fdb726]/30 rounded-full hover:bg-[#fdb726]/30 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            <Edit3 className="w-4 h-4" />
+            Edit
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+))}
+
+        </div>
+
         {/* Image Modal */}
         {imageModal.isOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl max-w-3xl w-full p-6 relative">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
+          <div className="fixed inset-0 bg-[#000000]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-[#ffffff] to-[#f5e5c8] rounded-3xl max-w-4xl w-full p-6 sm:p-8 relative shadow-2xl border-2 border-[#fdb726]">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-[#000000]">
                   {imageModal.title}
                 </h2>
                 <button
                   onClick={closeImageModal}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-[#000000] hover:bg-[#fdb726]/20 p-2 rounded-full transition-all"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -778,28 +602,27 @@ const DriverDocuments: React.FC = () => {
                 <img
                   src={imageModal.images[imageModal.currentIndex]}
                   alt={`${imageModal.title} ${imageModal.currentIndex + 1}`}
-                  className="w-full max-h-[70vh] object-contain rounded-lg"
+                  className="w-full max-h-[70vh] object-contain rounded-2xl border-2 border-[#fdb726]/30"
                 />
                 {imageModal.images.length > 1 && (
                   <>
                     <button
                       onClick={prevImage}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-[#fdb726] text-[#000000] p-3 rounded-full hover:bg-[#f5a623] transition-all shadow-xl"
                     >
                       <ChevronLeft className="w-6 h-6" />
                     </button>
                     <button
                       onClick={nextImage}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-[#fdb726] text-[#000000] p-3 rounded-full hover:bg-[#f5a623] transition-all shadow-xl"
                     >
                       <ChevronRight className="w-6 h-6" />
                     </button>
                   </>
                 )}
               </div>
-              <p className="text-center mt-4 text-sm text-gray-600">
-                Image {imageModal.currentIndex + 1} of{" "}
-                {imageModal.images.length}
+              <p className="text-center mt-4 text-sm font-bold text-[#000000]/70">
+                Image {imageModal.currentIndex + 1} of {imageModal.images.length}
               </p>
             </div>
           </div>
@@ -807,27 +630,27 @@ const DriverDocuments: React.FC = () => {
 
         {/* Warning Modal */}
         {showWarning && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl max-w-md w-full p-6">
+          <div className="fixed inset-0 bg-[#000000]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-[#ffffff] to-[#f5e5c8] rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border-2 border-[#fdb726]">
               <div className="flex items-center gap-3 mb-4">
-                <AlertTriangle className="w-6 h-6 text-yellow-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Warning</h2>
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-lg">
+                  <AlertTriangle className="w-6 h-6 text-[#000000]" />
+                </div>
+                <h2 className="text-xl font-bold text-[#000000]">Important Notice</h2>
               </div>
-              <p className="text-sm text-gray-600 mb-6">
-                Updating your documents will require admin verification. You
-                will be logged out after submission until verification is
-                complete.
+              <p className="text-sm font-medium text-[#000000]/80 mb-6 leading-relaxed">
+                Updating your documents will require admin verification. You will be logged out after submission until verification is complete.
               </p>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-3">
                 <button
                   onClick={handleContinueEdit}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-[#fdb726] to-[#f5a623] hover:from-[#f5a623] hover:to-[#fdb726] text-[#000000] font-bold rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   Continue
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  className="flex-1 px-6 py-4 bg-[#000000]/80 hover:bg-[#000000] text-[#ffffff] font-bold rounded-full transition-all duration-300 shadow-lg"
                 >
                   Cancel
                 </button>

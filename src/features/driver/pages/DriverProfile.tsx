@@ -50,24 +50,12 @@ import { handleCustomError } from "@/shared/utils/error";
 import { toast } from "@/shared/hooks/use-toast";
 import { userLogout } from "@/shared/services/redux/slices/userSlice";
 import axios from "axios";
+import { formatDate } from "@/shared/utils/formatDate";
 
 interface EditValues {
   name: string;
   profilePhoto: File | null;
 }
-
-// Utility Functions
-const formatDate = (dateString: string): string => {
-  try {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch {
-    return "Invalid Date";
-  }
-};
 
 const DriverProfile: React.FC = () => {
   const [driverData, setDriverData] = useState<DriverProfileData | null>(null);
@@ -120,12 +108,12 @@ const DriverProfile: React.FC = () => {
     return () => controller.abort();
   }, []);
 
-  const handleEditStart = (field: "name" | "profilePhoto") => {
+  const handleEditStart = (field: "name" | "profilePhoto"| "") => {
     setEditingField(field);
     setShowWarning(true);
   };
 
-  const handleEditConfirm = async (field: "name" | "profilePhoto") => {
+  const handleEditConfirm = async (field: "name" | "profilePhoto" | "") => {
     setIsEditing((prev) => ({ ...prev, [field]: true }));
     setShowWarning(false);
     setValidationErrors({});
@@ -216,111 +204,120 @@ const DriverProfile: React.FC = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <DriverNavbar />
-      <div className="sm:ml-64 mb-16 sm:mb-0 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <div className="relative">
-                  <Avatar className="h-32 w-32">
-                    <AvatarImage
-                      src={
-                        editValues.profilePhoto
-                          ? URL.createObjectURL(editValues.profilePhoto)
-                          : driverData.driverImage
-                      }
-                      alt={driverData.name}
-                    />
-                    <AvatarFallback className="text-2xl">
-                      {driverData.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  {!isEditing.profilePhoto ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                      onClick={() => handleEditStart("profilePhoto")}
-                    >
-                      <Camera className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <div className="absolute -bottom-2 -right-2 flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-8 rounded-full p-0"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-8 rounded-full p-0"
-                        onClick={() => handleSave("profilePhoto")}
-                        disabled={loading || !editValues.profilePhoto}
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-8 rounded-full p-0"
-                        onClick={() => handleEditCancel("profilePhoto")}
-                        disabled={loading}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        style={{ display: "none" }}
-                      />
-                    </div>
-                  )}
 
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#e8c58c] via-[#f5e5c8] to-[#ffffff]">
+      <DriverNavbar/>
+      <div className="h-16 sm:h-0"></div>
+      
+      <div className="sm:ml-64 mb-16 sm:mb-0 p-4 sm:p-6">
+        <div className="max-w-5xl mx-auto space-y-6">
+          {/* Main Profile Card */}
+          <Card className="bg-gradient-to-br from-[#ffffff] to-[#f5e5c8]/30 border-2 border-[#fdb726]/30 shadow-2xl overflow-hidden rounded-3xl">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                {/* Profile Image */}
+                <div className="relative">
+                  <div className="relative">
+                    <Avatar className="h-32 w-32 sm:h-40 sm:w-40 ring-4 ring-[#fdb726]/30 shadow-xl">
+                      <AvatarImage
+                        src={
+                          editValues.profilePhoto
+                            ? URL.createObjectURL(editValues.profilePhoto)
+                            : driverData.driverImage
+                        }
+                        alt={driverData.name}
+                      />
+                      <AvatarFallback className="text-3xl bg-gradient-to-br from-[#fdb726] to-[#f5a623] text-[#000000] font-bold">
+                        {driverData.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!isEditing.profilePhoto ? (
+                      <Button
+                        size="sm"
+                        className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full p-0 bg-gradient-to-r from-[#fdb726] to-[#f5a623] hover:from-[#f5a623] hover:to-[#fdb726] border-2 border-[#ffffff] shadow-lg"
+                        onClick={() => handleEditStart("profilePhoto")}
+                      >
+                        <Camera className="h-5 w-5 text-[#000000]" />
+                      </Button>
+                    ) : (
+                      <div className="absolute -bottom-2 -right-2 flex gap-1">
+                        <Button
+                          size="sm"
+                          className="h-9 w-9 rounded-full p-0 bg-[#fdb726] hover:bg-[#f5a623] border-2 border-[#ffffff]"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Camera className="h-4 w-4 text-[#000000]" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-9 w-9 rounded-full p-0 bg-[#fdb726] hover:bg-[#f5a623] border-2 border-[#ffffff]"
+                          onClick={() => handleSave("profilePhoto")}
+                          disabled={loading || !editValues.profilePhoto}
+                        >
+                          <Save className="h-4 w-4 text-[#000000]" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-9 w-9 rounded-full p-0 bg-[#000000]/80 hover:bg-[#000000] border-2 border-[#ffffff]"
+                          onClick={() => handleEditCancel("profilePhoto")}
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4 text-[#ffffff]" />
+                        </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          style={{ display: "none" }}
+                        />
+                      </div>
+                    )}
+                  </div>
                   {validationErrors.profilePhoto && isEditing.profilePhoto && (
-                    <span className="text-red-500 text-xs absolute -bottom-10 left-0">
+                    <span className="text-red-600 text-xs absolute -bottom-10 left-0 font-medium">
                       {validationErrors.profilePhoto}
                     </span>
                   )}
                 </div>
-                <div className="flex-1 space-y-4">
+
+                {/* Profile Info */}
+                <div className="flex-1 space-y-4 w-full">
+                  {/* Name */}
                   <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-gray-500" />
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-md">
+                      <User className="h-5 w-5 text-[#000000]" />
+                    </div>
                     {!isEditing.name ? (
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl font-semibold">
+                        <span className="text-2xl sm:text-3xl font-bold text-[#000000]">
                           {driverData.name}
                         </span>
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="hover:bg-[#fdb726]/20"
                           onClick={() => handleEditStart("name")}
                         >
-                          <Edit3 className="h-4 w-4" />
+                          <Edit3 className="h-4 w-4 text-[#fdb726]" />
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 flex-1">
                         <div className="flex items-center gap-2">
                           <Input
                             name="name"
                             value={editValues.name}
                             onChange={handleInputChange}
-                            className="text-2xl font-semibold"
+                            className="text-xl font-bold border-2 border-[#fdb726] focus:ring-[#fdb726] rounded-xl"
                           />
                           <Button
                             size="sm"
+                            className="bg-[#fdb726] hover:bg-[#f5a623] text-[#000000] font-bold"
                             onClick={() => handleSave("name")}
                             disabled={loading}
                           >
@@ -329,6 +326,7 @@ const DriverProfile: React.FC = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="border-2 border-[#000000]/20"
                             onClick={() => handleEditCancel("name")}
                             disabled={loading}
                           >
@@ -336,47 +334,59 @@ const DriverProfile: React.FC = () => {
                           </Button>
                         </div>
                         {validationErrors.name && (
-                          <span className="text-red-500 text-xs">
+                          <span className="text-red-600 text-xs font-medium">
                             {validationErrors.name}
                           </span>
                         )}
                       </div>
                     )}
                   </div>
+
+                  {/* Email */}
                   <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-gray-500" />
-                    <span className="text-gray-700">{driverData.email}</span>
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-md">
+                      <Mail className="h-5 w-5 text-[#000000]" />
+                    </div>
+                    <span className="text-[#000000]/80 font-medium">{driverData.email}</span>
                   </div>
+
+                  {/* Phone */}
                   <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-gray-500" />
-                    <span className="text-gray-700">
-                      +91 {driverData.mobile}
-                    </span>
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-md">
+                      <Phone className="h-5 w-5 text-[#000000]" />
+                    </div>
+                    <span className="text-[#000000]/80 font-medium">+91 {driverData.mobile}</span>
                   </div>
+
+                  {/* Address */}
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
-                    <span className="text-gray-700">{driverData.address}</span>
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-md flex-shrink-0">
+                      <MapPin className="h-5 w-5 text-[#000000]" />
+                    </div>
+                    <span className="text-[#000000]/80 font-medium">{driverData.address}</span>
                   </div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="text-green-600 border-green-600"
-                >
+
+                {/* Active Badge */}
+                <Badge className="bg-gradient-to-r from-[#fdb726] to-[#f5a623] text-[#000000] border-2 border-[#000000]/10 px-4 py-2 text-sm font-bold shadow-lg">
                   Active Driver
                 </Badge>
               </div>
             </CardContent>
           </Card>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Rating Card */}
+            <Card className="bg-gradient-to-br from-[#ffffff] to-[#e8c58c]/20 border-2 border-[#fdb726]/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-2xl">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-[#000000]/70 uppercase tracking-wide mb-2">
                       Total Rating
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-2xl font-bold">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-2xl font-bold text-[#fdb726]">
                         {driverData.totalRatings}
                       </span>
                       <div className="flex">
@@ -384,91 +394,118 @@ const DriverProfile: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" className="bg-[#fdb726]/20 hover:bg-[#fdb726]/30 text-[#000000] border-2 border-[#fdb726]/30 rounded-xl h-8 w-8 p-0">
                     <Eye className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+
+            {/* Joined Date Card */}
+            <Card className="bg-gradient-to-br from-[#ffffff] to-[#e8c58c]/20 border-2 border-[#fdb726]/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-2xl">
+              <CardContent className="p-5">
                 <div className="flex items-center gap-3">
-                  <Calendar className="h-8 w-8 text-blue-500" />
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-lg">
+                    <Calendar className="h-6 w-6 text-[#000000]" />
+                  </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Joined</p>
-                    <p className="text-lg font-semibold">
+                    <p className="text-xs font-bold text-[#000000]/70 uppercase tracking-wide">
+                      Joined
+                    </p>
+                    <p className="text-base font-bold text-[#000000]">
                       {formatDate(driverData.joiningDate)}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+
+            {/* Completed Rides Card */}
+            <Card className="bg-gradient-to-br from-[#ffffff] to-[#e8c58c]/20 border-2 border-[#fdb726]/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-2xl">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Car className="h-8 w-8 text-green-500" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-lg">
+                      <Car className="h-6 w-6 text-[#000000]" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-xs font-bold text-[#000000]/70 uppercase tracking-wide">
                         Completed
                       </p>
-                      <p className="text-lg font-semibold">
+                      <p className="text-xl font-bold text-[#fdb726]">
                         {driverData.completedRides}
                       </p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline">
-                    View All
+                  <Button size="sm" className="bg-[#fdb726]/20 hover:bg-[#fdb726]/30 text-[#000000] text-xs font-bold border-2 border-[#fdb726]/30 rounded-xl px-3">
+                    View
                   </Button>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <XCircle className="h-8 w-8 text-red-500" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Cancelled
-                    </p>
-                    <p className="text-lg font-semibold">
-                      {driverData.cancelledRides}
-                    </p>
+
+            {/* Cancelled Rides Card */}
+            <Card className="bg-gradient-to-br from-[#ffffff] to-[#e8c58c]/20 border-2 border-[#fdb726]/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-2xl">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#000000]/80 to-[#000000]/60 flex items-center justify-center shadow-lg">
+                      <XCircle className="h-6 w-6 text-[#ffffff]" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#000000]/70 uppercase tracking-wide">
+                        Cancelled
+                      </p>
+                      <p className="text-xl font-bold text-[#000000]">
+                        {driverData.cancelledRides}
+                      </p>
+                    </div>
                   </div>
-                  <Button size="sm" variant="outline">
-                    View All
+                  <Button size="sm" className="bg-[#fdb726]/20 hover:bg-[#fdb726]/30 text-[#000000] text-xs font-bold border-2 border-[#fdb726]/30 rounded-xl px-3">
+                    View
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Wallet and Commission Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+            {/* Wallet Balance Card */}
+            <Card className="bg-gradient-to-br from-[#fdb726] to-[#f5a623] border-2 border-[#000000]/10 shadow-2xl overflow-hidden rounded-3xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5" />
-                  Wallet Balance
+                <CardTitle className="flex items-center gap-3 text-[#000000]">
+                  <div className="h-10 w-10 rounded-xl bg-[#ffffff] flex items-center justify-center shadow-md">
+                    <Wallet className="h-6 w-6 text-[#fdb726]" />
+                  </div>
+                  <span className="font-bold">Wallet Balance</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-green-600 mb-4">
+                <div className="text-4xl font-bold text-[#000000] mb-6">
                   ₹{driverData.walletBalance.toFixed(2)}
                 </div>
-                <Button className="w-full">View Transaction History</Button>
+                <Button className="w-full bg-[#000000] hover:bg-[#000000]/90 text-[#ffffff] font-bold py-6 text-base rounded-full shadow-xl">
+                  View Transaction History
+                </Button>
               </CardContent>
             </Card>
-            <Card>
+
+            {/* Admin Commission Card */}
+            <Card className="bg-gradient-to-br from-[#ffffff] to-[#e8c58c]/30 border-2 border-[#fdb726]/30 shadow-2xl overflow-hidden rounded-3xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Admin Commission Due
+                <CardTitle className="flex items-center gap-3 text-[#000000]">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center shadow-md">
+                    <CreditCard className="h-6 w-6 text-[#000000]" />
+                  </div>
+                  <span className="font-bold">Admin Commission Due</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-orange-600 mb-4">
+                <div className="text-4xl font-bold text-[#fdb726] mb-6">
                   ₹{driverData.adminCommission.toFixed(2)}
                 </div>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full bg-gradient-to-r from-[#fdb726] to-[#f5a623] hover:from-[#f5a623] hover:to-[#fdb726] text-[#000000] font-bold py-6 text-base rounded-full shadow-xl border-2 border-[#000000]/10">
                   Pay Commission
                 </Button>
               </CardContent>
@@ -476,18 +513,22 @@ const DriverProfile: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Warning Dialog */}
       {showWarning && (
         <Dialog open={showWarning} onOpenChange={setShowWarning}>
-          <DialogContent>
+          <DialogContent className="bg-gradient-to-br from-[#ffffff] to-[#f5e5c8] border-2 border-[#fdb726] rounded-3xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-                Important Notice
+              <DialogTitle className="flex items-center gap-3 text-xl">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#fdb726] to-[#f5a623] flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-[#000000]" />
+                </div>
+                <span className="text-[#000000] font-bold">Important Notice</span>
               </DialogTitle>
             </DialogHeader>
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="border-2 border-[#fdb726]/30 bg-[#fdb726]/10 rounded-2xl">
+              <AlertTriangle className="h-5 w-5 text-[#fdb726]" />
+              <AlertDescription className="text-[#000000] font-medium ml-2">
                 If you update this field, you will be logged out and can only
                 log in after admin verification. You will receive an email
                 notification once the verification is complete.
@@ -495,10 +536,8 @@ const DriverProfile: React.FC = () => {
             </Alert>
             <div className="flex gap-3 mt-4">
               <Button
-                onClick={() =>
-                  handleEditConfirm(editingField as "name" | "profilePhoto")
-                }
-                className="flex-1"
+                onClick={() => handleEditConfirm(editingField)}
+                className="flex-1 bg-gradient-to-r from-[#fdb726] to-[#f5a623] hover:from-[#f5a623] hover:to-[#fdb726] text-[#000000] font-bold py-6 rounded-full shadow-lg"
               >
                 Continue
               </Button>
@@ -508,7 +547,7 @@ const DriverProfile: React.FC = () => {
                   setShowWarning(false);
                   setEditingField("");
                 }}
-                className="flex-1"
+                className="flex-1 border-2 border-[#000000]/20 hover:bg-[#000000]/10 text-[#000000] font-bold py-6 rounded-full"
               >
                 Cancel
               </Button>

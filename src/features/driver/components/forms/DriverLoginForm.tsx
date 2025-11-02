@@ -140,7 +140,6 @@ const DriverLoginForm = ({
       if (data && data.message === "Success"&& response?.status === StatusCode.OK) {
         toast({ description: "Login successful!", variant: "success" });
         authService.set(data.token);
-        setItem("role", "Driver");
         dispatch(
           userLogin({
             name: data.name,
@@ -148,12 +147,6 @@ const DriverLoginForm = ({
             role: "Driver",
           })
         );
-        setDriverData({
-          name: data.name,
-          token: data.token,
-          driverId: data.id,
-          role: "Driver",
-        });
         navigate("/driver/dashboard");
       }
     } catch (error) {

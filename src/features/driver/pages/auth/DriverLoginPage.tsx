@@ -42,6 +42,7 @@ const DriverLogin = () => {
   });
   
 const location = useLocation();
+
 useEffect(() => {
   if (location.state?.showPendingModal) {
     setPendingModal(true);

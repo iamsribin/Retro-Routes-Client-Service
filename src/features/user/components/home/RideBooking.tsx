@@ -157,7 +157,6 @@ const RideBooking: React.FC = () => {
     try {
       const data = await fetchData<BackendVehicle[]>(
         ApiEndpoints.ADMIN_VEHICLE_MODELS,
-        "User"
       );
 
       const fetchedVehicles: VehicleOption[] = data.map((vehicle) => ({
