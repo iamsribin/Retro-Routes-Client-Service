@@ -11,22 +11,30 @@ import UserProfile from '../pages/UserProfile';
 import BookingTransaction from '../pages/BookingTransaction';
 import BookingDetails from "../pages/BookingDetails";
 import PaymentPage from '../components/ride/PaymentPage';
+import PublicRoutes from '@/routes/public-route';
 
 const ROLE = 'User';
 
 function UserRoutes() {
   return (
     <Routes>
-      <Route path={AppRoutes.USER_HOME} element={<HomePage />} />
-      {/* <Route path={AppRoutes.LOGIN} element={<AuthRedirect role={ROLE}><LoginPage /></AuthRedirect>} />
-      <Route path={AppRoutes.SIGNUP} element={<AuthRedirect role={ROLE}><SignupPage /></AuthRedirect>} />
+    <Route path={AppRoutes.USER_HOME} element={<HomePage />} />
 
-      <Route path={AppRoutes.RIDE_TRACKING} element={<ProtectedRoute allowedRole={ROLE}><RideMap/></ProtectedRoute>}/>
-      <Route path={AppRoutes.PROFILE} element={<ProtectedRoute allowedRole={ROLE}><UserProfile/></ProtectedRoute>}/>
-      <Route path={AppRoutes.TRIPS} element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>}/>
-      <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
-      
-      <Route path={AppRoutes.PAYMENT} element={<ProtectedRoute allowedRole={ROLE}><PaymentPage/></ProtectedRoute>} /> */}
+       <Route element={<ProtectedRoute allowedRole={ROLE} />}>
+
+          {/* 
+             <Route path={AppRoutes.TRIPS} element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>}/>
+             <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
+             <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
+             
+             <Route path={AppRoutes.PAYMENT} element={<ProtectedRoute allowedRole={ROLE}><PaymentPage/></ProtectedRoute>} /> */}
+       {/* <Route path={AppRoutes.RIDE_TRACKING} element={<ProtectedRoute allowedRole={ROLE}><RideMap/></ProtectedRoute>}/> */}
+       </Route>
+             <Route path={AppRoutes.PROFILE} element={<UserProfile/>}/>
+       <Route element={<PublicRoutes allowedRoles={["Admin", "User"]} />}>
+         <Route path={AppRoutes.LOGIN} element={<LoginPage />} />
+         <Route path={AppRoutes.SIGNUP} element={<SignupPage />} />
+       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

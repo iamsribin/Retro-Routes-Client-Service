@@ -41,8 +41,8 @@ const SignupFields = ({ formik, userImageUrl, setUserImageUrl }: SignupFieldsPro
           {renderInput('name', 'Full Name', 'text', <AtSignIcon color="gray.400" />)}
           {renderInput('email', 'Email Address', 'email', <EmailIcon color="gray.400" />)}
           {renderInput('mobile', 'Mobile Number', 'text', <PhoneIcon color="gray.400" />)}
-          {renderInput('password', 'Password', 'password', <LockIcon color="gray.400" />)}
-          {renderInput('re_password', 'Confirm Password', 'password', <LockIcon color="gray.400" />)}
+          {/* {renderInput('password', 'Password', 'password', <LockIcon color="gray.400" />)}
+          {renderInput('re_password', 'Confirm Password', 'password', <LockIcon color="gray.400" />)} */}
           {renderInput('referred_code', 'Referral Code', 'text', <SmallAddIcon color="gray.400" />)}
           <VStack align="start" spacing={1}>
             <Text fontSize="xs" fontWeight="bold" color="blue.800">Upload Your Profile Image</Text>

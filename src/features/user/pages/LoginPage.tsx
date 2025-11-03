@@ -2,19 +2,19 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useState } from "react";
 import { ConfirmationResult } from "firebase/auth";
-import { userLogin } from "@/shared/services/redux/slices/userAuthSlice";
-import { adminLogin } from "@/shared/services/redux/slices/adminAuthSlice";
 import { CredentialResponse } from "@react-oauth/google";
 import LoginForm from "../components/forms/LoginForm";
-import LoginHeader from "../components/auth/LoginHeader";
 import { auth } from "@/shared/services/firebase";
-import { toast } from "sonner";
 import { jwtDecode } from "jwt-decode";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { DecodedToken } from "../components/forms/type";
 import { UserAuthData } from "@/shared/types/user/userTypes";
 import { postData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
+import { userLogin } from "@/shared/services/redux/slices/userSlice";
+import { toast } from "@/shared/hooks/use-toast";
+import { handleCustomError } from "@/shared/utils/error";
+
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -25,7 +25,6 @@ const Login = () => {
     user: "",
     user_id: "",
     userToken: "",
-    refreshToken: "",
     loggedIn: false,
     role: "User",
     mobile: undefined,
@@ -45,59 +44,45 @@ const Login = () => {
 
       const response = await postData<ResponseCom["data"]>(
         ApiEndpoints.USER_CHECK_GOOGLE_LOGIN,
-        "User",
         { email: decode.email }
       );
 
-      if (response.message === "Authentication successful") {
-        const role = response.role as "User" | "Admin";
-        localStorage.setItem("role", role);
-        localStorage.setItem(
-          role === "Admin" ? "adminToken" : "userToken",
-          response.token
-        );
-        localStorage.setItem(
-          role === "Admin" ? "adminRefreshToken" : "refreshToken",
-          response.refreshToken
-        );
+      const res = response?.data;
+      console.log("res",res);
+
+      if (response?.status == 200 &&res.message === "Authentication successful") {
+        const role = res.role as "User" | "Admin";
 
         if (role === "Admin") {
           dispatch(
-            adminLogin({ name: response.name, role, _id: response._id })
+            userLogin({ name: res.name, role, id: res._id })
           );
           navigate("/admin/dashboard");
         } else {
           dispatch(
             userLogin({
-              user: response.name,
-              user_id: response._id,
+              name: res.name,
+              id: res._id,
               role,
-              mobile: response.mobile,
-              profile: response.profile,
             })
           );
           navigate("/");
         }
-        toast.success("Login Success");
-      } else if (response.message === "Blocked") {
-        toast.error("Your account is blocked by Admin");
+        toast({description:"Login Success", variant: "success"});
+      } else if (res.message === "Blocked") {
+        toast({description:"Your account is blocked", variant: "success"});
       } else {
-        toast.error("Not registered! Please register to continue.");
+        toast({description:"Your account is blocked"});
       }
     } catch (err) {
-      console.error("Google login error:", err);
-      toast.error(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
+      handleCustomError(err)
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="registration-container pb-10 h-screen flex justify-center bg-white items-center">
-      <div className="w-5/6 md:w-4/6 md:h-4/5 md:flex justify-center bg-white rounded-3xl my-5 drop-shadow-2xl">
-        <LoginHeader otpInput={otpInput} />
+        <>
         <LoginForm
           auth={auth}
           otpInput={otpInput}
@@ -111,11 +96,11 @@ const Login = () => {
           userData={userData}
           setUserData={setUserData}
           onGoogleLogin={handleGoogleLogin}
+          setLoading={setLoading}
           loading={loading}
         />
-      </div>
       <div id="recaptcha-container" />
-    </div>
+      </>
   );
 };
 

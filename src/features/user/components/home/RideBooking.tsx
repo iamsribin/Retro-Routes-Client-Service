@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { useLoading } from "@/shared/hooks/useLoading";
 import { StatusCode } from "@/shared/types/enum";
 import { fetchData, postData } from "@/shared/services/api/api-service";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 
 const libraries: "places"[] = ["places"];
 const mapContainerStyle = {

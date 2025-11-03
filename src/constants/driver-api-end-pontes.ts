@@ -1,4 +1,10 @@
 enum DriverApiEndpoints {
+    // Authentication APIs - Driver Service
+  DRIVER_LOGIN = '/driver/login',
+  DRIVER_SIGNUP = '/driver/signup',
+  LOGOUT = '/logout',
+  
+
   CHECK_REGISTER_DRIVER = "/driver/checkRegisterDriver",
   DRIVER_REGISTER = "/driver/registerDriver",
   DRIVER_IDENTIFICATION = "/driver/identification",

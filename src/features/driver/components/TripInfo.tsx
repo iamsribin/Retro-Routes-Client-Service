@@ -17,7 +17,7 @@ import { Toast } from "@chakra-ui/react";
 import { getDistanceInMeters } from "@/shared/utils/getDistanceInMeters";
 import { patchData, postData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { useNotification } from "@/shared/hooks/useNotificatiom";
 
 interface TripInfoProps {

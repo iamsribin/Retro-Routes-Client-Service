@@ -219,6 +219,7 @@ useEffect(() => {
           <div className="relative z-10 w-full max-w-6xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               {/* Left Side - Branding */}
+
               <div className="hidden lg:flex flex-col justify-center space-y-6 text-white">
                 <h1 className="text-5xl xl:text-6xl font-bold leading-tight">
                   Register Your <span className="text-yellow-400">Vehicle</span>
@@ -639,6 +640,7 @@ useEffect(() => {
                   </form>
                 </div>
               </div>
+              
             </div>
           </div>
         </div>

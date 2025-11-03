@@ -14,7 +14,7 @@ import DriverAccountTab from "@/features/admin/components/drivers/DriverAccountT
 import { DriverInterface } from "@/shared/types/driver/driverType";
 import { isAbortError } from "@/shared/utils/checkAbortControllerError";
 import { fetchData, postData } from "@/shared/services/api/api-service";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { ResponseCom } from "@/shared/types/commonTypes";
 
 const PendingDriverDetails = () => {

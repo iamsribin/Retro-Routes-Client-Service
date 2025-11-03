@@ -10,6 +10,8 @@ type ThrownError = {
  * This function always throws.
  */
 export const throwCustomError = (err: any): never => {
+  console.log("throwCustomError",err.response);
+  
   if (err?.response) {
     const { status, data } = err.response;
     throw {
@@ -29,7 +31,7 @@ export const throwCustomError = (err: any): never => {
  * and call toast with title, description and variant.
  */
 export const handleCustomError = (err: any) => {
-  console.log(err);
+  console.log("handleCustomError",err);
 
   // Try multiple places for status/message.
   const status: number =

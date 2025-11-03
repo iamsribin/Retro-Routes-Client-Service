@@ -1,53 +1,53 @@
+import { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
-import DriverLoginPage from "../pages/auth/DriverLoginPage";
-import DriverSignupPage from "../pages/auth/DriverSignupPage";
-import ResubmissionPage from "../pages/auth/ResubmissionPage";
 import PublicRoute from "@/routes/public-route";
 import ProtectedRoute from "@/routes/protected-route";
 import AppRoutes from "@/constants/app-routes";
-import NotFound from "@/shared/components/NotFound";
-import Dashboard from "../pages/DriverDashboard";
-import DriverProfile from "../pages/DriverProfile";
-import BookingTransaction from "../pages/BookingTransaction";
-import BookingDetails from "../pages/BookingDetails";
-import PaymentPage from "../pages/paymentPage";
-import DriverRideMap from "../pages/DriverRideMap";
-import DriverDocuments from "../pages/DriverDocument"
-// import { DriverLocationProvider } from "@/context/driver-location-context";
-import RideNotification from "../components/RideNotification"
+import RideNotification from "../components/RideNotification";
+import GlobalLoading from "@/shared/components/loaders/GlobalLoading"; // ensure this component accepts props
+import { Role } from "@/shared/types/commonTypes";
 
-const ROLE = "Driver"; 
+const DriverLoginPage = lazy(() => import("../pages/auth/DriverLoginPage"));
+const DriverSignupPage = lazy(() => import("../pages/auth/DriverSignupPage"));
+const ResubmissionPage = lazy(() => import("../pages/auth/ResubmissionPage"));
+const NotFound = lazy(() => import("@/shared/components/NotFound"));
+const Dashboard = lazy(() => import("../pages/DriverDashboard"));
+const DriverProfile = lazy(() => import("../pages/DriverProfile"));
+const BookingTransaction = lazy(() => import("../pages/BookingTransaction"));
+const BookingDetails = lazy(() => import("../pages/BookingDetails"));
+const PaymentPage = lazy(() => import("../pages/paymentPage"));
+const DriverRideMap = lazy(() => import("../pages/DriverRideMap"));
+const DriverDocuments = lazy(() => import("../pages/DriverDocument"));
 
 function DriverRoutes() {
+  // you can control props (dd) here or compute based on route or network conditions
+  const loaderProps = {
+    isLoading: true,
+    loadingMessage: "Loading page..."
+  };
+
   return (
-    // <DriverLocationProvider>
-  <>
-      <RideNotification/>
+    <>
+      <RideNotification />
 
-    <Routes>
-       <Route element={<ProtectedRoute allowedRole={ROLE} />}>
-           <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
-           <Route path={AppRoutes.PROFILE} element={<DriverProfile/>} />
-           <Route path={AppRoutes.DOCUMENTS} element={<DriverDocuments/>} />
-           {/* <Route path={AppRoutes.RIDE_TRACKING} element={<DriverRideMap/>} />
-           <Route path={AppRoutes.TRIPS} element={<BookingTransaction/>} />
-           <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<BookingDetails/>} />
-           <Route path={AppRoutes.PAYMENT} element={<PaymentPage/>} />
-           */}
-       </Route>
+      <Suspense fallback={<GlobalLoading {...loaderProps} />}>
+        <Routes>
+          <Route element={<ProtectedRoute allowedRole={"Driver"} />}>
+            <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
+            <Route path={AppRoutes.PROFILE} element={<DriverProfile />} />
+            <Route path={AppRoutes.DOCUMENTS} element={<DriverDocuments />} />
+          </Route>
 
+          <Route element={<PublicRoute allowedRoles={["Driver"]} />}>
+            <Route path={AppRoutes.LOGIN} element={<DriverLoginPage />} />
+            <Route path={AppRoutes.SIGNUP} element={<DriverSignupPage />} />
+            <Route path={AppRoutes.DRIVER_IDENTIFICATION} element={<ResubmissionPage />} />
+          </Route>
 
-       <Route element={<PublicRoute allowedRole={ROLE} />}>
-          <Route path={AppRoutes.LOGIN} element={<DriverLoginPage />} />
-          <Route path={AppRoutes.SIGNUP} element={<DriverSignupPage />} />
-          <Route path={AppRoutes.DRIVER_IDENTIFICATION} element={<ResubmissionPage />} />
-       </Route>
-
-      <Route path="*" element={<NotFound/>} />
-    </Routes>
-    {/* // </DriverLocationProvider> */}
-  </>
-
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }
 

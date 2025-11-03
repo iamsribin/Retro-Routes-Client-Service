@@ -12,7 +12,7 @@ export const signupValidation = yup.object({
   mobile: yup
     .string()
     .length(10, "Please enter a valid number")
-    .required("Please enter an email"),
+    .required("Please enter an valid number"),
   // password: yup
   //   .string()
   //   .matches(/^(?=.*[A-Z])/, "Must include One uppercase letter")

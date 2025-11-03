@@ -4,7 +4,7 @@ import UserList from "../../components/user/UserList";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { useDispatch } from "react-redux";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { fetchData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
 

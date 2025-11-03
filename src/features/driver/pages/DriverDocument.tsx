@@ -13,6 +13,11 @@ import {
   ChevronRight,
   CheckCircle,
   Clock,
+  Loader2,
+  Loader,
+  LoaderCircle,
+  LucideLoaderPinwheel,
+  LocateFixedIcon,
 } from "lucide-react";
 import DriverNavbar from "../components/DriverNavbar";
 import { StatusCode } from "@/shared/types/enum";
@@ -26,6 +31,8 @@ import { userLogout } from "@/shared/services/redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
 import { formatDate } from "@/shared/utils/formatDate";
 import { DocumentStatus, DriverData, ImageModal, FormData as DocFormData, ImagePreview, DocumentConfig } from "./type";
+import LoadingSpinner from "@/shared/components/loaders/LoadingSpinner";
+import GlobalLoading from "@/shared/components/loaders/GlobalLoading";
 
 const DriverDocuments: React.FC = () => {
   const [driverData, setDriverData] = useState<DriverData | null>(null);
@@ -256,15 +263,15 @@ const DriverDocuments: React.FC = () => {
   };
 
   // Loading and error states
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#e8c58c] via-[#f5e5c8] to-[#ffffff] pb-20 sm:pb-4 sm:pl-64">
         <DriverNavbar />
-        <div className="p-4 max-w-6xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg text-[#000000] font-bold animate-pulse">Loading documents...</div>
-          </div>
-        </div>
+        <GlobalLoading
+        isLoading={loading}
+        loadingMessage="loading documents"
+      />
       </div>
     );
   }

@@ -23,6 +23,7 @@ interface LoginFormProps {
   userData: UserAuthData;
   setUserData: (value: UserAuthData) => void;
   onGoogleLogin: (data: CredentialResponse) => void;
+  setLoading:(value: boolean) => void;
   loading: boolean;
 }
  interface SignupFormValues {

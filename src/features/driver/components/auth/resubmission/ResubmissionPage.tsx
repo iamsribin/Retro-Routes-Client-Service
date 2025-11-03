@@ -12,7 +12,7 @@ import ResubmissionForm from '../../forms/ResubmissionForm';
 import Loader from '@/shared/components/loaders/shimmer';
 import DriverPhotoPage from '../../../pages/auth/DriverIdentificationPage';
 import LoadingSpinner from '@/shared/components/loaders/LoadingSpinner';
-import ApiEndpoints from '@/constants/api-end-pointes';
+import ApiEndpoints from '@/constants/user-api-end-pointes';
 
 const ResubmissionPage: React.FC = () => {
   const navigate = useNavigate();

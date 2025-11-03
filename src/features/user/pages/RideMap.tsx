@@ -57,7 +57,7 @@ import {
 import { Booking, RideStatusData } from "@/shared/types/user/rideTypes";
 import { Coordinates, Message, ResponseCom } from "@/shared/types/commonTypes";
 import { postData, patchData } from "@/shared/services/api/api-service";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import debounce from "lodash/debounce";
 import { useNotification } from "@/shared/hooks/useNotificatiom";
 import { useChat } from "@/shared/hooks/useChat";

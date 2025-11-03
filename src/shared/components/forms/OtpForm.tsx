@@ -7,7 +7,7 @@ import {
   PinInputField,
 } from "@chakra-ui/react";
 import { toast } from "sonner";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { postData } from "@/shared/services/api/api-service";
 

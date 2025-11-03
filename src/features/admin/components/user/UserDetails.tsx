@@ -7,7 +7,7 @@ import { Dialog } from "@material-tailwind/react";
 import { userBlockUnblockValidation } from "@/shared/utils/validation";
 import { useSocket } from "@/context/socket-context";
 
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { UserInterface } from "@/shared/types/user/userTypes";
 import { fetchData, patchData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";

@@ -80,7 +80,6 @@ const DriverLoginForm = ({
           DriverApiEndpoints.DRIVER_CHECK_LOGIN,
           values
         );
-        console.log("response?.data",response?.data);
         
         const data = response?.data;
         if (data && response?.status === StatusCode.OK) {

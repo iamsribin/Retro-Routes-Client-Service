@@ -5,7 +5,7 @@ import { useFormik } from "formik";
 import { Eye } from "lucide-react";
 import { Button } from "@chakra-ui/react";
 import { userBlockUnblockValidation } from "@/shared/utils/validation";
-import ApiEndpoints from "@/constants/api-end-pointes";
+import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { useSocket } from "@/context/socket-context";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import {
