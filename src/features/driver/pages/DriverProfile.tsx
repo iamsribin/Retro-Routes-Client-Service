@@ -50,7 +50,8 @@ import { handleCustomError } from "@/shared/utils/error";
 import { toast } from "@/shared/hooks/use-toast";
 import { userLogout } from "@/shared/services/redux/slices/userSlice";
 import axios from "axios";
-import { formatDate } from "@/shared/utils/formatDate";
+import { formatCurrency, formatDate } from "@/shared/utils/format";
+import GlobalLoading from "@/shared/components/loaders/GlobalLoading";
 
 interface EditValues {
   name: string;
@@ -194,15 +195,32 @@ const DriverProfile: React.FC = () => {
     ));
   };
 
-  if (loading || !driverData) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-700 animate-pulse">
-          Loading profile...
-        </div>
+      <div className="min-h-screen bg-gradient-to-b from-[#e8c58c] via-[#f5e5c8] to-[#ffffff] pb-20 sm:pb-4 sm:pl-64">
+        <DriverNavbar />
+        <GlobalLoading
+        isLoading={loading}
+        loadingMessage="loading documents"
+      />
       </div>
     );
   }
+
+    if ( !driverData) {
+      return (
+        <div className="min-h-screen bg-gradient-to-b from-[#e8c58c] via-[#f5e5c8] to-[#ffffff] pb-20 sm:pb-4 sm:pl-64">
+          <DriverNavbar />
+          <div className="p-4 max-w-6xl mx-auto">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-lg text-red-600 font-bold">
+                { "No data available"}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
 
   return (
@@ -483,7 +501,7 @@ const DriverProfile: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold text-[#000000] mb-6">
-                  ₹{driverData.walletBalance.toFixed(2)}
+                  ₹{formatCurrency(driverData.walletBalance)}
                 </div>
                 <Button className="w-full bg-[#000000] hover:bg-[#000000]/90 text-[#ffffff] font-bold py-6 text-base rounded-full shadow-xl">
                   View Transaction History

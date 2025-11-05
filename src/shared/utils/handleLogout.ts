@@ -5,6 +5,5 @@ import { deleteData } from "../services/api/api-service";
 
 export const handleLogout = async (role: Role) => {
   await store.dispatch(userLogout());
-  window.location.href = role === "Driver" ? "/driver/login" : "/login";
-  await deleteData(`${role.toLowerCase()}/logout`);
+  await deleteData(`${role.toLowerCase()}/logout`,role);
 };

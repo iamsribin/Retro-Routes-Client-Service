@@ -21,16 +21,16 @@ function UserRoutes() {
     <Route path={AppRoutes.USER_HOME} element={<HomePage />} />
 
        <Route element={<ProtectedRoute allowedRole={ROLE} />}>
+         <Route path={AppRoutes.PROFILE} element={<UserProfile/>}/>
 
-          {/* 
+           {/* 
              <Route path={AppRoutes.TRIPS} element={<ProtectedRoute allowedRole={ROLE}><BookingTransaction/></ProtectedRoute>}/>
              <Route path={`${AppRoutes.GET_MY_TRIP_DETAILS}/:bookingId`} element={<ProtectedRoute allowedRole={ROLE}><BookingDetails/></ProtectedRoute>} />
              <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
              
              <Route path={AppRoutes.PAYMENT} element={<ProtectedRoute allowedRole={ROLE}><PaymentPage/></ProtectedRoute>} /> */}
-       {/* <Route path={AppRoutes.RIDE_TRACKING} element={<ProtectedRoute allowedRole={ROLE}><RideMap/></ProtectedRoute>}/> */}
+           {/* <Route path={AppRoutes.RIDE_TRACKING} element={<ProtectedRoute allowedRole={ROLE}><RideMap/></ProtectedRoute>}/> */}
        </Route>
-             <Route path={AppRoutes.PROFILE} element={<UserProfile/>}/>
        <Route element={<PublicRoutes allowedRoles={["Admin", "User"]} />}>
          <Route path={AppRoutes.LOGIN} element={<LoginPage />} />
          <Route path={AppRoutes.SIGNUP} element={<SignupPage />} />

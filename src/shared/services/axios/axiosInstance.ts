@@ -2,6 +2,7 @@ import { handleLogout } from "@/shared/utils/handleLogout";
 import axios, { CanceledError } from "axios";
 import { authService } from "./authService";
 import { store } from "../redux/store";
+import { toast } from "@/shared/hooks/use-toast";
 
 type Role = "Admin" | "Driver" | "User";
 const API_URL = import.meta.env.VITE_API_GATEWAY_URL;
@@ -15,8 +16,9 @@ export const axiosInstance = axios.create({
 // Request Interceptors
 axiosInstance.interceptors.request.use(
   (config: any) => {
-    const token = authService.get();
-
+    // const token = authService.get();
+    const token = localStorage.getItem("token")
+   
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -53,7 +55,8 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const res = await axios.get(
+        
+         const res = await axios.get(
           `${API_URL}/${role?.toLowerCase()}/refresh`,
           { withCredentials: true }
         );
@@ -66,6 +69,10 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest);
       } catch (refreshError) {        
         await handleLogout(role);
+        toast({ title: "Session expired", description: "Please login again", variant: "info" });
+      setTimeout(() => {
+      window.location.href = role === "Driver" ? "/driver/login" : "/login";
+      }, 1000);
         return Promise.reject(refreshError);
       }
     }

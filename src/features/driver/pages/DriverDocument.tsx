@@ -29,7 +29,7 @@ import { toast } from "@/shared/hooks/use-toast";
 import { store } from "@/shared/services/redux/store";
 import { userLogout } from "@/shared/services/redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
-import { formatDate } from "@/shared/utils/formatDate";
+import { formatDate } from "@/shared/utils/format";
 import { DocumentStatus, DriverData, ImageModal, FormData as DocFormData, ImagePreview, DocumentConfig } from "./type";
 import LoadingSpinner from "@/shared/components/loaders/LoadingSpinner";
 import GlobalLoading from "@/shared/components/loaders/GlobalLoading";

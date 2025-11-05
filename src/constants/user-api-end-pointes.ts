@@ -13,7 +13,7 @@ enum UserApiEndpoints {
   UPLOAD_CHAT_FILE = "/user/uploadChatFile",
 
   // User APIs - User Service
-  USER_PROFILE = '/user/profile',
+  USER_PROFILE = '/user/get-my-profile',
   USER_HOME = '/user/home',
   USER_CHECK_LOGIN = "/user/checkLoginUser",
   BOOK_MY_CAB="/user/book-my-cab",

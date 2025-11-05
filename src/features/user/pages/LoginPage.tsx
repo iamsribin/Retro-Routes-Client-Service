@@ -14,6 +14,7 @@ import { ResponseCom } from "@/shared/types/commonTypes";
 import { userLogin } from "@/shared/services/redux/slices/userSlice";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
+import { authService } from "@/shared/services/axios/authService";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -52,23 +53,18 @@ const Login = () => {
 
       if (response?.status == 200 &&res.message === "Authentication successful") {
         const role = res.role as "User" | "Admin";
-
+        toast({description:"Login Success", variant: "success"});
+        // authService.set(res.token)
+        localStorage.setItem("token",res.token)
+        dispatch(
+          userLogin({ name: res.name, role, id: res._id })
+        );
         if (role === "Admin") {
-          dispatch(
-            userLogin({ name: res.name, role, id: res._id })
-          );
           navigate("/admin/dashboard");
         } else {
-          dispatch(
-            userLogin({
-              name: res.name,
-              id: res._id,
-              role,
-            })
-          );
           navigate("/");
         }
-        toast({description:"Login Success", variant: "success"});
+
       } else if (res.message === "Blocked") {
         toast({description:"Your account is blocked", variant: "success"});
       } else {

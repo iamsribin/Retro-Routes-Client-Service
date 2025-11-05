@@ -68,6 +68,7 @@ useEffect(() => {
           case "Success":
             toast({ description: "Successfully logged in!", variant: "success" });
             authService.set(driverData.token);
+            localStorage.setItem("token",driverData.token)
             dispatch(
               userLogin({
                 name: data.name,

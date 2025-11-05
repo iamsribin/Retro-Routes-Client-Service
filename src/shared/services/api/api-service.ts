@@ -1,5 +1,5 @@
 import { throwCustomError } from "@/shared/utils/error";
-import { axiosInstance } from "../axios/createAxios";
+import { axiosInstance } from "../axios/axiosInstance";
 
 const JSON_TYPE = { "Content-Type": "application/json" };
 
@@ -50,10 +50,11 @@ export const patchData = async <T>(url: string, data?: any) => {
   }
 };
 
-export const deleteData = async <T>(url: string) => {
+export const deleteData = async <T>(url: string,role?:string) => {
   try {
     const response = await axiosInstance.delete(url);
     return response;
+    
   } catch (error) {
     console.log("error in deleteData:", error);
     throwCustomError(error);
