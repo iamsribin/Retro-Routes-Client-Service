@@ -46,22 +46,17 @@ export const handleCustomError = (err: any) => {
     (err?.response && JSON.stringify(err.response.data)) ||
     "An unexpected error occurred!";
 
-  // special-case tokens / session expiry
-  const isJwtExpired =
-    message?.toString().toLowerCase().includes("jwt expired") ||
-    message?.toString().toLowerCase().includes("token expired");
-
   // map status to title + variant + fallback description
   let title = "Error ❌";
   let variant: "default" | "error" | "info" | "warning" | "success" | "destructive" =
     "error";
-  let description = message;
+  const description = message;
 
-  if (isJwtExpired) {
-    title = "Session expired";
-    description = "Refresh the application!";
-    variant = "info";
-  } else {
+  // if (isJwtExpired) {
+  //   title = "Session expired";
+  //   description = "Refresh the application!";
+  //   variant = "info";
+  // } else {
     switch (status) {
       case 400:
         title = "Bad request";
@@ -102,7 +97,7 @@ export const handleCustomError = (err: any) => {
         variant = "error";
         break;
     }
-  }
+  // }
 
   toast({
     title,

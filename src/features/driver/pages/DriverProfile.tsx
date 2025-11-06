@@ -201,7 +201,7 @@ const DriverProfile: React.FC = () => {
         <DriverNavbar />
         <GlobalLoading
         isLoading={loading}
-        loadingMessage="loading documents"
+        title="loading profile..."  
       />
       </div>
     );

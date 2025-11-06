@@ -1,5 +1,5 @@
 enum UserApiEndpoints {
-  // Authentication APIs - User Service
+  // Authentication APIs
   USER_LOGIN = '/user/login',
   USER_REGISTER = '/user/register',
   USER_VERIFY_EMAIL = '/user/verify-email',
@@ -12,11 +12,14 @@ enum UserApiEndpoints {
   COMPLETE_RIDE = "/user/ride-completed",
   UPLOAD_CHAT_FILE = "/user/uploadChatFile",
 
-  // User APIs - User Service
-  USER_PROFILE = '/user/get-my-profile',
-  USER_HOME = '/user/home',
+  // User APIs
   USER_CHECK_LOGIN = "/user/checkLoginUser",
   BOOK_MY_CAB="/user/book-my-cab",
+
+  PROFILE = '/user/me',             
+  UPDATE_AVATAR = '/user/me/avatar', 
+  UPDATE_NAME = '/user/me/name',     
+  HOME = '/user/home'
 
   }
 

@@ -17,11 +17,13 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
-import { fetchData } from "@/shared/services/api/api-service";
+import { fetchData, postData, updateData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { handleCustomError } from "@/shared/utils/error";
 import UserApiEndpoints from "@/constants/user-api-end-pointes";
-import {  formatDate } from "@/shared/utils/format";
+import { formatDate } from "@/shared/utils/format";
+import GlobalLoading from "@/shared/components/loaders/GlobalLoading";
+import { toast } from "@/shared/hooks/use-toast";
 
 interface RideDetails {
   completedRides: number;
@@ -55,19 +57,27 @@ const UserProfilePage = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [loading, setLoading] = useState(false);
 
+  //   const dispatch = useDispatch()
+
+  // dispatch(clearLoading())
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const res = await fetchData<ResponseCom["data"]>(UserApiEndpoints.USER_PROFILE);
-        if(res?.data && res?.status == 200){
+        setLoading(true);
 
+        const res = await fetchData<ResponseCom["data"]>(
+          UserApiEndpoints.PROFILE
+        );
+        if (res?.data && res?.status == 200) {
           setUser(res?.data);
           setTempName(res?.data.name);
         }
-
       } catch (err) {
-       handleCustomError(err)
+        handleCustomError(err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchUserProfile();
@@ -83,20 +93,31 @@ const UserProfilePage = () => {
     }
   };
 
-  const handleSaveImage = () => {
-    if (imagePreview && user) {
-      console.log("handleSaveImage");
-      
-      setUser({ ...user, userImage: imagePreview });
-      setSelectedImage(null);
-      setImagePreview(null);
-    }
-  };
+  const handleSaveImage = async () => {
+    try {
+      if (imagePreview && user && selectedImage) {
+        const formData = new FormData();
+        formData.append("avatar", selectedImage);
 
-  const handleCancelImageEdit = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+        const res = await updateData(UserApiEndpoints.UPDATE_AVATAR, formData);
+        if (res?.status === 201) {
+          setUser({ ...user, userImage: imagePreview });
+          setSelectedImage(null);
+          setImagePreview(null);
+          toast({
+            description: "Avatar updated successfully",
+            variant: "success",
+          });
+        }
+      } else {
+        toast({
+          description: "add a image before submitting",
+          variant: "error",
+        });
+      }
+    } catch (error) {
+      handleCustomError(error);
+    }
   };
 
   const handleSaveName = () => {
@@ -104,6 +125,12 @@ const UserProfilePage = () => {
       setUser({ ...user, name: tempName });
       setIsEditingName(false);
     }
+  };
+
+  const handleCancelImageEdit = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleCancelNameEdit = () => {
@@ -122,10 +149,18 @@ const UserProfilePage = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black to-gray-800 text-white pb-20 sm:pb-4 sm:pl-64">
+        <GlobalLoading isLoading={loading} title="loading profile..." />
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white bg-black">
-        Loading profile...
+        no data found
       </div>
     );
   }
@@ -260,7 +295,11 @@ const UserProfilePage = () => {
                       onClick={copyReferralCode}
                       className="flex items-center px-4 py-2 bg-gray-900 rounded-full"
                     >
-                      {copySuccess ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                      {copySuccess ? (
+                        <Check className="w-4 h-4 mr-2" />
+                      ) : (
+                        <Copy className="w-4 h-4 mr-2" />
+                      )}
                       {copySuccess ? "Copied!" : "Copy"}
                     </button>
                   </div>

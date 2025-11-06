@@ -4,8 +4,7 @@ import PublicRoute from "@/routes/public-route";
 import ProtectedRoute from "@/routes/protected-route";
 import AppRoutes from "@/constants/app-routes";
 import RideNotification from "../components/RideNotification";
-import GlobalLoading from "@/shared/components/loaders/GlobalLoading"; // ensure this component accepts props
-import { Role } from "@/shared/types/commonTypes";
+import GlobalLoading from "@/shared/components/loaders/GlobalLoading"; 
 
 const DriverLoginPage = lazy(() => import("../pages/auth/DriverLoginPage"));
 const DriverSignupPage = lazy(() => import("../pages/auth/DriverSignupPage"));
@@ -20,7 +19,7 @@ const DriverRideMap = lazy(() => import("../pages/DriverRideMap"));
 const DriverDocuments = lazy(() => import("../pages/DriverDocument"));
 
 function DriverRoutes() {
-  // you can control props (dd) here or compute based on route or network conditions
+
   const loaderProps = {
     isLoading: true,
     loadingMessage: "Loading page..."

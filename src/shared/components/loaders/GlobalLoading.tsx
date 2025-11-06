@@ -22,6 +22,7 @@ type LoadingProps = {
   loadingType?: LoadingType | string;
   loadingMessage?: string;
   progress?: number;
+  title?:string,
 };
 
 interface LoadingConfig {
@@ -34,7 +35,7 @@ interface LoadingConfig {
 
 // use string index so custom strings also work
 const loadingConfigs: Record<string, LoadingConfig> = {
-  default: {
+  "default": {
     icon: <Car className="w-8 h-8" />,
     title: "Loading...",
     defaultMessage: "Please wait",
@@ -158,19 +159,18 @@ const Spinner: React.FC<{ color: string }> = ({ color }) => (
 const GlobalLoading: React.FC<LoadingProps> = (props) => {
   // fallback to redux store when props are not provided
   const store = useSelector((state: RootState) => state.loading);
-console.log("props",{...props});
 
   const isLoading = typeof props.isLoading === "boolean" ? props.isLoading : store.isLoading;
   const loadingType = props.loadingType ?? store.loadingType ?? "default";
   const loadingMessage = props.loadingMessage ?? store.loadingMessage;
   const progress = typeof props.progress === "number" ? props.progress : store.progress;
-
   if (!isLoading) return null;
-
+  
   console.log({isLoading,loadingType,loadingMessage,progress});
   
   const config = loadingConfigs[loadingType] ?? loadingConfigs["default"];
   const displayMessage = loadingMessage || config.defaultMessage;
+  const title = props.title ?? "";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] backdrop-blur-sm">
@@ -187,7 +187,7 @@ console.log("props",{...props});
           </div>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">{config.title}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
         <p className="text-gray-600 mb-4 text-sm leading-relaxed">{displayMessage}</p>
 
         {typeof progress === "number" && (
