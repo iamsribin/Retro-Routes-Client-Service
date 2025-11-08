@@ -10,21 +10,18 @@ import ProtectedRoute from "@/routes/protected-route";
 import NotFound from "@/shared/components/NotFound";
 import AppRoutes from "@/constants/app-routes";
 
-const ROLE = "Admin";
-
 function AdminRoutes() {
   return (
     <Routes>
         <Route element={<ProtectedRoute allowedRole={"Admin"} />}>
            <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
-
+           <Route path={AppRoutes.ADMIN_USERS} element={<Users />} />
+           <Route path={AppRoutes.ADMIN_DRIVERS} element={<Drivers />} />
          </Route>
       {/* 
-      <Route path={AppRoutes.ADMIN_USERS} element={<ProtectedRoute allowedRole={ROLE}><Users /></ProtectedRoute>} />
       <Route path={AppRoutes.ADMIN_USER_DETAILS+"/:id"} element={<ProtectedRoute allowedRole={ROLE}><AdminUserDetails /></ProtectedRoute>} />
       <Route path={AppRoutes.ADMIN_PENDING_DRIVER_DETAILS+"/:id"}element={<ProtectedRoute allowedRole={ROLE}><DriverDetails /></ProtectedRoute>} />
       <Route path={AppRoutes.ADMIN_DRIVER_DETAILS+"/:id"} element={<ProtectedRoute allowedRole={ROLE}><DriverDetails /></ProtectedRoute>} />
-      <Route path={AppRoutes.ADMIN_DRIVERS} element={<ProtectedRoute allowedRole={ROLE}><Drivers /></ProtectedRoute>} />
        */}
       <Route path="*" element={<NotFound />} />
     </Routes>

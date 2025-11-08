@@ -330,7 +330,7 @@ const DriverNavbar = () => {
                 className={({ isActive }) => linkStyles(isActive)}
               >
                 <MapPin className="mr-0 sm:mr-3 h-5 w-5" />
-                <span className="hidden sm:inline">My Trips</span>
+                <span className="hidden sm:inline">Trips</span>
               </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem className="w-full">

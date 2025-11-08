@@ -14,7 +14,7 @@ import {
 import { LayoutDashboard, Users, Car, Gift, PieChart, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { handleLogout } from '@/shared/utils/handleLogout';
+// import { handleLogout } from '@/shared/utils/handleLogout';
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -74,7 +74,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <SidebarMenuButton 
               className="w-full py-3 px-4 rounded-xl text-gray-600 hover:bg-gray-100 transition-all duration-300"
               onClick={() => {
-                handleLogout("Admin")
+                // handleLogout("Admin")
               }}
             >
               <LogOut className="h-5 w-5 mr-3" />

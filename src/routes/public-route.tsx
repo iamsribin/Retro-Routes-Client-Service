@@ -3,7 +3,7 @@ import { Role } from "@/shared/types/commonTypes";
 import { Navigate, Outlet } from "react-router-dom";
 
 interface PropsType {
-  allowedRoles: Role[]; // now accepts multiple
+  allowedRoles: Role[]; 
 }
 
 function PublicRoutes({ allowedRoles }: PropsType) {

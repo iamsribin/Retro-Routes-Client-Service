@@ -10,7 +10,6 @@ import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { LoginFormProps } from "./type";
 import { postData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
-import { authService } from "@/shared/services/axios/authService";
 import { userLogin } from "@/shared/services/redux/slices/userSlice";
 import { useDispatch } from "react-redux";
 import { toast } from "@/shared/hooks/use-toast";
@@ -98,7 +97,7 @@ const LoginForm = ({
  try {
   await confirmationResult.confirm(otp.toString());
   
-  authService.set(userData.userToken);
+  // authService.set(userData.userToken);
   dispatch(
     userLogin({
       name: userData.user,

@@ -7,13 +7,8 @@ import Testimonials from '../components/home/Testimonials';
 import CTA from '../components/home/CTA';
 import RideBooking from '../components/home/RideBooking';
 import HowItWorks from '../components/home/HowItWorks';
-import { authService } from '@/shared/services/axios/authService';
 
 const Index: React.FC = () => {
-
-  console.log("tokeeeen",authService.get());
-  
-
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />

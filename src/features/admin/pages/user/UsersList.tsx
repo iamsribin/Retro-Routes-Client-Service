@@ -1,99 +1,66 @@
-import React, { useState, useEffect, useCallback } from "react";
-import AdminLayout from "../../components/admin/AdminLayout";
-import UserList from "../../components/user/UserList";
-import { toast } from "sonner";
-import { cn } from "@/shared/lib/utils";
-import { useDispatch } from "react-redux";
-import ApiEndpoints from "@/constants/user-api-end-pointes";
-import { fetchData } from "@/shared/services/api/api-service";
-import { ResponseCom } from "@/shared/types/commonTypes";
-
-interface PaginationState {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  itemsPerPage: number;
-}
+import React, { useState, useCallback } from 'react';
+import AdminLayout from '../../components/admin/AdminLayout';
+import UserList from '../../components/user/UserList';
+import { cn } from '@/shared/lib/utils';
+import { fetchData } from '@/shared/services/api/api-service';
+import { AdminApiEndpoints } from '@/constants/admin-api-end-pointes';
+import { usePaginatedSearch } from '@/shared/hooks/usePaginatedSearch';
+import { SearchInput } from '@/shared/components/SearchInput';
+import { Pagination } from '@/shared/components/Pagination';
 
 const Users: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"active" | "block">("active");
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState<PaginationState>({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 6,
-  });
-  const [currentSearch, setCurrentSearch] = useState("");
-
-  const dispatch = useDispatch();
+  const [activeTab, setActiveTab] = useState<'active' | 'block'>('active');
 
   const fetchUsers = useCallback(
-    async (search: string = "", page: number = 1) => {
-      setLoading(true);
-      try {
-        const endpoint =
-          activeTab === "active"
-            ? ApiEndpoints.ADMIN_ACTIVE_USERS
-            : ApiEndpoints.ADMIN_BLOCKED_USERS;
+    async ({ page, limit, search, signal }: any) => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        status: activeTab === 'active' ? 'Good' : 'Block',
+        ...(search ? { search } : {}),
+      });
 
-        const params = new URLSearchParams({
-          page: page.toString(),
-          status: activeTab == "active" ? "Good" : "Block",
-          limit: pagination.itemsPerPage.toString(),
-          ...(search && { search }),
-        });
-
-        // const { data } = await axiosAdmin(dispatch).get(`${endpoint}?${params}`);
-        const data = await fetchData<ResponseCom["data"]>(
-          `${endpoint}?${params}`,
-          "Admin"
-        );
-
-        console.log(`${activeTab.toUpperCase()}_USERS`, data);
-
-        setUsers(data.users || data.Users || []);
-        setPagination((prev) => ({
-          ...prev,
-          currentPage: data.pagination?.currentPage || page,
-          totalPages: data.pagination?.totalPages || 1,
-          totalItems: data.pagination?.totalItems || data.users?.length || 0,
-        }));
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        toast.error(
-          (error as Error).message || `Failed to fetch ${activeTab} users`
-        );
-        setUsers([]);
-        setPagination((prev) => ({
-          ...prev,
-          currentPage: 1,
+      const data = await fetchData<{
+        users: any[];
+        pagination: {
+          currentPage: number;
+          totalPages: number;
+          totalItems: number;
+          itemsPerPage: number;
+        };
+      }>(`${AdminApiEndpoints.USERS}?${params}`, signal);
+      const res = data?.data
+      return {
+        data: res?.users || [],
+        pagination: res?.pagination || {
+          currentPage: page,
           totalPages: 1,
           totalItems: 0,
-        }));
-      } finally {
-        setLoading(false);
-      }
+          itemsPerPage: limit,
+        },
+      };
     },
-    [activeTab, pagination.itemsPerPage, dispatch]
+    [activeTab]
   );
 
-  // Handle search and pagination changes
-  const handleSearchAndPagination = useCallback(
-    (search: string, page: number) => {
-      setCurrentSearch(search);
-      fetchUsers(search, page);
-    },
-    [fetchUsers]
-  );
+  const {
+    data: users,
+    loading,
+    pagination,
+    searchTerm,
+    setSearchTerm,
+    setPage,
+    refresh,
+  } = usePaginatedSearch({
+    fetchFn: fetchUsers,
+    itemsPerPage: 6,
+    debounceMs: 500,
+  });
 
-  // Reset search and pagination when tab changes
-  useEffect(() => {
-    setCurrentSearch("");
-    setPagination((prev) => ({ ...prev, currentPage: 1 }));
-    fetchUsers("", 1);
-  }, [activeTab, fetchUsers]);
+  const handleTabChange = (tab: 'active' | 'block') => {
+    setActiveTab(tab);
+    setSearchTerm(''); 
+  };
 
   return (
     <AdminLayout>
@@ -102,39 +69,40 @@ const Users: React.FC = () => {
           User Management
         </h1>
 
+        {/* Tab Buttons */}
         <div className="mb-6">
           <div className="inline-flex rounded-md shadow-sm" role="group">
             <button
-              onClick={() => setActiveTab("active")}
+              onClick={() => handleTabChange('active')}
               disabled={loading}
               className={cn(
-                "px-4 py-2 text-sm font-medium border rounded-l-lg transition-colors",
-                activeTab === "active"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-900 border-gray-200 hover:bg-gray-100",
-                loading && "opacity-50 cursor-not-allowed"
+                'px-4 py-2 text-sm font-medium border rounded-l-lg transition-colors',
+                activeTab === 'active'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100',
+                loading && 'opacity-50 cursor-not-allowed'
               )}
             >
               Active Users
-              {activeTab === "active" && pagination.totalItems > 0 && (
+              {activeTab === 'active' && pagination.totalItems > 0 && (
                 <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs">
                   {pagination.totalItems}
                 </span>
               )}
             </button>
             <button
-              onClick={() => setActiveTab("block")}
+              onClick={() => handleTabChange('block')}
               disabled={loading}
               className={cn(
-                "px-4 py-2 text-sm font-medium border rounded-r-lg transition-colors",
-                activeTab === "block"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-900 border-gray-200 hover:bg-gray-100",
-                loading && "opacity-50 cursor-not-allowed"
+                'px-4 py-2 text-sm font-medium border rounded-r-lg transition-colors',
+                activeTab === 'block'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100',
+                loading && 'opacity-50 cursor-not-allowed'
               )}
             >
               Blocked Users
-              {activeTab === "block" && pagination.totalItems > 0 && (
+              {activeTab === 'block' && pagination.totalItems > 0 && (
                 <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs">
                   {pagination.totalItems}
                 </span>
@@ -143,13 +111,31 @@ const Users: React.FC = () => {
           </div>
         </div>
 
+        {/* Search Input */}
+        <div className="mb-6 flex justify-end">
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search by name or email..."
+            loading={loading}
+            className="max-w-sm"
+          />
+        </div>
+
+        {/* User List */}
         <UserList
           users={users}
           type="user"
           isBlocked={activeTab}
-          onSearchChange={handleSearchAndPagination}
-          pagination={pagination}
           loading={loading}
+        />
+
+        {/* Pagination */}
+        <Pagination
+          pagination={pagination}
+          onPageChange={setPage}
+          loading={loading}
+          itemName="users"
         />
       </div>
     </AdminLayout>

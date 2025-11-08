@@ -15,7 +15,6 @@ import { ResponseCom } from "@/shared/types/commonTypes";
 import { StatusCode } from "@/shared/types/enum";
 import { setItem } from "@/shared/utils/localStorage";
 import { userLogin } from "@/shared/services/redux/slices/userSlice";
-import { authService } from "@/shared/services/axios/authService";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
 

@@ -1,23 +1,21 @@
-
 export enum AdminApiEndpoints {
-  ADMIN_VEHICLE_MODELS = "/vehicleModels",
-  // Admin APIs - Admin Service
-  ADMIN_GET_DRIVERS = "/get-drivers-list",
-  ADMIN_PENDING_DRIVERS ="/pendingDrivers",
-  ADMIN_BLOCKED_DRIVERS ="/blockedDrivers",
+  BASE = "/admin",
 
-  ADMIN_UPDATE_DRIVER_STATUS = "/driver/verify/",
-  ADMIN_DRIVER_DETAILS = "/driverDetails",
+  // Vehicles
+  VEHICLE_MODELS = "/admin/vehicle-models",           // GET, POST
+  VEHICLE_MODEL = "/admin/vehicle-models/:id",        // GET, PATCH, DELETE
 
-  ADMIN_DASHBOARD = '/admin/dashboard',
+  // Drivers
+  DRIVERS = "/admin/drivers",                         // GET (list), POST (create)
+  DRIVER = "/admin/drivers/:driverId",               // GET (details), PATCH (update), DELETE
+  DRIVER_STATUS = "/admin/drivers/:driverId/status", // PATCH (change status e.g. verify/block)
+  DRIVER_VERIFICATIONS = "/admin/drivers/:driverId/verifications", // POST for verification attempts
 
-  ADMIN_UPDATE_USER_STATUS = "/updateUserStatus",
-  ADMIN_ACTIVE_USERS = "/getActiveUserData",
-  ADMIN_BLOCKED_USERS = "/blockedUserData",
+  // Users
+  USERS = "/admin/users",                            // GET (list)
+  USER = "/admin/users/:userId",                     // GET, PATCH
+  USER_STATUS = "/admin/users/:userId/status",       // PATCH
 
-
-
-  ADMIN_USER_DETAILS = '/userData',
-  ADMIN_DRIVERS = '/admin/drivers',
-
+  // Dashboard / aggregated
+  DASHBOARD = "/admin/dashboard",                    // GET (summary metrics)
 }

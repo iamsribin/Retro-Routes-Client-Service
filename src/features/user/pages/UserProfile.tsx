@@ -17,7 +17,11 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
-import { fetchData, postData, updateData } from "@/shared/services/api/api-service";
+import {
+  fetchData,
+  postData,
+  updateData,
+} from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { handleCustomError } from "@/shared/utils/error";
 import UserApiEndpoints from "@/constants/user-api-end-pointes";
@@ -59,9 +63,6 @@ const UserProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
 
-  //   const dispatch = useDispatch()
-
-  // dispatch(clearLoading())
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -98,6 +99,7 @@ const UserProfilePage = () => {
       if (imagePreview && user && selectedImage) {
         const formData = new FormData();
         formData.append("avatar", selectedImage);
+        setLoading(true);
 
         const res = await updateData(UserApiEndpoints.UPDATE_AVATAR, formData);
         if (res?.status === 201) {
@@ -117,13 +119,31 @@ const UserProfilePage = () => {
       }
     } catch (error) {
       handleCustomError(error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     if (user) {
-      setUser({ ...user, name: tempName });
-      setIsEditingName(false);
+      try {
+        setLoading(true);
+        const res = await updateData(UserApiEndpoints.UPDATE_NAME, {
+          tempName,
+        });
+        if (res?.status === 200) {
+          toast({
+            description: "name updated successfully",
+            variant: "success",
+          });
+          setIsEditingName(false);
+        }
+      } catch (error) {
+        handleCustomError(error);
+      } finally {
+        setIsEditingName(false);
+        setLoading(false);
+      }
     }
   };
 

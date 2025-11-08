@@ -11,7 +11,6 @@ import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
 import { StatusCode } from "@/shared/types/enum";
 import { setItem } from "@/shared/utils/localStorage";
 import { userLogin } from "@/shared/services/redux/slices/userSlice";
-import { authService } from "@/shared/services/axios/authService";
 import { useDispatch } from "react-redux";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
@@ -83,7 +82,7 @@ const DriverLoginForm = ({
         
         const data = response?.data;
         if (data && response?.status === StatusCode.OK) {
-          if (data.message === "Success") {
+          if (response.status == 200 && data.message === "Success") {
             await sendOtp(setOtp, auth, values.mobile, setConfirmationResult,setOtpInput);
           } else if (data.message === "Pending") {
             setPendingModal(true);
@@ -138,7 +137,6 @@ const DriverLoginForm = ({
       const data = response?.data;
       if (data && data.message === "Success"&& response?.status === StatusCode.OK) {
         toast({ description: "Login successful!", variant: "success" });
-        authService.set(data.token);
         dispatch(
           userLogin({
             name: data.name,

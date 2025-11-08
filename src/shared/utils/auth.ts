@@ -21,26 +21,25 @@ export const broadcastLogout = () => {
 
 export const handleLogout = async (redirect = true) => {
   try {
-    // call backend logout to blacklist refresh token and clear cookies
     await axios.post(`${API_URL}/logout`, {}, { withCredentials: true });
   } catch (err) {
     console.warn("logout request failed", err);
   }
-
+    const role = store.getState().user.role;
   store.dispatch(userLogout());
 
   broadcastLogout();
 
   if (redirect) {
     toast({ title: "Logged out", description: "Please login again", variant: "info" });
-    setTimeout(() => (window.location.href = "/login"), 500);
+    setTimeout(() => (window.location.href = role === "Driver" ? "/driver/login": "/login"), 1000);
   }
 };
 
 // listen for logout in other tabs
 if (bc) {
   bc.onmessage = (ev) => {
-    if (ev.data?.type === "logout") window.location.href = "/login";
+    if (ev.data?.type === "logout") window.location.href =  "/login";
   };
 } else {
   window.addEventListener("storage", (ev) => {
@@ -48,7 +47,6 @@ if (bc) {
   });
 }
 
-// export shared helpers
 export const startRefresh = (call: () => Promise<void>) => {
   if (!refreshingPromise) {
     refreshingPromise = call()

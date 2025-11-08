@@ -14,7 +14,6 @@ import { ResponseCom } from "@/shared/types/commonTypes";
 import { userLogin } from "@/shared/services/redux/slices/userSlice";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
-import { authService } from "@/shared/services/axios/authService";
 
 const Login = () => {
   const navigate = useNavigate();

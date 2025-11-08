@@ -78,18 +78,21 @@
 
 import axios from "axios";
 import { startRefresh, handleLogout } from "../../utils/auth";
-import { store } from "../redux/store";
 
-const API_URL = import.meta.env.VITE_API_GATEWAY_URL;
+const API_VERSION = import.meta.env.VITE_API_VERSION ?? 'v2';
+const API_URL = `${import.meta.env.VITE_API_GATEWAY_URL}/${API_VERSION}`;
 
 export const axiosInstance = axios.create({
   baseURL: API_URL,
   withCredentials: true,
 });
 
-axiosInstance.interceptors.request.use((config: any) => {
-  return config;
-});
+axiosInstance.interceptors.request.use(
+  (config) => config,
+  (error) => {
+    return Promise.reject(error);
+  },
+)
 
 axiosInstance.interceptors.response.use(
   (res) => res,
@@ -106,13 +109,11 @@ axiosInstance.interceptors.response.use(
       try {
         // ensures only one /refresh call runs concurrently
         await startRefresh(async () => {
-          // server will set cookies (accessToken) if successful
           await axios.get(`${API_URL}/refresh`, { withCredentials: true });
         });
 
         return axiosInstance(originalRequest);
       } catch (refreshErr) {
-        // token refresh failed -> fully log out user
         await handleLogout();
         return Promise.reject(refreshErr);
       }

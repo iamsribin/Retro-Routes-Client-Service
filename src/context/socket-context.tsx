@@ -34,7 +34,7 @@ import {
 import { RideRequest } from "@/shared/types/driver/ridetype";
 import { useLoading } from "@/shared/hooks/useLoading";
 import { getItem, setItem } from "@/shared/utils/localStorage";
-import { handleLogout } from "@/shared/utils/handleLogout";
+// import { handleLogout } from "@/shared/utils/handleLogout";
 import { setOnline, userLogout } from "@/shared/services/redux/slices/userSlice";
 
 interface SocketContextType {
@@ -170,7 +170,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           navigate: "/login",
         })
       );
-      handleLogout(role)
+      // handleLogout(role)
     //   if (role === "User") handleLogout("User", dispatch);
     //   else if (role === "Driver") handleLogout("Driver", dispatch);
     //   else if (role === "Admin") handleLogout("Admin", dispatch);
