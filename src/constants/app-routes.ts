@@ -19,10 +19,9 @@ enum AppRoutes {
     RIDE_TRACKING="ride-tracking",
     // Admin Routes
     ADMIN_USERS = 'users',
-    ADMIN_USER_DETAILS = 'user/:id',
-    ADMIN_PENDING_DRIVER_DETAILS = 'PendingDriverDetails',
     ADMIN_DRIVERS = 'drivers',
     //admin navigate
+    ADMIN_USER_DETAILS = '/admin/users/:id',
     ADMIN_DRIVER_DETAILS = '/admin/drivers/:id',
 }
 

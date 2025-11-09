@@ -8,7 +8,7 @@ enum UserApiEndpoints {
   REGISTER = '/users/register',
   CHECK_USER ='/users/check-registration',
   CHECK_GOOGLE_LOGIN ="/users/check-login-email",
-  CHECK_LOGIN = "/users/check-login-number",
+  CHECK_LOGIN_NUMBER = "/users/check-login-number",
   RESENT_OTP = "/users/resend-otp",
   // User 
   PROFILE = '/users/me',             

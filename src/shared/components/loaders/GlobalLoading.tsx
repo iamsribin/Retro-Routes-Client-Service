@@ -165,9 +165,7 @@ const GlobalLoading: React.FC<LoadingProps> = (props) => {
   const loadingMessage = props.loadingMessage ?? store.loadingMessage;
   const progress = typeof props.progress === "number" ? props.progress : store.progress;
   if (!isLoading) return null;
-  
-  console.log({isLoading,loadingType,loadingMessage,progress});
-  
+    
   const config = loadingConfigs[loadingType] ?? loadingConfigs["default"];
   const displayMessage = loadingMessage || config.defaultMessage;
   const title = props.title ?? "";

@@ -10,6 +10,7 @@ import { ResponseCom } from "@/shared/types/commonTypes";
 import {
   fetchData,
   patchData,
+  updateData,
 } from "@/shared/services/api/api-service";
 import { AdminApiEndpoints } from "@/constants/admin-api-end-pointes";
 import { toast } from "@/shared/hooks/use-toast";
@@ -50,7 +51,7 @@ const UserDetails = () => {
     onSubmit: async (values, { setSubmitting }) => {
       try {
 
-        const res = await patchData<ResponseCom["data"]>(
+        const res = await updateData<ResponseCom["data"]>(
           AdminApiEndpoints.USER + `?id=${id}`,
           values
         );

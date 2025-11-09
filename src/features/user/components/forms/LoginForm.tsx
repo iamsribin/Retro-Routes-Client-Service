@@ -54,7 +54,7 @@ const LoginForm = ({
       try {
         setLoading(true);
         const response = await postData<ResponseCom["data"]>(
-          ApiEndpoints.USER_CHECK_LOGIN,
+          ApiEndpoints.CHECK_LOGIN_NUMBER,
           values
         );
         const data = response?.data;

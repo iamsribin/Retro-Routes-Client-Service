@@ -8,7 +8,7 @@ enum DriverApiEndpoints {
   REGISTER = "/drivers/register",
   REGISTER_LOCATION = "/drivers/location/register",
   // doc
-  RESUBMISSION = "/drivers/me/documents/resubmit",
+  RESUBMISSION = "/drivers/documents/resubmission/:id",
   REGISTER_VEHICLE = "/drivers/vehicle/register",
   REGISTER_IDENTIFICATION = "/drivers/identification/register",
   REGISTER_INSURANCE = "/drivers/insurance/register",

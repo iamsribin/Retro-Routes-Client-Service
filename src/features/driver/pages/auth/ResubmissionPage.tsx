@@ -1,7 +1,6 @@
 import { useEffect, useState, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
-import { toast } from "sonner";
 import { ResubmissionValidation } from "@/shared/utils/validation";
 import ResubmissionHeader from "../../components/auth/resubmission/ResubmissionHeader";
 import ResubmissionForm from "@/features/driver/components/forms/ResubmissionForm";
@@ -15,8 +14,10 @@ import {
   ResubmissionFormValues,
 } from "@/shared/types/commonTypes";
 import { getItem, removeItem } from "@/shared/utils/localStorage";
-import { fetchData, postData } from "@/shared/services/api/api-service";
+import { fetchData, postData, updateData } from "@/shared/services/api/api-service";
 import DriverApiEndpoints from "@/constants/driver-api-end-pontes";
+import { toast } from "@/shared/hooks/use-toast";
+import { handleCustomError } from "@/shared/utils/error";
 
 const ResubmissionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,14 +46,17 @@ const ResubmissionPage: React.FC = () => {
   useEffect(() => {
     const controller = new AbortController();
     const fetchResubmissionData = async () => {
-      
-      const data = await fetchData<ResponseCom>(
-        DriverApiEndpoints.DRIVER_RESUBMISSION + `/${driverId}`,
-        "Driver",
+      if(!driverId) {
+      toast({description:"driver id is missing login again"})
+      navigate("/driver/login")
+      return
+      }
+      const res = await fetchData<ResponseCom["data"]>(
+        DriverApiEndpoints.RESUBMISSION.replace(":id",driverId),
         controller.signal
       );
-
-      const fields: string[] = data.data?.fields;
+      const data = res?.data;
+      const fields: string[] = data?.data.fields;
       if (!Array.isArray(fields)) {
         throw new Error("Fields is not an array");
       }
@@ -97,6 +101,11 @@ const ResubmissionPage: React.FC = () => {
     validationSchema: ResubmissionValidation(resubmissionData?.fields || []),
     enableReinitialize: true,
     onSubmit: async (values, { setSubmitting }) => {
+      if(!driverId){
+      toast({description:"driver id is missing login again"})
+      navigate("/driver/login")
+      return
+      }
       const formData = new FormData();
       const fieldMappings: { [key: string]: string[] } = {
         aadhar: ["aadharID", "aadharFrontImage", "aadharBackImage"],
@@ -134,17 +143,14 @@ const ResubmissionPage: React.FC = () => {
       });
 
       try {
-        await postData(
-          `${DriverApiEndpoints.DRIVER_RESUBMISSION}?driverId=${driverId}`,
-          "Driver",
+        await updateData(
+          DriverApiEndpoints.RESUBMISSION.replace(":id", driverId),
           formData
         );
-        toast.success("Resubmission successfully completed");
+        toast({description:"Resubmission successfully completed", variant:"success"});
         navigate("/driver/login");
       } catch (error: any) {
-        toast.error(
-          error.response?.data?.message || error.message || "Unknown error"
-        );
+        handleCustomError(error)
       } finally {
         setSubmitting(false);
       }

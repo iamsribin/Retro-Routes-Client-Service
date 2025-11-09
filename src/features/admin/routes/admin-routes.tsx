@@ -9,6 +9,7 @@ import DriverDetails from "../pages/driver/DriverDetails";
 import ProtectedRoute from "@/routes/protected-route";
 import NotFound from "@/shared/components/NotFound";
 import AppRoutes from "@/constants/app-routes";
+import UserDetails from "../pages/user/UserDetailsPage";
 
 function AdminRoutes() {
   return (
@@ -18,9 +19,9 @@ function AdminRoutes() {
            <Route path={AppRoutes.ADMIN_USERS} element={<Users />} />
            <Route path={AppRoutes.ADMIN_DRIVERS} element={<Drivers />} />
           <Route path={"drivers/:id"} element={<DriverDetails />} />
+          <Route path={"users/:id"} element={<UserDetails />} />
          </Route>
       {/* 
-      <Route path={AppRoutes.ADMIN_PENDING_DRIVER_DETAILS+"/:id"}element={<ProtectedRoute allowedRole={ROLE}><DriverDetails /></ProtectedRoute>} />
       <Route path={AppRoutes.ADMIN_DRIVER_DETAILS+"/:id"} element={<ProtectedRoute allowedRole={ROLE}><DriverDetails /></ProtectedRoute>} />
        */}
       <Route path="*" element={<NotFound />} />

@@ -46,7 +46,7 @@ Thanks for your patience.
                                     <button
                                         onClick={() => {
                                             onClose()
-                                            navigate('/driver/identification')
+                                            navigate('/driver/resubmission')
                                         }
                                         }
                                         className="w-full px-4 ml-4 py-2 mt-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-600 rounded-md sm:w-auto sm:mt-0 hover:bg-blue-500 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40">

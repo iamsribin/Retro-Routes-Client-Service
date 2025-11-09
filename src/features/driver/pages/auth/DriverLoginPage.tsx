@@ -55,7 +55,7 @@ useEffect(() => {
     const decode = jwtDecode<DecodedToken>(token);
     try {
       const res = await postData<ResponseCom["data"]>(
-        DriverApiEndpoints.DRIVER_CHECK_GOOGLE_LOGIN,
+        DriverApiEndpoints.GOOGLE_LOGIN,
         {
           email: decode.email,
         }
@@ -63,11 +63,11 @@ useEffect(() => {
 
       const data = res?.data;
       if (data?.status == StatusCode.OK) {
+        console.log("data",data);
+        
         switch (data.message) {
           case "Success":
             toast({ description: "Successfully logged in!", variant: "success" });
-            // authService.set(driverData.token);
-            localStorage.setItem("token",driverData.token)
             dispatch(
               userLogin({
                 name: data.name,
@@ -89,7 +89,7 @@ useEffect(() => {
             break;
           case "Rejected":
             setItem("role", "Resubmission");
-            setItem("driverId", data.driverId);
+            setItem("driverId", data.id);
             setRejectModal(true);
             break;
           default:

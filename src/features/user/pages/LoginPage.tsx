@@ -6,7 +6,6 @@ import { CredentialResponse } from "@react-oauth/google";
 import LoginForm from "../components/forms/LoginForm";
 import { auth } from "@/shared/services/firebase";
 import { jwtDecode } from "jwt-decode";
-import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { DecodedToken } from "../components/forms/type";
 import { UserAuthData } from "@/shared/types/user/userTypes";
 import { postData } from "@/shared/services/api/api-service";
@@ -14,6 +13,7 @@ import { ResponseCom } from "@/shared/types/commonTypes";
 import { userLogin } from "@/shared/services/redux/slices/userSlice";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
+import UserApiEndpoints from "@/constants/user-api-end-pointes";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ const Login = () => {
       setLoading(true);
 
       const response = await postData<ResponseCom["data"]>(
-        ApiEndpoints.USER_CHECK_GOOGLE_LOGIN,
+        UserApiEndpoints.CHECK_GOOGLE_LOGIN,
         { email: decode.email }
       );
 

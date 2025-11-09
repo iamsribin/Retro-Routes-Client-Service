@@ -10,12 +10,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import DriverDetailsTab from "@/features/admin/components/DriverDetailsTab";
 import DriverDocumentsTab from "@/features/admin/components/DriverDocumentsTab";
 import DriverAccountTab from "@/features/admin/components/DriverAccountTab";
-import { fetchData, postData } from "@/shared/services/api/api-service";
+import {
+  fetchData,
+  patchData,
+} from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { AdminApiEndpoints } from "@/constants/admin-api-end-pointes";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
 import { AdminDriverDetailsDTO } from "../../type";
+import { AccountStatus } from "@/shared/types/driver/driverType";
+import GlobalLoading from "@/shared/components/loaders/GlobalLoading";
 
 const PendingDriverDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,22 +41,23 @@ const PendingDriverDetails = () => {
 
     const fetchDriver = async () => {
       try {
-        if(!id) {
-          toast({description:"id is missing", variant: "error"});
-          return
+        if (!id) {
+          toast({ description: "id is missing", variant: "error" });
+          return;
         }
         setLoading(true);
         const res = await fetchData<ResponseCom["data"]>(
-          AdminApiEndpoints.DRIVER.replace(":id",id),signal);
+          AdminApiEndpoints.DRIVER.replace(":id", id),
+          signal
+        );
 
-          const data = res?.data;
-          console.log("dta",data);
-          
-          if(res?.status == 200){
-            setDriver(data);
-          }
+        const data = res?.data;
+
+        if (res?.status == 200) {
+          setDriver(data);
+        }
       } catch (error: any) {
-          handleCustomError(error)
+        handleCustomError(error);
       } finally {
         setLoading(false);
       }
@@ -69,12 +75,20 @@ const PendingDriverDetails = () => {
     fields?: string[]
   ) => {
     if (!note.trim()) {
-      toast({description:"Please provide a note", variant:"error"});
+      toast({ description: "Please provide a note", variant: "error" });
       return;
     }
 
     if (status === "Rejected" && (!fields || fields.length === 0)) {
-      toast({description:"Please select at least one document for resubmission", variant:"error"});
+      toast({
+        description: "Please select at least one document for resubmission",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!id) {
+      toast({ description: "driver id is missing", variant: "error" });
       return;
     }
 
@@ -84,32 +98,34 @@ const PendingDriverDetails = () => {
         : { status, note: note.trim() };
 
     try {
-       const res = await postData<ResponseCom["data"]>(
-        `${AdminApiEndpoints.DRIVER}${id}`,
+      setLoading(true)
+      const res = await patchData<ResponseCom["data"]>(
+        AdminApiEndpoints.DRIVER_STATUS.replace(":driverId", id),
         payload
       );
-      // const data = res?.data;
-      if (res && res.status === 200) {
-
-        toast({description:
-          `Driver ${
-            status === "Rejected" ? "rejected and set to Pending" : status
-          } successfully`, variant:"error"
-      });
-        // navigate("/admin/drivers");
+      if (res && res.status === 200 && status !=="Rejected") {
+        toast({
+          description: `Driver ${status} successfully`, variant: "success",
+        });
+        setNote("");
+        setDriver((prev) =>
+          prev ? { ...prev, accountStatus: status as AccountStatus } : prev
+        );
+      }else if(status == "Rejected"){
+        toast({description:"Driver request rejected successfully"});
+        navigate("/admin/drivers")
       }
     } catch (error) {
-      handleCustomError(error)
+      handleCustomError(error);
+    }finally{
+      setLoading(false)
     }
   };
 
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex justify-center items-center h-full text-gray-600">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          <span className="ml-3">Loading driver details...</span>
-        </div>
+        <GlobalLoading isLoading={loading} loadingType="profile"/>
       </AdminLayout>
     );
   }

@@ -40,7 +40,7 @@ function DriverRoutes() {
           <Route element={<PublicRoute allowedRoles={["Driver"]} />}>
             <Route path={AppRoutes.LOGIN} element={<DriverLoginPage />} />
             <Route path={AppRoutes.SIGNUP} element={<DriverSignupPage />} />
-            <Route path={AppRoutes.DRIVER_IDENTIFICATION} element={<ResubmissionPage />} />
+            <Route path={AppRoutes.DRIVER_RESUBMISSION} element={<ResubmissionPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

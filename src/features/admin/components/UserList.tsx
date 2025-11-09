@@ -40,13 +40,9 @@ const UserList: React.FC<UserListProps> = ({
 
   if (type === "user") {
     path = AppRoutes.ADMIN_USER_DETAILS.replace(":id", id);
-  } else if (type === "driver" && isBlocked === "pending") {
-    path = `/admin/PendingDriverDetails/${id}`;
   } else {
     path = AppRoutes.ADMIN_DRIVER_DETAILS.replace(":id",id);
   }
-console.log({path});
-
   navigate(path);
 }
 
