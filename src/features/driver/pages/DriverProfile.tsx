@@ -90,7 +90,7 @@ const DriverProfile: React.FC = () => {
     const fetchDriverProfile = async () => {
       try {
         setLoading(true);
-        const res = await fetchData<ResponseCom["data"]>(DriverApiEndpoints.GET_MY_PROFILE,controller.signal)
+        const res = await fetchData<ResponseCom["data"]>(DriverApiEndpoints.PROFILE,controller.signal)
          
         if(res?.status == StatusCode.OK){
           const data = res.data as DriverProfileData;
@@ -161,7 +161,7 @@ const DriverProfile: React.FC = () => {
            formData.append("profilePhoto", editValues.profilePhoto);
          }
          const res  = await updateData<ResponseCom["data"]>(
-           DriverApiEndpoints.UPDATE_DRIVER_PROFILE,
+           DriverApiEndpoints.PROFILE_IMAGE,
            formData,
          );
      

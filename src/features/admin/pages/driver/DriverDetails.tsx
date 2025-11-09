@@ -4,29 +4,25 @@ import { useDispatch } from "react-redux";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { ArrowLeft } from "lucide-react";
-import AdminLayout from "@/features/admin/components/admin/AdminLayout";
+import AdminLayout from "@/features/admin/components/AdminLayout";
 import { Dialog, DialogContent } from "@/shared/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import DriverDetailsTab from "@/features/admin/components/drivers/DriverDetailsTab";
-import DriverDocumentsTab from "@/features/admin/components/drivers/DriverDocumentsTab";
-import DriverAccountTab from "@/features/admin/components/drivers/DriverAccountTab";
+import DriverDetailsTab from "@/features/admin/components/DriverDetailsTab";
+import DriverDocumentsTab from "@/features/admin/components/DriverDocumentsTab";
+import DriverAccountTab from "@/features/admin/components/DriverAccountTab";
 import { DriverInterface } from "@/shared/types/driver/driverType";
 import { fetchData, postData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { AdminApiEndpoints } from "@/constants/admin-api-end-pointes";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
+import { AdminDriverDetailsDTO } from "../type";
 
 const PendingDriverDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [driver, setDriver] = useState<
-    | (Omit<DriverInterface, "password" | "referralCode" | "_id"> & {
-        _id: string;
-      })
-    | null
-  >(null);
+  const [driver, setDriver] = useState<AdminDriverDetailsDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
@@ -146,7 +142,7 @@ const PendingDriverDetails = () => {
             </Button>
             <div className="text-right">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-                {driver.name || "Unknown Driver"}
+                {driver.name}
               </h1>
               <p className="text-sm text-gray-500 capitalize">
                 Status: {driver.accountStatus || "Unknown"}
@@ -188,12 +184,12 @@ const PendingDriverDetails = () => {
                 handleVerification={handleVerification}
               />
 
-              <DriverDocumentsTab
+              {/* <DriverDocumentsTab
                 driver={driver}
                 setSelectedImage={setSelectedImage}
-              />
+              /> */}
 
-              <DriverAccountTab driver={driver} />
+              {/* <DriverAccountTab driver={driver} /> */}
             </Tabs>
           </Card>
         </div>

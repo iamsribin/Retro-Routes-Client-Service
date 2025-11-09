@@ -1,5 +1,5 @@
 import React from 'react';
-import AdminLayout from '@/features/admin/components/admin/AdminLayout';
+import AdminLayout from '@/features/admin/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Users, Truck, Gift, BarChart3 } from 'lucide-react';
 

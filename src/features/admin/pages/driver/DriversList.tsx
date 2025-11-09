@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
-import AdminLayout from "../../components/admin/AdminLayout";
-import UserList from "../../components/user/UserList";
+import AdminLayout from "../../components/AdminLayout";
+import UserList from "../../components/UserList";
 import { cn } from "@/shared/lib/utils";
 import { fetchData } from "@/shared/services/api/api-service";
 import { usePaginatedSearch } from "@/shared/hooks/usePaginatedSearch";

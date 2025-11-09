@@ -13,11 +13,6 @@ import {
   ChevronRight,
   CheckCircle,
   Clock,
-  Loader2,
-  Loader,
-  LoaderCircle,
-  LucideLoaderPinwheel,
-  LocateFixedIcon,
 } from "lucide-react";
 import DriverNavbar from "../components/DriverNavbar";
 import { StatusCode } from "@/shared/types/enum";
@@ -31,7 +26,6 @@ import { userLogout } from "@/shared/services/redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
 import { formatDate } from "@/shared/utils/format";
 import { DocumentStatus, DriverData, ImageModal, FormData as DocFormData, ImagePreview, DocumentConfig } from "./type";
-import LoadingSpinner from "@/shared/components/loaders/LoadingSpinner";
 import GlobalLoading from "@/shared/components/loaders/GlobalLoading";
 
 const DriverDocuments: React.FC = () => {
@@ -57,7 +51,7 @@ const DriverDocuments: React.FC = () => {
         setLoading(true);
         setError(null);
         const res = await fetchData<DriverData>(
-          DriverApiEndpoints.GET_MY_DOCUMENTS,
+          DriverApiEndpoints.MY_DOCUMENTS,
         );
         if (res?.status === StatusCode.OK && res.data) {
           setDriverData(res.data);
@@ -217,7 +211,7 @@ const DriverDocuments: React.FC = () => {
         }
       }
 
-      const res = await updateData<ResponseCom["data"]>(DriverApiEndpoints.UPDATE_DRIVER_DOCUMENTS, formData);
+      const res = await updateData<ResponseCom["data"]>(DriverApiEndpoints.MY_DOCUMENTS, formData);
 
       if (res?.status == StatusCode.OK) {
         toast({ description: "Profile update request sended successfully", variant: "success" });

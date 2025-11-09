@@ -13,7 +13,7 @@ import {
   Car,
   Ban,
 } from "lucide-react";
-import { DriverDetailsTabProps } from "./type";
+import { DriverDetailsTabProps } from "../type";
 
 const documentGroups = [
   { label: "Driver Image", value: "driverImage" },
@@ -37,19 +37,7 @@ const DriverDetailsTab = ({
   setSelectedFields,
   handleVerification,
 }: DriverDetailsTabProps) => {
-  const navigate = useNavigate();
-
-  const getTodayEarnings = () => {
-    if (!driver?.rideDetails?.length) return 0;
-
-    const today = new Date().toDateString();
-    return driver.rideDetails.Earnings
-      .filter((earning) => new Date(earning.date).toDateString() === today)
-      .reduce((total, earning) => total + earning.amount, 0);
-  };
-console.log("driver",driver);
-
-  const todayEarnings = getTodayEarnings();
+  const navigate = useNavigate()
 
   return (
     <TabsContent value="details" className="p-4 sm:p-6">
@@ -58,26 +46,16 @@ console.log("driver",driver);
         <div className="space-y-6">
           <Card className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200">
             <div className="text-center">
-              {/* {driver.driverImage ? ( */}
                 <img
                   src={driver.driverImage}
                   alt={driver.name || "Driver"}
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover mx-auto mb-4 border-4 border-gray-100"
-                  onError={(e) => {
-                    e.currentTarget.src = "/default-avatar.png";
-                  }}
                 />
-              {/* ) : (
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-gray-500 text-lg">No Image</span>
-                </div>
-              )} */}
-
               <div className="space-y-3 text-sm sm:text-base">
                 <div>
                   <p className="text-gray-500 text-xs sm:text-sm">Email</p>
                   <p className="text-gray-800 break-words">
-                    {driver.email || "Not provided"}
+                    {driver.email}
                   </p>
                 </div>
                 <div>
@@ -91,9 +69,7 @@ console.log("driver",driver);
                     Joining Date
                   </p>
                   <p className="text-gray-800">
-                    {driver.joiningDate
-                      ? new Date(driver.joiningDate).toLocaleDateString()
-                      : "Not available"}
+                    {driver.joiningDate}
                   </p>
                 </div>
                 <div>
@@ -102,7 +78,7 @@ console.log("driver",driver);
                     Address
                   </p>
                   <p className="text-gray-800 text-xs break-words">
-                    {driver.location.address}
+                    {driver.address}
                   </p>
                 </div>
               </div>
@@ -121,14 +97,14 @@ console.log("driver",driver);
               </h3>
               <div className="text-center mb-4">
                 <p className="text-2xl sm:text-3xl font-bold text-green-600">
-                  ₹{todayEarnings.toFixed(2)}
+                  ₹{driver.todayEarnings}
                 </p>
               </div>
               <Button
                 variant="outline"
                 className="w-full text-green-700 border-green-300 hover:bg-green-100 text-xs sm:text-sm"
                 onClick={() =>
-                  navigate(`/admin/drivers/${driver._id}/earnings`)
+                  navigate(`/admin/drivers/${driver.id}/earnings`)
                 }
               >
                 View All Earnings
@@ -144,13 +120,13 @@ console.log("driver",driver);
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <p className="text-lg sm:text-xl font-bold text-blue-600">
-                    {driver.rideDetails?.completedRides || 0}
+                    {driver.totalCompletedRides}
                   </p>
                   <p className="text-xs sm:text-sm text-blue-700">Completed</p>
                 </div>
                 <div className="text-center">
                   <p className="text-lg sm:text-xl font-bold text-red-600">
-                    {driver.rideDetails?.cancelledRides || 0}
+                    {driver.totalCancelledRides}
                   </p>
                   <p className="text-xs sm:text-sm text-red-700">Cancelled</p>
                 </div>
