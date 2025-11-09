@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Shield, ShieldOff, MoreHorizontal, Eye, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import AppRoutes from '@/constants/app-routes';
 
 interface UserListProps {
   users: any[];
@@ -33,6 +34,21 @@ const UserList: React.FC<UserListProps> = ({
     const status = isBlocked === 'block' ? 'blocked' : isBlocked === 'active' ? 'active' : 'pending';
     return `No ${status} ${type}s found.`;
   };
+
+  const handleViewDetailsBtnClick =(id:string) => {
+  let path = "";
+
+  if (type === "user") {
+    path = AppRoutes.ADMIN_USER_DETAILS.replace(":id", id);
+  } else if (type === "driver" && isBlocked === "pending") {
+    path = `/admin/PendingDriverDetails/${id}`;
+  } else {
+    path = AppRoutes.ADMIN_DRIVER_DETAILS.replace(":id",id);
+  }
+console.log({path});
+
+  navigate(path);
+}
 
   // Loading state
   if (loading) {
@@ -63,9 +79,9 @@ const UserList: React.FC<UserListProps> = ({
               <div className="space-y-2">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    {user.driverImage ? (
+                    {user.avatar ? (
                       <img
-                        src={user.driverImage}
+                        src={user.avatar}
                         alt={user.name}
                         width={40}
                         height={40}
@@ -105,7 +121,7 @@ const UserList: React.FC<UserListProps> = ({
                   </div>
                   <div className="col-span-2">
                     <p className="text-muted-foreground">Join Date</p>
-                    <p>{new Date(user.joiningDate).toLocaleDateString()}</p>
+                    <p>{user.joiningDate}</p>
                   </div>
                   {type === 'driver' && user.vehicle && (
                     <div className="col-span-2">
@@ -120,15 +136,7 @@ const UserList: React.FC<UserListProps> = ({
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() =>
-                      navigate(
-                        type === 'user'
-                          ? `/admin/userDetails/${user.id}`
-                          : type === 'driver' && isBlocked === 'pending'
-                          ? `/admin/PendingDriverDetails/${user.id}`
-                          : `/admin/driverDetails/${user.id}`
-                      )
-                    }
+                    onClick={()=>handleViewDetailsBtnClick(user.id)}
                   >
                     <Eye className="mr-1 h-4 w-4" />
                     View
@@ -183,9 +191,9 @@ const UserList: React.FC<UserListProps> = ({
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    {user.driverImage ? (
+                    {user.avatar ? (
                       <img
-                        src={user.driverImage}
+                        src={user.avatar}
                         alt={user.name}
                         width={40}
                         height={40}
@@ -221,15 +229,7 @@ const UserList: React.FC<UserListProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        navigate(
-                          type === 'user'
-                            ? `/admin/userDetails/${user.id}`
-                            : type === 'driver' && isBlocked === 'pending'
-                            ? `/admin/PendingDriverDetails/${user.id}`
-                            : `/admin/driverDetails/${user.id}`
-                        )
-                      }
+                      onClick={()=>handleViewDetailsBtnClick(user.id)}
                     >
                       <Eye className="mr-1 h-4 w-4" />
                       View

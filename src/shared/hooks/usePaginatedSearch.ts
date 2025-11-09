@@ -45,8 +45,8 @@ export function usePaginatedSearch<T = any>({
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
     currentPage: 1,
     totalPages: 1,
@@ -56,31 +56,44 @@ export function usePaginatedSearch<T = any>({
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
-  // Debounce search term
   useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
+  // debounce searchTerm -> debouncedSearch
+  useEffect(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
       setDebouncedSearch(searchTerm);
       setPagination((prev) => ({ ...prev, currentPage: 1 }));
     }, debounceMs);
-
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, [searchTerm, debounceMs]);
 
-  const fetchData = useCallback(async () => {
+  // renamed from fetchData to loadPage
+  const loadPage = useCallback(async () => {
+    // cancel previous
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      try {
+        abortControllerRef.current.abort();
+      } finally {
+        abortControllerRef.current = null;
+      }
     }
 
-    abortControllerRef.current = new AbortController();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError(null);
 
@@ -89,8 +102,10 @@ export function usePaginatedSearch<T = any>({
         page: pagination.currentPage,
         limit: pagination.itemsPerPage,
         search: debouncedSearch,
-        signal: abortControllerRef.current.signal,
+        signal: controller.signal,
       });
+
+      if (!mountedRef.current) return;
 
       setData(result.data);
       setPagination((prev) => ({
@@ -98,42 +113,46 @@ export function usePaginatedSearch<T = any>({
         ...result.pagination,
       }));
     } catch (err: any) {
-      const isAborted = 
-        err.name === 'AbortError' || 
-        err.code === 'ERR_CANCELED' ||
-        err.message?.includes('cancel');
-      
+      // detect abort/cancel
+      const isAborted =
+        err?.name === "AbortError" ||
+        err?.code === "ERR_CANCELED" ||
+        (typeof err?.message === "string" && err.message.toLowerCase().includes("cancel"));
+
       if (!isAborted) {
-        const error = err instanceof Error ? err : new Error('Failed to fetch data');
-        handleCustomError(error)
-        setError(error);
-        if (onError) {
-          onError(error);
-        }
+        const finalError = err instanceof Error ? err : new Error("Failed to fetch data");
+        handleCustomError(finalError);
+        setError(finalError);
+        if (onError) onError(finalError);
         setData([]);
       }
     } finally {
-      setLoading(false);
+       if (mountedRef.current) {
+          setLoading(false);
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+    }
     }
   }, [fetchFn, pagination.currentPage, pagination.itemsPerPage, debouncedSearch, onError]);
 
   useEffect(() => {
-    fetchData();
-
+    loadPage();
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
-  }, [fetchData]);
+  }, [loadPage]);
 
   const setPage = useCallback((page: number) => {
     setPagination((prev) => ({ ...prev, currentPage: page }));
   }, []);
 
   const refresh = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
+    loadPage();
+  }, [loadPage]);
 
   return {
     data,

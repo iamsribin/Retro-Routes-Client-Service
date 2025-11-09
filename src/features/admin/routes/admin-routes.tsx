@@ -17,9 +17,9 @@ function AdminRoutes() {
            <Route path={AppRoutes.DASHBOARD} element={<Dashboard />} />
            <Route path={AppRoutes.ADMIN_USERS} element={<Users />} />
            <Route path={AppRoutes.ADMIN_DRIVERS} element={<Drivers />} />
+          <Route path={"drivers/:id"} element={<DriverDetails />} />
          </Route>
       {/* 
-      <Route path={AppRoutes.ADMIN_USER_DETAILS+"/:id"} element={<ProtectedRoute allowedRole={ROLE}><AdminUserDetails /></ProtectedRoute>} />
       <Route path={AppRoutes.ADMIN_PENDING_DRIVER_DETAILS+"/:id"}element={<ProtectedRoute allowedRole={ROLE}><DriverDetails /></ProtectedRoute>} />
       <Route path={AppRoutes.ADMIN_DRIVER_DETAILS+"/:id"} element={<ProtectedRoute allowedRole={ROLE}><DriverDetails /></ProtectedRoute>} />
        */}

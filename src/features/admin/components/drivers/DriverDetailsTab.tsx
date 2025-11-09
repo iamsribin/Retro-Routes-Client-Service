@@ -40,7 +40,7 @@ const DriverDetailsTab = ({
   const navigate = useNavigate();
 
   const getTodayEarnings = () => {
-    if (!driver?.rideDetails?.Earnings) return 0;
+    if (!driver?.rideDetails?.length) return 0;
 
     const today = new Date().toDateString();
     return driver.rideDetails.Earnings
@@ -58,7 +58,7 @@ console.log("driver",driver);
         <div className="space-y-6">
           <Card className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200">
             <div className="text-center">
-              {driver.driverImage ? (
+              {/* {driver.driverImage ? ( */}
                 <img
                   src={driver.driverImage}
                   alt={driver.name || "Driver"}
@@ -67,11 +67,11 @@ console.log("driver",driver);
                     e.currentTarget.src = "/default-avatar.png";
                   }}
                 />
-              ) : (
+              {/* ) : (
                 <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 mx-auto mb-4 flex items-center justify-center">
                   <span className="text-gray-500 text-lg">No Image</span>
                 </div>
-              )}
+              )} */}
 
               <div className="space-y-3 text-sm sm:text-base">
                 <div>

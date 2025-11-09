@@ -13,16 +13,17 @@ enum AppRoutes {
     DRIVER_RESUBMISSION = 'resubmission',
     TRIPS = "trips",
     DOCUMENTS = "documents",
-    GET_MY_TRIP_DETAILS = "getMyTripDetails",
+    GET_MY_TRIP_DETAILS = "me/trips",
 
     // Driver Routes
     RIDE_TRACKING="ride-tracking",
     // Admin Routes
     ADMIN_USERS = 'users',
-    ADMIN_USER_DETAILS = 'userDetails',
+    ADMIN_USER_DETAILS = 'user/:id',
     ADMIN_PENDING_DRIVER_DETAILS = 'PendingDriverDetails',
-    ADMIN_DRIVER_DETAILS = 'driverDetails',
     ADMIN_DRIVERS = 'drivers',
+    //admin navigate
+    ADMIN_DRIVER_DETAILS = '/admin/drivers/:id',
 }
 
 export default AppRoutes;

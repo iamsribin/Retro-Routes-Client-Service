@@ -7,15 +7,12 @@ export enum AdminApiEndpoints {
 
   // Drivers
   DRIVERS = "/admin/drivers",                         // GET (list), POST (create)
-  DRIVER = "/admin/drivers/:driverId",               // GET (details), PATCH (update), DELETE
+  DRIVER = "/admin/drivers/:id",               // GET (details), PATCH (update), DELETE
   DRIVER_STATUS = "/admin/drivers/:driverId/status", // PATCH (change status e.g. verify/block)
   DRIVER_VERIFICATIONS = "/admin/drivers/:driverId/verifications", // POST for verification attempts
 
   // Users
   USERS = "/admin/users",                            // GET (list)
-  USER = "/admin/users/:userId",                     // GET, PATCH
-  USER_STATUS = "/admin/users/:userId/status",       // PATCH
-
-  // Dashboard / aggregated
+  USER = "/admin/users/:id",                     // GET, PATCH
   DASHBOARD = "/admin/dashboard",                    // GET (summary metrics)
 }

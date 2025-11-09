@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { toast } from "sonner";
 import { useFormik } from "formik";
 import { Eye } from "lucide-react";
 import { Button } from "@chakra-ui/react";
@@ -12,6 +11,9 @@ import {
   fetchData,
   patchData,
 } from "@/shared/services/api/api-service";
+import { AdminApiEndpoints } from "@/constants/admin-api-end-pointes";
+import { toast } from "@/shared/hooks/use-toast";
+import { handleCustomError } from "@/shared/utils/error";
 
 const UserDetails = () => {
   const [statusModal, setStatusModal] = useState(false);
@@ -22,14 +24,16 @@ const UserDetails = () => {
 
   const getData = async () => {
     try {
-      const data = await fetchData<ResponseCom["data"]>(
-        ApiEndpoints.ADMIN_USER_DETAILS + `?id=${id}`,
-        "Admin"
-      );
+      
+      if(!id) {
+        toast({description:"user id is missing in params", variant:"error"})
+        return
+      }
+      const res = await fetchData<ResponseCom["data"]>(AdminApiEndpoints.USER.replace(":id",id));
+      const data = res?.data;
       setUserData(data);
-    } catch (error) {
-      toast.error((error as Error).message);
-      console.log(error);
+    } catch (error) { 
+      handleCustomError(error);
     }
   };
 
@@ -46,32 +50,19 @@ const UserDetails = () => {
     onSubmit: async (values, { setSubmitting }) => {
       try {
 
-        const data = await patchData<ResponseCom["data"]>(
-          ApiEndpoints.ADMIN_UPDATE_USER_STATUS + `?id=${id}`,
-          "Admin",
+        const res = await patchData<ResponseCom["data"]>(
+          AdminApiEndpoints.USER + `?id=${id}`,
           values
         );
-
+         const data = res?.data;
         if (data.message === "Success") {
           setStatusModal(false);
-          toast.success("Status updated successfully!");
+          toast({description:"Status updated successfully!", variant:"success"});
           getData();
           console.log("Socket status:", { socket, isConnected });
-
-          if (socket && isConnected && values.status === "Block") {
-            console.log(`Emitting block-user event for userId: ${data.userId}`);
-            socket.emit("block-user", { userId: data.userId });
-          } else {
-            console.warn(
-              "Socket not connected or status is not Block. Cannot emit block-user event."
-            );
-          }
-        } else {
-          toast.error("Something went wrong");
-        }
+        } 
       } catch (error) {
-        console.error("Error updating user status:", error);
-        toast.error((error as Error).message);
+        handleCustomError(error)
       } finally {
         setSubmitting(false);
       }

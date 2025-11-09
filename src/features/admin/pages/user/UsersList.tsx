@@ -11,37 +11,40 @@ import { Pagination } from '@/shared/components/Pagination';
 const Users: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'block'>('active');
 
-  const fetchUsers = useCallback(
-    async ({ page, limit, search, signal }: any) => {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-        status: activeTab === 'active' ? 'Good' : 'Block',
-        ...(search ? { search } : {}),
-      });
+   const fetchUsers = useCallback(
+   async ({ page, limit, search, signal }: { page: number; limit: number; search?: string; signal?: AbortSignal }) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      status: activeTab === "active" ? "Good" : "Block",
+      ...(search ? { search } : {}),
+    });
 
-      const data = await fetchData<{
-        users: any[];
-        pagination: {
-          currentPage: number;
-          totalPages: number;
-          totalItems: number;
-          itemsPerPage: number;
-        };
-      }>(`${AdminApiEndpoints.USERS}?${params}`, signal);
-      const res = data?.data
-      return {
-        data: res?.users || [],
-        pagination: res?.pagination || {
+    const response = await fetchData<{
+      users: any[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
+      };
+    }>(`${AdminApiEndpoints.USERS}?${params}`, signal);
+
+    const res = response?.data;
+    return {
+      data: res?.users || [],
+      pagination:
+        res?.pagination || {
           currentPage: page,
           totalPages: 1,
           totalItems: 0,
           itemsPerPage: limit,
         },
-      };
-    },
-    [activeTab]
-  );
+    };
+  },
+  [activeTab]
+);
+
 
   const {
     data: users,

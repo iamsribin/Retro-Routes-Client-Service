@@ -1,3 +1,3 @@
 export enum CommonApiEndPoint{
-VEHICLE_MODELS = "/user/vehicleModels",
+VEHICLE_MODELS = "/booking/vehicle/models",
 }

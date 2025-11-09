@@ -37,7 +37,7 @@ const DriverAccountTab = ({
 
   // Helper function to calculate total earnings
   const getTotalEarnings = () => {
-    if (!driver?.rideDetails || !Array.isArray(driver.rideDetails)) {
+    if (!driver?.rideDetails?.length || !Array.isArray(driver.rideDetails)) {
       return 0;
     }
     return driver.rideDetails.Earnings.reduce((total, earning) => {

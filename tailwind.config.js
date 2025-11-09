@@ -1,4 +1,3 @@
-// tailwind.config.js
 module.exports = {
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
@@ -41,12 +40,11 @@ module.exports = {
           /* ... */
         },
 
-        // Add these new color definitions
         emerald: "hsl(var(--primary))",
         wasabi: "hsl(var(--secondary))",
         khaki: "hsl(var(--accent))",
-        egyptian: "#6C5B4D", // Add actual hex value from your design
-        noir: "#1A1A1A", // Add actual hex value from your design
+        egyptian: "#6C5B4D", 
+        noir: "#1A1A1A", 
       },
     },
   },

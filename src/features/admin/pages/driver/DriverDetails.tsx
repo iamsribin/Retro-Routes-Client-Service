@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { ArrowLeft } from "lucide-react";
@@ -12,10 +11,11 @@ import DriverDetailsTab from "@/features/admin/components/drivers/DriverDetailsT
 import DriverDocumentsTab from "@/features/admin/components/drivers/DriverDocumentsTab";
 import DriverAccountTab from "@/features/admin/components/drivers/DriverAccountTab";
 import { DriverInterface } from "@/shared/types/driver/driverType";
-import { isAbortError } from "@/shared/utils/checkAbortControllerError";
 import { fetchData, postData } from "@/shared/services/api/api-service";
-import ApiEndpoints from "@/constants/user-api-end-pointes";
 import { ResponseCom } from "@/shared/types/commonTypes";
+import { AdminApiEndpoints } from "@/constants/admin-api-end-pointes";
+import { toast } from "@/shared/hooks/use-toast";
+import { handleCustomError } from "@/shared/utils/error";
 
 const PendingDriverDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,17 +41,22 @@ const PendingDriverDetails = () => {
 
     const fetchDriver = async () => {
       try {
+        if(!id) {
+          toast({description:"id is missing", variant: "error"});
+          return
+        }
         setLoading(true);
-        const data = await fetchData<ResponseCom["data"]>(
-          `${ApiEndpoints.ADMIN_DRIVER_DETAILS}/${id}`,
-          "Admin",
-          signal
-        );
-        setDriver(data);
+        const res = await fetchData<ResponseCom["data"]>(
+          AdminApiEndpoints.DRIVER.replace(":id",id),signal);
+
+          const data = res?.data;
+          console.log("dta",data);
+          
+          if(res?.status == 200){
+            setDriver(data);
+          }
       } catch (error: any) {
-        if (!isAbortError(error))
-          toast.error(error?.message || "Failed to update driver status");
-        console.error("Error fe tch Driver details", error);
+          handleCustomError(error)
       } finally {
         setLoading(false);
       }
@@ -69,12 +74,12 @@ const PendingDriverDetails = () => {
     fields?: string[]
   ) => {
     if (!note.trim()) {
-      toast.error("Please provide a note");
+      toast({description:"Please provide a note", variant:"error"});
       return;
     }
 
     if (status === "Rejected" && (!fields || fields.length === 0)) {
-      toast.error("Please select at least one document for resubmission");
+      toast({description:"Please select at least one document for resubmission", variant:"error"});
       return;
     }
 
@@ -84,25 +89,22 @@ const PendingDriverDetails = () => {
         : { status, note: note.trim() };
 
     try {
-       const response = await postData<ResponseCom["data"]>(
-        `${ApiEndpoints.ADMIN_UPDATE_DRIVER_STATUS}${id}`,
-        "Admin",
+       const res = await postData<ResponseCom["data"]>(
+        `${AdminApiEndpoints.DRIVER}${id}`,
         payload
       );
+      // const data = res?.data;
+      if (res && res.status === 200) {
 
-      if (response.status === 200 || response.status === 202) {
-        toast.success(
+        toast({description:
           `Driver ${
             status === "Rejected" ? "rejected and set to Pending" : status
-          } successfully`
-        );
-        navigate("/admin/drivers");
-      } else {
-        toast.error(response.data || "Something went wrong");
+          } successfully`, variant:"error"
+      });
+        // navigate("/admin/drivers");
       }
     } catch (error) {
-      console.error("Error updating driver status:", error);
-      toast.error(`Failed to ${status.toLowerCase()} driver`);
+      handleCustomError(error)
     }
   };
 
