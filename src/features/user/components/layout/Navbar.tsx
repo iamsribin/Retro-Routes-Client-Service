@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
-import { Logo } from "@/assets";
 import { Menu, X, User, ChevronDown, Navigation, AlertCircle } from 'lucide-react';
 import { useDispatch, useSelector } from "react-redux";
-import { handleLogout } from "@/shared/utils/handleLogout";
 import { RootState, store } from "@/shared/services/redux/store";
-import { clearRide } from "@/shared/services/redux/slices/rideSlice";
+import { handleLogout } from "@/shared/utils/auth";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPulsing, setIsPulsing] = useState(true);
-  const dispatch = useDispatch()
 
   const navigate = useNavigate();
   
@@ -168,7 +165,7 @@ return (
                       to="/login" 
                       className="block px-4 py-2 text-sm hover:bg-yellow-500/20 rounded-md transition-colors duration-200 text-white"
                       onClick={() => {
-                        handleLogout("User");
+                        handleLogout();
                       }}
                     >
                       Logout
@@ -314,7 +311,7 @@ return (
                   variant="outline" 
                   className="w-full rounded-full border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
                   onClick={() => {
-                    handleLogout("User");
+                    handleLogout();
                     setIsMenuOpen(false);
                   }}
                 >

@@ -19,7 +19,7 @@ import {
 } from "@/shared/components/ui/navigation-menu";
 import { RootState } from "@/shared/services/redux/store";
 import { useSelector } from "react-redux";
-import { handleLogout } from "@/shared/utils/handleLogout";
+import { handleLogout } from "@/shared/utils/auth";
 
 
 const DriverNavbar = () => {
@@ -115,7 +115,7 @@ const DriverNavbar = () => {
   }, [isNotificationOpen]);
 
   const logoutHandle = () => {
-    handleLogout("Driver");
+    handleLogout();
   };
 
   const handleRideMapNavigation = () => {

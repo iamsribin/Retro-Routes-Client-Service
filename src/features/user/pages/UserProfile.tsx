@@ -128,10 +128,11 @@ const UserProfilePage = () => {
     if (user) {
       try {
         setLoading(true);
-        const res = await updateData(UserApiEndpoints.UPDATE_NAME, {
+        const res = await updateData(UserApiEndpoints.NAME, {
           tempName,
         });
         if (res?.status === 200) {
+          setUser({...user,name:tempName})
           toast({
             description: "name updated successfully",
             variant: "success",
