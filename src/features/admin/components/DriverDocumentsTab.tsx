@@ -2,7 +2,7 @@ import { TabsContent } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
 import { ZoomIn, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { DriverDocumentsTabProps } from "./type";
+import { DriverDocumentsTabProps } from "../type";
 
 const DriverDocumentsTab = ({ driver, setSelectedImage }: DriverDocumentsTabProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,52 +86,44 @@ const DriverDocumentsTab = ({ driver, setSelectedImage }: DriverDocumentsTabProp
       isExpired: isExpired(driver?.license?.validity),
     },
     {
-      title: "Vehicle RC",
-      id: driver?.vehicleDetails?.registrationId,
-      registrationNumber: driver?.vehicleDetails?.vehicleNumber,
-      color: driver?.vehicleDetails?.vehicleColor,
-      model: driver?.vehicleDetails?.model,
-      front: driver?.vehicleDetails?.rcFrontImageUrl,
-      back: driver?.vehicleDetails?.rcBackImageUrl,
-      start: driver?.vehicleDetails?.rcStartDate,
-      expiry: driver?.vehicleDetails?.rcExpiryDate,
+      title: "RC",
+      id: driver.rc.registrationId,
+      front: driver.rc.rcFrontImageUrl,
+      back: driver.rc?.rcBackImageUrl,
+      start: driver?.rc?.rcStartDate,
+      expiry: driver?.rc?.rcExpiryDate,
       hasExpiry: true,
-      isExpired: isExpired(driver?.vehicleDetails?.rcExpiryDate),
+      isExpired: isExpired(driver?.rc?.rcExpiryDate),
     },
     {
-      title: "Vehicle Insurance",
-      id: driver?.vehicleDetails?.registrationId,
-      registrationNumber: driver?.vehicleDetails?.vehicleNumber,
-      front: driver?.vehicleDetails?.insuranceImageUrl,
-      start: driver?.vehicleDetails?.insuranceStartDate,
-      expiry: driver?.vehicleDetails?.insuranceExpiryDate,
+      title: "Insurance",
+      id: 123,
+      front: driver?.insurance?.insuranceImageUrl,
+      start: driver?.insurance?.insuranceStartDate,
+      expiry: driver?.insurance?.insuranceExpiryDate,
       hasExpiry: true,
-      isExpired: isExpired(driver?.vehicleDetails?.insuranceExpiryDate),
+      isExpired: isExpired(driver?.insurance?.insuranceExpiryDate),
     },
     {
       title: "Pollution Certificate",
-      id: driver?.vehicleDetails?.registrationId,
-      registrationNumber: driver?.vehicleDetails?.vehicleNumber,
-      front: driver?.vehicleDetails?.pollutionImageUrl,
-      start: driver?.vehicleDetails?.pollutionStartDate,
-      expiry: driver?.vehicleDetails?.pollutionExpiryDate,
+      id: 123,
+      front: driver?.pollution?.pollutionImageUrl,
+      start: driver?.pollution?.pollutionStartDate,
+      expiry: driver?.pollution?.pollutionExpiryDate,
       hasExpiry: true,
-      isExpired: isExpired(driver?.vehicleDetails?.pollutionExpiryDate),
+      isExpired: isExpired(driver?.pollution?.pollutionExpiryDate),
     },
     {
       title: "Vehicle Photos",
-      id: driver?.vehicleDetails?.registrationId,
-      model: driver?.vehicleDetails?.model,
-      color: driver?.vehicleDetails?.vehicleColor,
-      registrationNumber: driver?.vehicleDetails?.vehicleNumber,
-      front: driver?.vehicleDetails?.carFrontImageUrl,
-      back: driver?.vehicleDetails?.carBackImageUrl,
+      id:123,
+      model: driver?.vehicle?.model,
+      color: driver?.vehicle?.vehicleColor,
+      vehicleNumber: driver?.vehicle?.vehicleNumber,
+      front: driver?.vehicle?.carFrontImageUrl,
+      back: driver?.vehicle?.carBackImageUrl,
       hasExpiry: false,
     },
-  ];
-
-  console.log("documents",documents);
-  
+  ];  
 
   return (
     <>
@@ -160,12 +152,6 @@ const DriverDocumentsTab = ({ driver, setSelectedImage }: DriverDocumentsTabProp
                 <p className="text-gray-600 text-sm">
                   <span className="font-medium">ID:</span> {doc.id || "N/A"}
                 </p>
-
-                {doc.registrationNumber && (
-                  <p className="text-gray-600 text-sm">
-                    <span className="font-medium">Number:</span> {doc.registrationNumber}
-                  </p>
-                )}
 
                 {doc.model && (
                   <p className="text-gray-600 text-sm">

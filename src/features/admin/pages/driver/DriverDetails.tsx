@@ -10,13 +10,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import DriverDetailsTab from "@/features/admin/components/DriverDetailsTab";
 import DriverDocumentsTab from "@/features/admin/components/DriverDocumentsTab";
 import DriverAccountTab from "@/features/admin/components/DriverAccountTab";
-import { DriverInterface } from "@/shared/types/driver/driverType";
 import { fetchData, postData } from "@/shared/services/api/api-service";
 import { ResponseCom } from "@/shared/types/commonTypes";
 import { AdminApiEndpoints } from "@/constants/admin-api-end-pointes";
 import { toast } from "@/shared/hooks/use-toast";
 import { handleCustomError } from "@/shared/utils/error";
-import { AdminDriverDetailsDTO } from "../type";
+import { AdminDriverDetailsDTO } from "../../type";
 
 const PendingDriverDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -184,10 +183,10 @@ const PendingDriverDetails = () => {
                 handleVerification={handleVerification}
               />
 
-              {/* <DriverDocumentsTab
+              <DriverDocumentsTab
                 driver={driver}
                 setSelectedImage={setSelectedImage}
-              /> */}
+              />
 
               {/* <DriverAccountTab driver={driver} /> */}
             </Tabs>

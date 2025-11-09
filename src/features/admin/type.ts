@@ -34,7 +34,7 @@ interface DriverDetailsTabProps {
 }
 
 interface DriverDocumentsTabProps {
-  driver: (Omit<DriverInterface, 'password' | 'referralCode' | '_id'> & { _id: string });
+  driver: AdminDriverDetailsDTO,
   setSelectedImage: (value: string | undefined) => void;
 }
 
