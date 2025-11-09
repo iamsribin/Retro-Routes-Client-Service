@@ -11,7 +11,7 @@ import {
   Calendar,
   User
 } from "lucide-react";
-import { DriverAccountTabProps } from "./type";
+import { DriverAccountTabProps } from "../type";
 
 const DriverAccountTab = ({ 
   driver, 
@@ -19,46 +19,20 @@ const DriverAccountTab = ({
   onNavigateToFeedback, 
   onSendCommissionMail 
 }: DriverAccountTabProps) => {
-  // Helper function to format currency
-  const formatCurrency = (amount: number | undefined) => {
-    if (amount === undefined || amount === null) return "₹0.00";
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
 
-  // Helper function to format number
-  const formatNumber = (num: number | undefined) => {
-    if (num === undefined || num === null) return 0;
-    return num.toLocaleString('en-IN');
-  };
-
-  // Helper function to calculate total earnings
-  const getTotalEarnings = () => {
-    if (!driver?.rideDetails?.length || !Array.isArray(driver.rideDetails)) {
-      return 0;
-    }
-    return driver.rideDetails.Earnings.reduce((total, earning) => {
-      return total + (earning?.amount || 0);
-    }, 0);
-  };
-
-  // Check if commission is greater than 5000
   const shouldShowCommissionAlert = (commission: number | undefined) => {
     return commission && commission > 5000;
   };
 
   // Get wallet balance
-  const walletBalance = driver?.wallet?.balance || 0;
+  const walletBalance = driver?.walletBalance;
   const adminCommission = driver?.adminCommission || 0;
-  const totalRatings = driver?.totalRatings || 0;
-  const totalEarnings = getTotalEarnings();
+  const totalRatings = driver?.totalRating;
+  const totalEarnings =  driver?.todayEarnings;
   const completedRides = driver?.totalCompletedRides || 0;
   const cancelledRides = driver?.totalCancelledRides || 0;
-  const transactionCount = driver?.wallet?.transactions?.length || 0;
-  const feedbackCount = driver?.feedbacks?.length || 0;
+  const transactionCount =driver.transactionCount;
+  const feedbackCount = driver.feedbackCount;
 
   return (
     <TabsContent value="account" className="p-4 md:p-6">
@@ -98,7 +72,7 @@ const DriverAccountTab = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigateToTransactions?.(driver?._id)}
+                onClick={() => onNavigateToTransactions?.(driver?.id)}
                 disabled={transactionCount === 0}
                 className="text-xs px-2 py-1"
               >
@@ -109,7 +83,7 @@ const DriverAccountTab = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-gray-600">Wallet Balance</h4>
               <p className="text-xl md:text-2xl font-bold text-gray-900">
-                {formatCurrency(walletBalance)}
+                {walletBalance}
               </p>
               <p className="text-xs text-gray-500">
                 {transactionCount} transaction{transactionCount !== 1 ? 's' : ''}
@@ -139,7 +113,7 @@ const DriverAccountTab = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSendCommissionMail?.(driver?._id, adminCommission)}
+                  onClick={() => onSendCommissionMail?.(driver?.id, adminCommission)}
                   className="text-xs px-2 py-1 border-orange-300 text-orange-700 hover:bg-orange-100"
                 >
                   <Mail className="h-3 w-3 mr-1" />
@@ -154,7 +128,7 @@ const DriverAccountTab = ({
                   ? 'text-orange-700'
                   : 'text-gray-900'
               }`}>
-                {formatCurrency(adminCommission)}
+                {adminCommission}
               </p>
               {shouldShowCommissionAlert(adminCommission) && (
                 <p className="text-xs text-orange-600 font-medium">
@@ -173,7 +147,7 @@ const DriverAccountTab = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigateToFeedback?.(driver?._id)}
+                onClick={() => onNavigateToFeedback?.(driver?.id)}
                 disabled={feedbackCount === 0}
                 className="text-xs px-2 py-1"
               >
@@ -184,7 +158,7 @@ const DriverAccountTab = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-gray-600">Total Ratings</h4>
               <p className="text-xl md:text-2xl font-bold text-gray-900">
-                {formatNumber(totalRatings)}
+                {totalRatings}
               </p>
               <p className="text-xs text-gray-500">
                 {feedbackCount} feedback{feedbackCount !== 1 ? 's' : ''}
@@ -205,7 +179,7 @@ const DriverAccountTab = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-gray-600">Lifetime Earnings</h4>
               <p className="text-xl md:text-2xl font-bold text-gray-900">
-                {formatCurrency(totalEarnings)}
+                {totalEarnings}
               </p>
               <p className="text-xs text-gray-500">
                 From {completedRides} completed ride{completedRides !== 1 ? 's' : ''}
@@ -222,11 +196,11 @@ const DriverAccountTab = ({
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-2xl font-bold text-green-600">{formatNumber(completedRides)}</p>
+              <p className="text-2xl font-bold text-green-600">{completedRides}</p>
               <p className="text-sm text-green-700">Completed</p>
             </div>
             <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-              <p className="text-2xl font-bold text-red-600">{formatNumber(cancelledRides)}</p>
+              <p className="text-2xl font-bold text-red-600">{cancelledRides}</p>
               <p className="text-sm text-red-700">Cancelled</p>
             </div>
             <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -277,12 +251,12 @@ const DriverAccountTab = ({
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <div className="flex items-center space-x-1">
                 <div className={`w-2 h-2 rounded-full ${
-                  driver?.isAvailable ? 'bg-green-500' : 'bg-gray-400'
+                  driver?.isOnline ? 'bg-green-500' : 'bg-gray-400'
                 }`}></div>
-                <span>{driver?.isAvailable ? 'Available' : 'Offline'}</span>
+                <span>{driver?.isOnline ? 'Available' : 'Offline'}</span>
               </div>
               <span>•</span>
-              <span>ID: {driver?._id || 'N/A'}</span>
+              <span>ID: {driver?.id}</span>
             </div>
           </div>
         </div>

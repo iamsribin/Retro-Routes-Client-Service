@@ -188,7 +188,7 @@ const PendingDriverDetails = () => {
                 setSelectedImage={setSelectedImage}
               />
 
-              {/* <DriverAccountTab driver={driver} /> */}
+              <DriverAccountTab driver={driver} />
             </Tabs>
           </Card>
         </div>

@@ -3,7 +3,7 @@ import { DriverInterface } from "@/shared/types/driver/driverType";
 // Add this to your existing type.ts file
 
 interface DriverAccountTabProps {
-  driver: (Omit<DriverInterface, 'password' | 'referralCode' | '_id'> & { _id: string });
+  driver:AdminDriverDetailsDTO;
   onNavigateToTransactions?: (driverId: string) => void;
   onNavigateToFeedback?: (driverId: string) => void;
   onSendCommissionMail?: (driverId: string, commissionAmount: number) => void;
@@ -61,9 +61,9 @@ export interface Res_getDriversListByAccountStatus {
 
 export interface AdminDriverDetailsDTO {
   // deatils tab
-  name:string;
   id:string;
   driverImage: string;
+  name:string;
   email: string;
   mobile: string;
   joiningDate: string;
@@ -72,7 +72,9 @@ export interface AdminDriverDetailsDTO {
   totalCompletedRides: number;
   totalCancelledRides: number;
   accountStatus: AccountStatus;
-
+  isOnline:boolean;
+  transactionCount:number;
+  feedbackCount:number;
   //  documents
   aadhar: {
     id: string;
