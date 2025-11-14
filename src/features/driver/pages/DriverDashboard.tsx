@@ -7,8 +7,7 @@ import { CircleDollarSign, Clock, Navigation2, Star } from "lucide-react";
 import DriverNavbar from "../components/DriverNavbar";
 import { RootState } from "@/shared/services/redux/store";
 import { useDispatch, useSelector } from "react-redux";
-
-// const useDispatch = () => (action) => console.log("Dispatch:", action);
+import { toast } from "@/shared/hooks/use-toast";
 
 const DriverDashboard = () => {
   const dispatch = useDispatch();
@@ -22,7 +21,7 @@ const DriverDashboard = () => {
 
   const handleOnlineChange = useCallback(async (checked:boolean) => {
     if (isOpen) {
-      alert("You can't go offline while you're on a ride.");
+      toast({description: "You can't go offline while you're on a ride.", variant: "error"});
       return;
     }
 
@@ -34,12 +33,11 @@ const DriverDashboard = () => {
           setOnline(checked);
         },
         (error) => {
-          console.error("Location access denied", error);
-          alert("Please enable location access");
+          toast({description: "Please enable location access", variant: "error"});
         }
       );
     } else {
-      alert("Geolocation is not supported by your browser");
+      toast({description: "Geolocation is not supported by your browser", variant: "error"});
     }
   }, [rideData]);
 
